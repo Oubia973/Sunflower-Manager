@@ -1,0 +1,7 @@
+:root {
+  --asset-button: url('../button.png');
+  --asset-exchange: url('../exchange.png');
+  --asset-nifty: url('../nifty.png');
+  --asset-opensea: url('../opensea.png');
+  --asset-itemdisc: url('../../public/icon/ui/itemdisc_01.png');
+}

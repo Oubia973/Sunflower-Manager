@@ -1,0 +1,512 @@
+.tdcenter {
+  position: relative;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  padding-right: 3px;
+}
+
+.date {
+  position: relative;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  padding-right: 3px;
+  color: rgb(119, 119, 119);
+}
+
+.quantity {
+  position: relative;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  padding-right: 3px;
+  color: rgb(160, 160, 160);
+}
+
+.tdcenterbrd {
+  position: relative;
+  text-align: center;
+  border-left: 1px solid rgb(83, 51, 51);
+  border-right: 1px solid rgb(83, 51, 51);
+}
+
+.tdcenterbrdright {
+  position: relative;
+  text-align: center;
+  border-right: 1px solid rgb(83, 51, 51);
+}
+
+.tdcenterbrdleft {
+  position: relative;
+  text-align: center;
+  border-left: 1px solid rgb(83, 51, 51);
+}
+
+.tdcenterbrdbot {
+  position: relative;
+  text-align: center;
+  border-bottom: 1px solid rgb(83, 51, 51);
+}
+
+.tdcentergreen {
+  /* background-color: rgba(0, 110, 0, 0.39); */
+  position: relative;
+  text-align: center;
+  border-left: 1px solid rgb(83, 51, 51);
+  border-right: 1px solid rgb(83, 51, 51);
+}
+
+.tdleft {
+  position: relative;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  padding-right: 3px;
+}
+
+.tditem {
+  width: 20px;
+  position: relative;
+  font-size: 11px;
+  text-align: left;
+}
+
+.tditemright {
+  position: relative;
+  font-size: 11px;
+  text-align: right;
+}
+
+.tditemnft {
+  width: 80px;
+  position: relative;
+  font-size: 13px;
+  text-align: left;
+}
+
+.tditemboost {
+  width: 40px;
+  position: relative;
+  font-size: 13px;
+  text-align: left;
+}
+
+.tdpdiff {
+  width: 20px;
+  position: relative;
+  font-size: 10px;
+  text-align: center;
+  color: rgb(180, 42, 33);
+}
+
+.tdpdiffgrn {
+  width: 20px;
+  position: relative;
+  font-size: 10px;
+  text-align: center;
+  color: rgb(92, 190, 53);
+}
+
+.tdcost {
+  position: relative;
+  text-align: center;
+}
+
+.tdcost:hover::after {
+  content: 'Production cost calculated with your NFT/Skills';
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #f9f9f9;
+  color: #333;
+  padding: 5px;
+  border-radius: 5px;
+  z-index: 1;
+}
+
+.tdshop {
+  position: relative;
+  text-align: center;
+}
+
+.tdshop:hover::after {
+  content: 'ingame shop prices';
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #f9f9f9;
+  color: #333;
+  padding: 5px;
+  border-radius: 5px;
+  z-index: 1;
+}
+
+.tdtrad {
+  position: relative;
+  text-align: center;
+  border: 1px solid rgb(83, 51, 51);
+}
+
+.tdnifty {
+  position: relative;
+  text-align: center;
+  border: 1px solid rgb(83, 51, 51);
+}
+
+.tdpos {
+  position: relative;
+  text-align: center;
+  border: 1px solid rgb(83, 51, 51);
+}
+
+.th-icon {
+  width: 20px;
+  height: 46px;
+}
+
+.thcenter {
+  position: relative;
+  text-align: center;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+.thcenterbrd {
+  position: relative;
+  text-align: center;
+  border-left: 1px solid rgb(83, 51, 51);
+  border-right: 1px solid rgb(83, 51, 51);
+  font-size: 13px;
+}
+.thcenterbrdleft {
+  position: relative;
+  text-align: center;
+  border-left: 1px solid rgb(83, 51, 51);
+  font-size: 13px;
+}
+.thcenterbrdright {
+  position: relative;
+  text-align: center;
+  border-right: 1px solid rgb(83, 51, 51);
+  font-size: 13px;
+}
+
+.ttcenter {
+  position: relative;
+  text-align: center;
+  font-size: 13px;
+  color: #9b9b9b;
+}
+
+.ttcenterbrd {
+  position: relative;
+  text-align: center;
+  border-left: 1px solid rgb(83, 51, 51);
+  border-right: 1px solid rgb(83, 51, 51);
+  font-size: 13px;
+  color: #9b9b9b;
+}
+
+.thtrad {
+  width: 60px;
+  height: 40px;
+  position: relative;
+  text-align: center;
+  border: none !important;
+  background: transparent;
+  color: #eaf4ff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  cursor: pointer;
+  padding: 0 4px;
+  overflow: visible;
+  isolation: isolate;
+  transition: transform 120ms ease, filter 140ms ease;
+}
+
+.thtrad::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 10px;
+  height: 28px;
+  border: 2px solid rgba(209, 106, 106, 0.521);
+  border-radius: 6px;
+  background:
+    var(--modern-btn-gradient),
+    var(--thtrad-bg, none);
+  background-size: 100% 100%, 150% 150%;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-blend-mode: normal;
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.2) inset,
+    0 -2px 0 rgba(0, 0, 0, 0.34) inset,
+    0 10px 18px rgba(0, 0, 0, 0.5);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.thtrad-label {
+  position: relative;
+  z-index: 2;
+  display: inline-block;
+  margin-top: 14px;
+}
+
+.image-overflow {
+  position: absolute;
+  top: 0%;
+  left: 0%;
+  width: 300%;
+  height: 300%;
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: 1;
+}
+
+.overlay-trad {
+  position: absolute;
+  top: 9px;
+  left: 5px;
+  width: 14px;
+  height: 14px;
+  background-image: var(--asset-exchange);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.thtrad:hover {
+  transform: translateY(-1px);
+}
+
+.thtrad:hover::before {
+  border-color: rgba(255, 130, 130, 0.62);
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.24) inset,
+    0 -2px 0 rgba(0, 0, 0, 0.36) inset,
+    0 13px 24px rgba(6, 15, 33, 0.62);
+}
+
+.thtrad:active {
+  transform: translateY(1px);
+}
+
+.thtrad:active::before {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.24) inset,
+    0 4px 10px rgba(6, 15, 33, 0.45);
+}
+
+.thtrad:hover::after {
+  font-weight: normal;
+  content: 'Clic to see history';
+  position: absolute;
+  font-size: 16px;
+  width: 100px;
+  white-space: pre-line;
+  top: 70px;
+  left: 40px;
+  transform: translateX(-50%);
+  background-color: #f9f9f9;
+  color: #333;
+  padding: 5px;
+  border-radius: 5px;
+  z-index: 2;
+}
+
+.thnifty {
+  width: 65px;
+  position: relative;
+  text-align: center;
+  background:
+    var(--modern-btn-gradient),
+    var(--asset-button);
+  background-size: 100% 100%, 90% 60%;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  border-top: 1px solid rgb(83, 51, 51);
+  border-left: 1px solid rgb(83, 51, 51);
+  border-right: 1px solid rgb(83, 51, 51);
+}
+
+.overlay-nifty {
+  position: absolute;
+  top: 4px;
+  left: 10%;
+  width: 80%;
+  height: 40px;
+  background-image: var(--asset-nifty);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 1;
+}
+
+.thnifty:hover::after {
+  font-weight: normal;
+  content: 'Clic to see history';
+  position: absolute;
+  width: 100px;
+  white-space: pre-line;
+  top: 70px;
+  left: 40px;
+  transform: translateX(-50%);
+  background-color: #f9f9f9;
+  color: #333;
+  padding: 5px;
+  border-radius: 5px;
+  z-index: 2;
+}
+
+.thos {
+  width: 65px;
+  position: relative;
+  text-align: center;
+  background:
+    var(--modern-btn-gradient),
+    var(--asset-button);
+  background-size: 100% 100%, 90% 60%;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  border-top: 1px solid rgb(83, 51, 51);
+  border-left: 1px solid rgb(83, 51, 51);
+  border-right: 1px solid rgb(83, 51, 51);
+}
+
+.overlay-os {
+  position: absolute;
+  top: 4px;
+  left: 10%;
+  width: 80%;
+  height: 40px;
+  background-image: var(--asset-opensea);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 1;
+}
+
+.thos:hover::after {
+  font-weight: normal;
+  content: 'Clic to see history';
+  position: absolute;
+  width: 100px;
+  white-space: pre-line;
+  top: 70px;
+  left: 40px;
+  transform: translateX(-50%);
+  background-color: #f9f9f9;
+  color: #333;
+  padding: 5px;
+  border-radius: 5px;
+  z-index: 2;
+}
+
+.tooltipfrmid {
+  position: absolute;
+  background-color: #1f1f1fc7;
+  color: #fff;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  z-index: 9999;
+}
+
+.tooltiphrvst-container {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltiphrvst-trigger {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.tooltiphrvst-content {
+  position: absolute;
+  z-index: 1;
+  background-color: #333;
+  color: #fff;
+  padding: 8px;
+  border-radius: 4px;
+  display: none;
+  top: -13px;
+  left: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.tooltiphrvst-container:hover .tooltiphrvst-content {
+  display: block;
+}
+
+.tooltiphrvst-content.left {
+  top: 50%;
+  right: calc(100% + 5px);
+  transform: translateY(-50%);
+}
+
+.content-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-height: 100vh;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+.left-content {
+  height: 80vh;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.left-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.left-content::-webkit-scrollbar-thumb {
+  background-color: #7a7a7a;
+}
+
+.left-content::-webkit-scrollbar-track {
+  background-color: #1d1d1d;
+}
+
+.right-content {
+  height: 80vh;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.right-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.right-content::-webkit-scrollbar-thumb {
+  background-color: #7a7a7a;
+}
+
+.right-content::-webkit-scrollbar-track {
+  background-color: #1d1d1d;
+}
+

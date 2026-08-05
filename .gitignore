@@ -1,0 +1,41 @@
+# Dependencies and build output
+/node_modules/
+/build/
+/coverage/
+
+# Local environment and editor settings
+/.env
+/.env.*
+!/.env.example
+/.vscode/
+/.continue/
+/.pnp
+/.pnp.js
+
+# Local/legacy API and logs
+/api/
+/public/.well-known/acme-challenge/
+/npm-debug.log*
+/yarn-debug.log*
+/yarn-error.log*
+
+# Local webpack override (Create React App does not load it directly)
+/webpack.config.js
+
+# Android local configuration, signing material, caches and artifacts
+/android/.gradle/
+/android/.idea/
+/android/build/
+/android/**/build/
+/android/local.properties
+/android/keystore.properties
+/android/*.jks
+/android/*.keystore
+/android/*.apk
+/android/*.aab
+/android/app/google-services.sample.json
+/android/capacitor-cordova-android-plugins/
+/android/app/src/main/assets/public/
+/android/app/src/main/assets/capacitor.config.json
+/android/app/src/main/assets/capacitor.plugins.json
+/android/app/src/main/res/xml/config.xml

@@ -1,0 +1,55 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "proxy": "http://127.0.0.1:2003",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "lint": "eslint src",
+    "capacitor:copy": "cap copy android",
+    "capacitor:sync": "cap sync android",
+    "android:apk": "npm run build && npx cap sync android && cd android && gradlew assembleRelease"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^7.3.0",
+    "@capacitor/cli": "^7.3.0",
+    "@capacitor/core": "^7.4.0",
+    "@capacitor/push-notifications": "^7.0.2",
+    "@capacitor/status-bar": "^7.0.2",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^6.4.7",
+    "ajv": "^8.18.0",
+    "axios": "^1.8.2",
+    "chart.js": "^4.4.8",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "date-fns": "^4.1.0",
+    "firebase": "^11.9.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "^5.0.1",
+    "web-vitals": "^4.2.4"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^8.57.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.5.0"
+  }
+}

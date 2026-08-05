@@ -1,0 +1,6 @@
+/build/*
+!/build/.npmkeep
+
+# google-services.json contains the public Firebase Android client
+# configuration embedded in the APK. It is versioned so builds are
+# reproducible. Never add a Firebase Admin service-account key here.

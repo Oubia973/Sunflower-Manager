@@ -1,0 +1,780 @@
+:root {
+  --background-color: rgb(24, 12, 6);
+  --text-color: rgb(255, 255, 255);
+  --modern-btn-gradient: linear-gradient(to top, rgba(67, 19, 19, 0.9) 0%, rgba(104, 50, 40, 0.72) 52%, rgba(204, 124, 92, 0.5) 100%);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html,
+body {
+  box-sizing: border-box;
+}
+
+.App {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.App::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.App::-webkit-scrollbar-thumb {
+  background-color: #7a7a7a;
+}
+
+.App::-webkit-scrollbar-track {
+  background-color: #1d1d1d;
+}
+
+.App-header {
+  background-color: #1a1d22;
+  /* min-height: 60vh; */
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  /*calc(10px + 2vmin);*/
+  color: white;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1;
+}
+
+.top-frame {
+  position: sticky;
+  height: auto;
+  top: 0;
+  z-index: 10;
+  background-color: var(--background-color);
+  display: flex;
+  flex-direction: column;
+  overflow-x: visible;
+  overflow-y: hidden;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1;
+  /* outline: 2px solid red; */
+}
+
+.tabletrades{
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  margin-top: 0px;
+  height: auto;
+  min-height: 22px;
+  padding-bottom: 6px;
+}
+.tabletradesTable{
+  border-collapse: collapse;
+  width: max-content;
+}
+
+.App-h1 {
+  background-color: #15171b;
+  height: 55px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1;
+}
+
+.h1-container {
+  background-color: #15171b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  /*calc(10px + 2vmin);*/
+  color: rgb(253, 223, 55);
+}
+
+.App-logo {
+  display: flex;
+  height: 30px;
+  width: 30px;
+  pointer-events: none;
+}
+
+.App-logo-mobile {
+  display: none;
+}
+
+@media (max-width: 399px) {
+  .h1-container {
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  .App-logo {
+    height: 22px;
+    width: 22px;
+  }
+}
+
+@media (max-width: 349px) {
+  .h1-container {
+    font-size: 9px;
+    line-height: 0.95;
+  }
+
+  .App-logo {
+    height: 18px;
+    width: 18px;
+  }
+}
+
+.vertical {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+}
+
+.horizontal {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  gap: 5px;
+  margin-top: 0;
+  padding-bottom: 0;
+  /* outline: 2px solid blue; */
+}
+
+.header-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.buttons-container {
+  display: flex;
+  align-items: center;
+}
+
+.balance-container {
+  display: flex;
+  align-items: center;
+}
+
+.button {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  background-image: var(--asset-itemdisc);
+  background-size: cover;
+  background-position: center;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+.button:not(:disabled):active {
+  transform: scale(0.92);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2) inset;
+}
+.button:disabled,
+.button.is-wait {
+  opacity: 0.9;
+  cursor: wait;
+}
+
+.button img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+}
+.small-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+input[disabled] {
+  background-color: #f9f9f9;
+  color: #333;
+  opacity: 1;
+}
+
+.don {
+  position: absolute;
+  top: 4px;
+  right: 0px;
+  text-align: right;
+  font-size: 10px;
+  color: rgba(173, 173, 173, 0.671);
+  margin: 0;
+  padding: 0;
+  line-height: 0.01;
+}
+
+.selectopt {
+  right: 11px;
+  font-size: 10px;
+}
+
+.currencies {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.currency-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.currency-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.currency-pair {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.currency-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.currency-secondary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.coach-help-reminder {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 190, 120, 0.75);
+  padding: 3px 6px;
+  background: rgba(86, 44, 19, 0.94);
+  color: #ffe0a2;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  animation: coachHelpReminderIn 180ms ease-out, coachHelpReminderPulse 1.1s ease-in-out infinite 180ms;
+}
+
+.coach-help-btn.is-reminded {
+  animation: coachHelpButtonPulse 1.1s ease-in-out infinite;
+}
+
+@keyframes coachHelpReminderIn {
+  from { opacity: 0; transform: translateX(5px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes coachHelpReminderPulse {
+  0%, 100% { border-color: rgba(255, 190, 120, 0.7); }
+  50% { border-color: rgba(255, 224, 148, 1); box-shadow: 0 0 7px rgba(255, 190, 80, 0.55); }
+}
+
+@keyframes coachHelpButtonPulse {
+  0%, 100% { filter: brightness(1); transform: scale(1); }
+  50% { filter: brightness(1.35); transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coach-help-reminder,
+  .coach-help-btn.is-reminded {
+    animation: none;
+  }
+}
+
+.curr-icon {
+  width: 25px;
+  height: 25px;
+  justify-content: right;
+  border-radius: 0%;
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.currency {
+  justify-content: center;
+  align-items: right;
+  font-size: calc(12px);
+  color: white;
+}
+
+@media (max-width: 399px) {
+  .App {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .top-frame {
+    flex: 0 0 auto;
+  }
+
+  .App-h1 {
+    height: 94px;
+    min-height: 94px;
+  }
+
+  /* The desktop title gives way to a compact logo below the Active/Try switch. */
+  .h1-container {
+    display: none;
+  }
+
+  .App-logo-mobile {
+    position: absolute;
+    display: block;
+    top: 30px;
+    left: 48px;
+    width: 22px;
+    height: 22px;
+    z-index: 1;
+  }
+
+  /* Prices stay readable in the upper-right corner. */
+  .currencies {
+    top: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 94px;
+    display: block;
+    pointer-events: none;
+  }
+
+  .currency-controls {
+    position: absolute;
+    top: 57px;
+    left: 2px;
+    right: 2px;
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    gap: 3px;
+    pointer-events: auto;
+  }
+
+  .currency-top-row {
+    display: contents;
+  }
+
+  .currency-actions,
+  .currency-secondary-actions {
+    gap: 3px;
+  }
+
+  .currency-actions {
+    order: 1;
+  }
+
+  .currency-secondary-actions {
+    order: 2;
+  }
+
+  .header-currency-select {
+    order: 3;
+    margin-left: auto;
+  }
+
+  .currency-pair {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    pointer-events: auto;
+  }
+
+  .coach-help-reminder {
+    display: none;
+  }
+
+  .header-controls-row {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* Cook keeps the same controls, arranged over two balanced rows. */
+  .header-controls-cook {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, .8fr);
+    grid-template-areas:
+      "page page columns"
+      "categories sort direction";
+    align-items: end;
+    width: 100%;
+  }
+
+  .header-controls-cook > .header-page-select,
+  .header-controls-cook > .header-market-select {
+    grid-area: page;
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  .header-controls-cook > .header-columns-select {
+    grid-area: columns;
+    justify-self: end;
+  }
+
+  .header-controls-cook > .header-cook-categories {
+    grid-area: categories;
+  }
+
+  .header-controls-cook > .header-cook-sort {
+    grid-area: sort;
+  }
+
+  .header-controls-cook > .header-cook-direction {
+    grid-area: direction;
+  }
+
+  .header-controls-cook > .header-cook-categories,
+  .header-controls-cook > .header-cook-sort,
+  .header-controls-cook > .header-cook-direction {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  .header-controls-cook .cd-btn {
+    max-width: 100%;
+  }
+
+  .header-controls-cook > .header-loading-indicator {
+    position: absolute;
+    top: 7px;
+    right: 40px;
+  }
+}
+
+.maxbb {
+  position: absolute;
+  top: 40px;
+  left: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+}
+
+.selectquant {
+  width: 57px;
+  top: -15px;
+  left: 0px;
+  height: 10px;
+  font-size: 8px;
+  padding: 0px;
+  color: rgb(255, 255, 255);
+}
+
+.selectquantback {
+  width: 120%;
+  height: 25px;
+  top: 14px;
+  right: 0px;
+  position: relative;
+  background-image: var(--asset-button);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+#formselectquant .MuiInputLabel-root,
+#formselectquant .MuiSelect-root {
+  color: rgb(255, 255, 255);
+}
+
+#formselectquant .MuiSelect-standard {
+  font-size: 12px;
+  padding-right: 0px;
+  color: rgb(0, 0, 0);
+}
+
+.selectquant .MuiSelect-icon {
+  display: none;
+}
+
+#formselectquant .MuiInput-underline:before {
+  border-bottom-color: white;
+}
+
+#formselectquant .MuiInput-underline:hover:before {
+  border-bottom-color: white;
+}
+
+#formselectquant .MuiInput-underline:after {
+  border-bottom-color: white;
+}
+
+.selectquantityback {
+  width: 100%;
+  height: 25px;
+  top: 4px;
+  right: 0px;
+  position: relative;
+  background-image: var(--asset-button);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.selectreadyback {
+  width: 100%;
+  height: 25px;
+  top: 4px;
+  right: 0px;
+  position: relative;
+  background-image: var(--asset-button);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.checkcost {
+  position: relative;
+  top: -30px;
+  left: 37px;
+  width: 20px;
+  z-index: 2;
+}
+
+.checktry {
+  position: relative;
+  top: 0px;
+  right: 0px;
+  width: 20px;
+  z-index: 2;
+}
+
+.checkcost:hover::after {
+  font-weight: normal;
+  content: 'Include cost price to all total prices (x Quantity)';
+  position: absolute;
+  width: 70px;
+  white-space: pre-line;
+  height: 80px;
+  top: 60px;
+  left: 80px;
+  transform: translateX(-50%);
+  background-color: #f9f9f9;
+  color: #333;
+  padding: 5px;
+  border-radius: 5px;
+  z-index: 999999;
+}
+
+.checkbox-disabled {
+  pointer-events: none;
+  opacity: 0.7;
+  background-color: #ffffff;
+  border-color: #d3d3d3;
+}
+
+input[type="checkbox"].checkbox-disabled:checked {
+  background-color: #d3d3d3;
+  border-color: #d3d3d3;
+}
+
+.selectccol {
+  width: 50px;
+  height: 30px;
+  top: -15px;
+  right: 0px;
+  position: relative;
+}
+
+.selectcurr {
+  height: 30px;
+  width: 74px;
+  padding: 0px;
+  position: absolute;
+  top: -7px;
+  right: 14px;
+  color: white;
+}
+
+#formselectcurr .MuiInputLabel-root,
+#formselectcurr .MuiSelect-root {
+  color: white;
+}
+
+.selectcurrback {
+  width: 50px;
+  height: 30px;
+  top: 0px;
+  right: 0px;
+  position: relative;
+  background-image: var(--asset-button);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.selectinv {
+  height: 15px;
+  width: 76px;
+  padding: 0px;
+  position: relative;
+  top: -17px;
+  left: 4px;
+  color: rgb(0, 0, 0);
+}
+
+#formselectinv .MuiInputLabel-root,
+#formselectinv .MuiSelect-root {
+  color: rgb(0, 0, 0);
+}
+
+.selectinvback {
+  width: 76px;
+  height: 20px;
+  top: 0px;
+  right: 0px;
+  position: relative;
+  background-image: var(--asset-button);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.selectpetback {
+  width: 106px;
+  height: 20px;
+  top: 0px;
+  right: 0px;
+  position: relative;
+  background-image: var(--asset-button);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.selectseason {
+  width: 37px;
+  top: -15px;
+  left: 0px;
+  height: 10px;
+  padding: 0px;
+}
+.selectseasonback {
+  width: 36px;
+  height: 25px;
+  top: 4px;
+  right: 0px;
+  position: relative;
+  background-image: var(--asset-button);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.selectgraphdate {
+  height: 30px;
+  width: 74px;
+  padding: 0px;
+  position: relative;
+  justify-content: center;
+  align-items: right;
+  top: 0;
+  left: 0;
+  color: white;
+}
+
+.selectgraphdateback {
+  width: 50px;
+  height: 30px;
+  top: 0;
+  right: 15px + 50%;
+  position: relative;
+  background-image: var(--asset-button);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.reqstat {
+  color: #ff7474;
+}
+
+.progress-barb {
+  width: 60px;
+  height: 10px;
+  background-color: #f0f0f0;
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+}
+
+.progress {
+  height: 100%;
+  background-color: #00aaff;
+  flex: 0 0 auto;
+}
+
+.progress-harvest {
+  height: 100%;
+  background: #f59e0b;
+  flex: 0 0 auto;
+}
+
+.negative {
+  background-color: #b4a9a9;
+}
+
+.progress-text {
+  font-size: 11px;
+  color: #202020;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
