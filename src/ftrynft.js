@@ -9,6 +9,7 @@ import TryProfileShareBar from "./components/TryProfileShareBar.jsx";
 import TryProfileSummaryModal from "./components/TryProfileSummaryModal.jsx";
 import { getScopeTablesFromPayload } from "./tryProfileShare.js";
 import { getSkillPointsAtLevel } from "./utils/skillPoints.js";
+import { fetchJson } from "./services/apiClient.js";
 import { readTryitSnapshot, writeTryitSnapshot, buildCanonicalTryitSnapshot, applyTryitSnapshotToFarmState, syncTryitStateAcrossFarmState, hasTryitPayloadContent, isValidTryitConfig } from "./tryitStorage.js";
 import {
   computeProfileSummaryPayload,
@@ -671,15 +672,12 @@ function ModalTNFT({ onClose }) {
       //const tableKeys = Object.keys(tables);
       //const entries = tableKeys.reduce((n, k) => n + (Array.isArray(tables[k]) ? tables[k].length : 0), 0);
       //console.log("settry req ko:", (bodyStr.length / 1024).toFixed(2), "tables:", tableKeys.length, "entries:", entries);
-      const response = await fetch(API_URL + "/settry", {
+      const payload = await fetchJson(API_URL, "/settry", {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(headers)
+        body: headers,
+        timeoutMs: 30_000,
       });
-      if (response.ok) {
-        const responseData = withTryNftTables(unpackFarmPayloadTables(await response.json()));
+        const responseData = withTryNftTables(unpackFarmPayloadTables(payload));
         const latestRefreshSig = buildTryRefreshSignature(
           dataSetLocalRef.current,
           selectedTrySeasonRef.current
@@ -697,16 +695,12 @@ function ModalTNFT({ onClose }) {
         setRefreshBaselineSig(buildTryRefreshSignature(mergedData, selectedTrySeason));
         setShowTryRefreshHalo(false);
         return true;
-      } else {
-        if (response.status === 429) {
-          console.log('Too many requests, wait a few seconds');
-        } else {
-          console.log(`Error : ${response.status}`);
-        }
-        return false;
-      }
     } catch (error) {
-      console.log(`Error : ${error}`);
+      if (error?.status === 429) {
+        console.log('Too many requests, wait a few seconds');
+      } else {
+        console.log(`Error : ${error?.message || error}`);
+      }
       return false;
     } finally {
       applyingTrysetRef.current = false;

@@ -9,6 +9,7 @@ import {
 import { buildCanonicalTryitSnapshot } from "./tryitStorage.js";
 import { normalizeServerImageUrl, normalizeServerImagesDeep } from "./constants/images.js";
 import { getSkillPointsAtLevel } from "./utils/skillPoints.js";
+import { fetchJson } from "./services/apiClient.js";
 
 function withTryNftTables(farmState = {}) {
   const tryNftData = farmState?.tryNftData;
@@ -250,13 +251,12 @@ export async function postTrysetSnapshot(params) {
     tryitarrays: snapshot,
     simulatedSeason,
   });
-  const response = await fetch(API_URL + "/settry", {
+  const payload = await fetchJson(API_URL, "/settry", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(headers),
+    body: headers,
+    timeoutMs: 30_000,
   });
-  if (!response.ok) throw new Error(`settry snapshot failed (${response.status})`);
-  const responseData = normalizeServerImagesDeep(withTryNftTables(unpackFarmPayloadTables(await response.json())));
+  const responseData = normalizeServerImagesDeep(withTryNftTables(unpackFarmPayloadTables(payload)));
   return mergeFarmStateDeep(targetState || {}, responseData || {}, tryitConfig);
 }
 
@@ -318,13 +318,12 @@ async function postTrySummarySingle(params) {
     baseTryitarrays: buildStrictTryitArrays(baseState || {}, tryitConfig),
     targetTryitarrays: buildStrictTryitArrays(targetState || {}, tryitConfig),
   };
-  const response = await fetch(API_URL + "/settry-summary", {
+  const payload = await fetchJson(API_URL, "/settry-summary", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body,
+    timeoutMs: 30_000,
   });
-  if (!response.ok) throw new Error(`settry-summary failed (${response.status})`);
-  const data = normalizeServerImagesDeep(await response.json());
+  const data = normalizeServerImagesDeep(payload);
   return {
     baseIt: (data?.baseIt && typeof data.baseIt === "object") ? data.baseIt : {},
     targetIt: (data?.targetIt && typeof data.targetIt === "object") ? data.targetIt : {},
