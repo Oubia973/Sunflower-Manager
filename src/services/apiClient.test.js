@@ -59,4 +59,38 @@ describe('apiClient', () => {
     });
     await expect(request).rejects.toBeInstanceOf(ApiHttpError);
   });
+
+  test('preserves a plain-text backend error message', async () => {
+    global.fetch = jest.fn().mockResolvedValue(response({
+      ok: false,
+      status: 500,
+      payload: 'Error, refresh your page',
+      contentType: 'text/plain',
+    }));
+
+    await expect(fetchJson('', '/legacy-route', { timeoutMs: 0 })).rejects.toMatchObject({
+      status: 500,
+      message: 'Error, refresh your page',
+    });
+  });
+
+  test('keeps the timeout active while the response body is read', async () => {
+    global.fetch = jest.fn().mockImplementation((_url, init) => Promise.resolve({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: () => new Promise((_resolve, reject) => {
+        init.signal.addEventListener('abort', () => {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          reject(error);
+        }, { once: true });
+      }),
+    }));
+
+    await expect(fetchJson('', '/slow-body', { timeoutMs: 5 })).rejects.toMatchObject({
+      code: 'REQUEST_TIMEOUT',
+      message: 'Request timed out',
+    });
+  });
 });

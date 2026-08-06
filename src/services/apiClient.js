@@ -27,7 +27,8 @@ async function readResponsePayload(response) {
     } catch {
       return text;
     }
-  } catch {
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error;
     return null;
   }
 }
@@ -70,14 +71,26 @@ export async function fetchJson(apiUrl, endpoint, options = {}) {
     }
   }
 
-  let response;
   try {
-    response = await fetch(buildApiUrl(apiUrl, endpoint), {
+    const response = await fetch(buildApiUrl(apiUrl, endpoint), {
       ...fetchOptions,
       headers: requestHeaders,
       body: requestBody,
       ...(controller ? { signal: controller.signal } : signal ? { signal } : {}),
     });
+    const payload = await readResponsePayload(response);
+    if (!response.ok) {
+      const message = typeof payload === 'string'
+        ? payload
+        : payload?.error || payload?.message || `HTTP ${response.status}`;
+      throw new ApiHttpError(String(message), {
+        status: response.status,
+        code: payload?.code,
+        retryAfterMs: payload?.retryAfterMs,
+        payload,
+      });
+    }
+    return payload;
   } catch (error) {
     if (timedOut || error?.name === 'AbortError') {
       throw new ApiHttpError(timedOut ? 'Request timed out' : 'Request cancelled', {
@@ -89,16 +102,4 @@ export async function fetchJson(apiUrl, endpoint, options = {}) {
     if (timeoutId) clearTimeout(timeoutId);
     if (removeAbortListener) removeAbortListener();
   }
-
-  const payload = await readResponsePayload(response);
-  if (!response.ok) {
-    const message = payload?.error || payload?.message || `HTTP ${response.status}`;
-    throw new ApiHttpError(String(message), {
-      status: response.status,
-      code: payload?.code,
-      retryAfterMs: payload?.retryAfterMs,
-      payload,
-    });
-  }
-  return payload;
 }
