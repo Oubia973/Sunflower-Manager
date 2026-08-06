@@ -5,6 +5,7 @@ import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } f
 import { frmtNb } from './fct.js';
 import { computeGemsRatio, getGemsPackUsd } from './gemsRatio.js';
 import { promptInfo } from './promptW';
+import { fetchJson } from './services/apiClient.js';
 import {
     imgna, imgusdc, imgCoins, imgSFL, imgGem, imgoptions, imgcancel, imgrefresh, imgrdy,
     imgstoneRes, imgironOre, imggoldOre,
@@ -147,18 +148,13 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
 
         setNotifTestBusy(true);
         try {
-            const response = await fetch((API_URL || "") + "/notif-test", {
+            const payload = await fetchJson(API_URL, "/notif-test", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
+                body: {
                     farmId,
                     deviceId: dataSet?.deviceId || "",
-                }),
+                },
             });
-            if (!response.ok) {
-                throw new Error(`notif-test failed (${response.status})`);
-            }
-            const payload = await response.json().catch(() => ({}));
             await promptInfo(
                 `Test notification sent immediately for ${payload.itemName || "a random item"}.`,
                 "Notifications",
@@ -202,32 +198,22 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     const paymentToken = "USDC";
     const resetTax = async () => {
         try {
-            const headers = {
+            const requestData = {
                 frmid: dataSet.farmId,
                 username: dataSet.username,
-                //xoptions: dataSet.options,
             };
-            const response = await fetch(API_URL + "/settax", {
+            const responseData = await fetchJson(API_URL, "/settax", {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(headers)
-                //headers: headers
+                body: requestData,
             });
-            if (response.ok) {
-                const responseData = await response.json();
-                dataSet.tradeTax = responseData;
-                setTradeTax(responseData);
-            } else {
-                if (response.status === 429) {
-                    console.log('Too many requests, wait a few seconds');
-                } else {
-                    console.log(`Error : ${response.status}`);
-                }
-            }
+            dataSet.tradeTax = responseData;
+            setTradeTax(responseData);
         } catch (error) {
-            console.log(`Error : ${error}`);
+            if (error?.status === 429) {
+                console.log('Too many requests, wait a few seconds');
+            } else {
+                console.log(`Error : ${error?.message || error}`);
+            }
         }
     };
     function handleChangeTradeTax(e) {

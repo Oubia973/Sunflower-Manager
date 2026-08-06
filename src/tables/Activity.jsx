@@ -5,6 +5,7 @@ import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, flattenCompoit } from '../fct.js';
 import DList from "../dlist.jsx";
+import { fetchJson } from "../services/apiClient.js";
 import {
     imgna,
     imgcoins,
@@ -664,7 +665,7 @@ export default function ActivityTable() {
                 setActivityData(null);
                 setLoading(false);
             });
-    }, [selectedInv, selectedFromActivity, selectedFromActivityDay]);
+    }, [API_URL, activityDisplay, farmId, selectedInv, selectedFromActivity, selectedFromActivityDay]);
 
     if (selectedInv !== "activity") return null;
     if (!dataSetFarm?.itables || !dataSetFarm?.boostables?.nft || !dataSetFarm?.boostables?.nftw || !dataSetFarm?.constants) {
@@ -716,20 +717,13 @@ export default function ActivityTable() {
                         ? "season"
                         : "today";
 
-        const response = await fetch(API_URL + "/getactivity", {
+        const result = await fetchJson(API_URL, "/getactivity", {
             method: "GET",
             headers: {
                 frmid: farmId,
                 time: xContextTime,
             },
         });
-
-        if (!response.ok) {
-            console.log("Error :", response.status);
-            return null;
-        }
-
-        const result = await response.json();
         if (!Array.isArray(result)) return result;
         return [...result].sort((a, b) => toDateValue(a) - toDateValue(b));
     }
