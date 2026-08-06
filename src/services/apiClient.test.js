@@ -1,4 +1,4 @@
-import { ApiHttpError, buildApiUrl, fetchJson } from './apiClient.js';
+import { ApiHttpError, buildApiUrl, fetchJson, fetchJsonResponse } from './apiClient.js';
 
 function response({ ok = true, status = 200, payload = {}, contentType = 'application/json' } = {}) {
   return {
@@ -41,6 +41,19 @@ describe('apiClient', () => {
         headers: { 'Content-Type': 'application/json' },
       })
     );
+  });
+
+  test('can expose response metadata for protocols such as farm retries', async () => {
+    const serverResponse = response({ status: 202, payload: { queued: true } });
+    serverResponse.headers.get.mockImplementation((name) => (
+      String(name).toLowerCase() === 'x-retry-after-ms' ? '5000' : 'application/json'
+    ));
+    global.fetch = jest.fn().mockResolvedValue(serverResponse);
+
+    const result = await fetchJsonResponse('', '/getfarm', { method: 'POST', body: { frmid: 123 }, timeoutMs: 0 });
+    expect(result.data).toEqual({ queued: true });
+    expect(result.response.status).toBe(202);
+    expect(result.response.headers.get('x-retry-after-ms')).toBe('5000');
   });
 
   test('throws a structured error for non-success responses', async () => {

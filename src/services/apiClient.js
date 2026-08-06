@@ -33,7 +33,7 @@ async function readResponsePayload(response) {
   }
 }
 
-export async function fetchJson(apiUrl, endpoint, options = {}) {
+export async function fetchJsonResponse(apiUrl, endpoint, options = {}) {
   const {
     body,
     headers = {},
@@ -90,7 +90,7 @@ export async function fetchJson(apiUrl, endpoint, options = {}) {
         payload,
       });
     }
-    return payload;
+    return { data: payload, response };
   } catch (error) {
     if (timedOut || error?.name === 'AbortError') {
       throw new ApiHttpError(timedOut ? 'Request timed out' : 'Request cancelled', {
@@ -102,4 +102,9 @@ export async function fetchJson(apiUrl, endpoint, options = {}) {
     if (timeoutId) clearTimeout(timeoutId);
     if (removeAbortListener) removeAbortListener();
   }
+}
+
+export async function fetchJson(apiUrl, endpoint, options = {}) {
+  const result = await fetchJsonResponse(apiUrl, endpoint, options);
+  return result.data;
 }

@@ -23,7 +23,7 @@ import {
   hasInventoryItemFields,
 } from '../utils/farmState.js';
 import { getBalanceValue } from '../utils/balance.js';
-import { formatHttpErrorMessage } from '../utils/http.js';
+import { fetchJsonResponse } from '../services/apiClient.js';
 import { LOAD_FARM_SPAM_WINDOW_MS, LOAD_FARM_SPAM_THRESHOLD } from '../constants/api.js';
 import { imgsuspicious, normalizeServerImagesDeep, versionImageUrl } from '../constants/images.js';
 
@@ -326,24 +326,26 @@ export function useFarmLoader(
 
       const { tryitarrays: tryItArrays, tryitMode } = getTryitRequestPayload(currentFarmState);
 
-      const response = await fetch(API_URL + '/getfarm', {
+      const farmRequestBody = {
+        frmid: inputValue,
+        deviceId: deviceId || '',
+        options: dataSetState?.options || {},
+        tryitarrays: tryItArrays,
+        tryitMode,
+        include: sectionsToInclude,
+        knownTableHashes: knownTableHashesForRequest,
+        page: String(uiState?.selectedInv || 'home'),
+        context,
+      };
+      const requestFarm = () => fetchJsonResponse(API_URL, '/getfarm', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          frmid: inputValue,
-          deviceId: deviceId || '',
-          options: dataSetState?.options || {},
-          tryitarrays: tryItArrays,
-          tryitMode,
-          include: sectionsToInclude,
-          knownTableHashes: knownTableHashesForRequest,
-          page: String(uiState?.selectedInv || 'home'),
-          context,
-        }),
+        body: farmRequestBody,
+        timeoutMs: 30_000,
       });
+      const initialResult = await requestFarm();
+      const response = initialResult.response;
 
-      const handleSuccessResponse = async (resp) => {
-        const responseData = await resp.json();
+      const handleSuccessResponse = async (responseData) => {
         const result = processFarmResponse(responseData, currentFarmState, dataSetState || dataSet, uiState || ui);
         
         const cleanFarmData = stripFarmMetadata(result.mergedFarm || {}, 'useFarmLoader');
@@ -374,23 +376,9 @@ export function useFarmLoader(
         let retryCount = 0;
         while (retryCount < 5) {
           await new Promise(resolve => setTimeout(resolve, retryAfterMs));
-          const retryResponse = await fetch(API_URL + '/getfarm', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              frmid: inputValue,
-              deviceId: deviceId || '',
-              options: dataSetState?.options || {},
-              tryitarrays: tryItArrays,
-              tryitMode,
-              include: sectionsToInclude,
-              knownTableHashes: knownTableHashesForRequest,
-              page: String(uiState?.selectedInv || 'home'),
-              context,
-            }),
-          });
-          if (retryResponse.status === 200) {
-            return await handleSuccessResponse(retryResponse);
+          const retryResult = await requestFarm();
+          if (retryResult.response.status === 200) {
+            return await handleSuccessResponse(retryResult.data);
           }
           retryCount++;
         }
@@ -400,16 +388,16 @@ export function useFarmLoader(
       }
 
       if (response.status !== 200) {
-        const httpError = await formatHttpErrorMessage(response, '/getfarm');
-        const displayError = normalizeFarmLoadErrorMessage(httpError, response, '/getfarm');
+        const displayError = normalizeFarmLoadErrorMessage(`Unexpected HTTP ${response.status}`, response, '/getfarm');
         setError(displayError);
         return { success: false, error: displayError };
       }
 
-      return await handleSuccessResponse(response);
+      return await handleSuccessResponse(initialResult.data);
     } catch (error) {
-      setError(error.message);
-      return { success: false, error: error.message };
+      const displayError = normalizeFarmLoadErrorMessage(error?.message, error, '/getfarm');
+      setError(displayError);
+      return { success: false, error: displayError };
     }
     // NOTE: loadFarmRequestInFlightRef is managed by the caller (App.js handleButtonClick)
   }, [
