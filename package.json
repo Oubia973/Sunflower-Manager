@@ -7,6 +7,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "lint": "eslint src",
+    "security:tracked-files": "node scripts/check-tracked-files.js",
     "capacitor:copy": "cap copy android",
     "capacitor:sync": "cap sync android",
     "android:apk": "npm run build && npx cap sync android && cd android && gradlew assembleRelease"

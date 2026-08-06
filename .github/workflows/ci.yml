@@ -35,6 +35,9 @@ jobs:
       - name: Audit shipped dependencies
         run: npm audit --omit=dev --audit-level=moderate
 
+      - name: Check tracked credentials
+        run: npm run security:tracked-files
+
       - name: Lint
         run: npm run lint
 
