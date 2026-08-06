@@ -130,6 +130,7 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Message"
+            maxLength={4000}
             rows={2}
           />
           <button
