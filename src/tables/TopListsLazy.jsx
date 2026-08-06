@@ -3,6 +3,7 @@ import DList from "../dlist.jsx";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb } from "../fct.js";
 import { imgsearch, imgsyncing } from "../constants/images.js";
+import { fetchJson } from "../services/apiClient.js";
 
 const BASE_COLUMNS = ["rank", "id", "lvl"];
 
@@ -38,16 +39,10 @@ export default function TopListsLazyTable() {
       if (categories.length > 0) return;
       setLoadingCategories(true);
       try {
-        const response = await fetch(API_URL + "/getcatalogcategories", {
+        const data = await fetchJson(API_URL, "/getcatalogcategories", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username }),
+          body: { username },
         });
-        if (!response.ok) {
-          if (!cancelled) setCategories([]);
-          return;
-        }
-        const data = await response.json();
         if (!cancelled) {
           const next = Array.isArray(data?.categories) ? data.categories : [];
           setCategories(next);
@@ -62,19 +57,16 @@ export default function TopListsLazyTable() {
     return () => {
       cancelled = true;
     };
-  }, [selectedInv, categories.length, API_URL]);
+  }, [selectedInv, categories.length, API_URL, username]);
 
   async function loadCategoryItems(category) {
     if (!category || categoryItems[category]) return;
     setLoadingCategoryMap((prev) => ({ ...prev, [category]: true }));
     try {
-      const response = await fetch(API_URL + "/getcatalogcategory", {
+      const data = await fetchJson(API_URL, "/getcatalogcategory", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, username }),
+        body: { category, username },
       });
-      if (!response.ok) return;
-      const data = await response.json();
       const items = Array.isArray(data?.items) ? data.items : [];
       setCategoryItems((prev) => ({ ...prev, [category]: items }));
     } catch {
@@ -167,16 +159,10 @@ export default function TopListsLazyTable() {
       }
       setLoadingToplists(true);
       try {
-        const response = await fetch(API_URL + "/gettoplistsitems", {
+        const data = await fetchJson(API_URL, "/gettoplistsitems", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items, username }),
+          body: { items, username },
         });
-        if (!response.ok) {
-          if (!cancelled) setToplistItems({});
-          return;
-        }
-        const data = await response.json();
         if (!cancelled) {
           const next = data?.toplistItems;
           setToplistItems(next && typeof next === "object" ? next : {});

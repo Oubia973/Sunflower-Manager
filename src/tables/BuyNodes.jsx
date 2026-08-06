@@ -4,6 +4,7 @@ import { CircularProgress } from "@mui/material";
 import CounterInput from "../counterinput.js";
 import DList from "../dlist.jsx";
 import { frmtNb, timeToDays } from "../fct.js";
+import { fetchJson } from "../services/apiClient.js";
 import {
   imgcrop,
   imgappleTree,
@@ -149,10 +150,9 @@ export default function BuyNodesTable() {
     setIsCalcLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(API_URL + "/getbuynodescalc", {
+        const payload = await fetchJson(API_URL, "/getbuynodescalc", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             totals: totalsPayload,
             cycleTime: obsidianTime,
             myield: obsidianMyield,
@@ -170,10 +170,8 @@ export default function BuyNodesTable() {
             ) ? buyNodesSplitStrategy : "short_time",
             lineEnabled: rowsBase.map((r) => Number(r?.buyCount || 0) > 0),
             sunstones: rowsBase.map((r) => Number(r?.totalSunstone || 0)),
-          }),
+          },
         });
-        if (!response.ok) return;
-        const payload = await response.json();
         if (reqId !== calcReqSeqRef.current) return;
         const plans = Array.isArray(payload?.plans) ? payload.plans : [];
         setCalcPlans(plans);

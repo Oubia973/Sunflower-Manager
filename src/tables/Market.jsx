@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb } from '../fct.js';
 import { imgSFL, imgExchng, imgprodit, imgna, imgbudplaza } from "../constants/images.js";
+import { fetchJson } from "../services/apiClient.js";
 
 const MARKET_CACHE_TTL_MS = 10 * 60 * 1000;
 const marketRequestCache = new Map();
@@ -24,16 +25,10 @@ async function fetchMarket(dataSetFarm, API_URL) {
   }
 
   const promise = (async () => {
-    const res = await fetch(API_URL + "/getmarket", {
+    return fetchJson(API_URL, "/getmarket", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ frmid: farmId, username: userName }),
+      body: { frmid: farmId, username: userName },
     });
-    if (!res.ok) {
-      console.log(`Error : ${res.status}`);
-      return null;
-    }
-    return res.json();
   })();
 
   marketRequestCache.set(cacheKey, {

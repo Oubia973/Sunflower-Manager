@@ -3,6 +3,7 @@ import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel, CircularProgress } from '@mui/material';
 import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, PBar, timeToDays, flattenCompoit, buildSeriesMeta } from '../fct.js';
 import DList from "../dlist.jsx";
+import { fetchJson } from "../services/apiClient.js";
 
 let xdxp = 0;
 var dProd = [];
@@ -158,7 +159,7 @@ export default function CookTable() {
         setIsLevelRangeLoading(true);
         levelReqTimerRef.current = setTimeout(async () => {
             try {
-                const responseLVL = await fetch(API_URL + "/getfromtolvl", {
+                const responseDataLVL = await fetchJson(API_URL, "/getfromtolvl", {
                     method: 'GET',
                     headers: {
                         frmid: dataSet.farmId,
@@ -167,12 +168,8 @@ export default function CookTable() {
                         toascension: toAscension,
                         to: xto,
                         xdxp: xdxp,
-                    }
+                    },
                 });
-                if (!responseLVL.ok) {
-                    throw new Error(`Error : ${responseLVL.status}`);
-                }
-                const responseDataLVL = await responseLVL.json();
                 if (reqId !== levelReqSeqRef.current) return;
                 setUIField("fromtolvltime", responseDataLVL.time);
                 setUIField("fromtolvlxp", responseDataLVL.xp);
@@ -768,7 +765,6 @@ function getCookSortValue(sortBy, item, quantity, food, pfood, tryChecked, coins
             return 0;
     }
 }
-
 
 
 

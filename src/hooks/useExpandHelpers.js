@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
+import { fetchJson } from '../services/apiClient.js';
 
 /**
  * Hook for XP and Expand helpers
@@ -20,14 +21,15 @@ export function useExpandHelpers(API_URL, dataSet, dataSetFarm, tryChecked = fal
    */
   const getxpFromToLvl = useCallback(async (xfrom, xto, xdxp) => {
     const farmId = dataSet?.options?.farmId || dataSet?.farmId || '';
-    const responseLVL = await fetch(API_URL + "/getfromtolvl", {
-      method: 'GET',
-      headers: { frmid: farmId, from: xfrom, to: xto, xdxp: xdxp }
-    });
-    if (responseLVL.ok) {
-      const responseDataLVL = await responseLVL.json();
+    try {
+      const responseDataLVL = await fetchJson(API_URL, "/getfromtolvl", {
+        method: 'GET',
+        headers: { frmid: farmId, from: xfrom, to: xto, xdxp: xdxp },
+      });
       setFromtolvltime(responseDataLVL.time);
       setFromtolvlxp(responseDataLVL.xp);
+    } catch (error) {
+      console.log("getxpFromToLvl error", error);
     }
   }, [API_URL, dataSet?.options?.farmId, dataSet?.farmId]);
 
@@ -55,7 +57,7 @@ export function useExpandHelpers(API_URL, dataSet, dataSetFarm, tryChecked = fal
     const reqSeq = ++expandRequestSeqRef.current;
     setExpandLoading(true);
     try {
-      const responseExpand = await fetch(API_URL + "/getfromtoexpand", {
+      const responseDataExp = await fetchJson(API_URL, "/getfromtoexpand", {
         method: 'GET',
         headers: {
           frmid: farmId,
@@ -66,13 +68,10 @@ export function useExpandHelpers(API_URL, dataSet, dataSetFarm, tryChecked = fal
           ascension: xascension,
           "time-multiplier": timeMultiplier,
           "resource-multiplier": resourceMultiplier,
-        }
+        },
       });
-      if (responseExpand.ok) {
-        const responseDataExp = await responseExpand.json();
-        if (reqSeq === expandRequestSeqRef.current) {
-          dataSet.fromtoexpand = responseDataExp;
-        }
+      if (reqSeq === expandRequestSeqRef.current) {
+        dataSet.fromtoexpand = responseDataExp;
       }
     } catch (error) { console.log("getFromToExpand error", error); }
     finally {
