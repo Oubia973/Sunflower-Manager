@@ -230,7 +230,7 @@ function App() {
   }, [dataSetFarm, processPendingTryitSnapshot]);
 
   // ========== Create Services ==========
-  const pushService = useMemo(() => createPushService(), []);
+  const pushService = useMemo(() => createPushService(API_URL), []);
 
   // ========== Notifications Hook ==========
   const {

@@ -14,10 +14,38 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
 }
 
+async function postJson(endpoint, payload) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  let responseData = null;
+  try {
+    responseData = await response.json();
+  } catch {
+    responseData = null;
+  }
+
+  if (!response.ok) {
+    const message = responseData?.error || responseData?.message || `${endpoint} failed (${response.status})`;
+    const error = new Error(String(message));
+    error.status = response.status;
+    error.code = responseData?.code || '';
+    error.retryAfterMs = Number(responseData?.retryAfterMs || 0);
+    throw error;
+  }
+
+  return responseData;
+}
+
 /**
  * Create a push service instance
  */
-export function createPushService() {
+export function createPushService(apiUrl = '') {
+  const baseUrl = String(apiUrl || '').replace(/\/$/, '');
+  const endpointUrl = (endpoint) => `${baseUrl}${endpoint}`;
   
   /**
    * Subscribe to web push notifications
@@ -40,15 +68,7 @@ export function createPushService() {
         subscription: subscriptionJson
       };
 
-      const response = await fetch('/save-subscription', {
-        method: 'POST',
-        body: JSON.stringify(subfarm),
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`save-subscription failed (${response.status})`);
-      }
+      await postJson(endpointUrl('/save-subscription'), subfarm);
 
       return { success: true, error: null };
     } catch (error) {
@@ -67,11 +87,7 @@ export function createPushService() {
     };
 
     try {
-      await fetch('/save-subscription', {
-        method: 'POST',
-        body: JSON.stringify(subfarm),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      await postJson(endpointUrl('/save-subscription'), subfarm);
       return { success: true, error: null };
     } catch (error) {
       return { success: false, error: error.message };
@@ -101,11 +117,7 @@ export function createPushService() {
     }
 
     try {
-      await fetch('/remove-subscription', {
-        method: 'POST',
-        body: JSON.stringify(subfarm),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      await postJson(endpointUrl('/remove-subscription'), subfarm);
       return { success: true, error: null };
     } catch (error) {
       return { success: false, error: error.message };
@@ -117,16 +129,8 @@ export function createPushService() {
    */
   async function checkStatus(subfarmData) {
     try {
-      const response = await fetch('/subscription-status', {
-        method: 'POST',
-        body: JSON.stringify(subfarmData),
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Subscription status error (${response.status})`);
-      }
-      return { success: true, data: await response.json(), error: null };
+      const data = await postJson(endpointUrl('/subscription-status'), subfarmData);
+      return { success: true, data, error: null };
     } catch (error) {
       return { success: false, data: null, error: error.message };
     }
@@ -137,11 +141,7 @@ export function createPushService() {
    */
   async function updateNotifList(subfarmData) {
     try {
-      await fetch('/notiflist-subscription', {
-        method: 'POST',
-        body: JSON.stringify(subfarmData),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      await postJson(endpointUrl('/notiflist-subscription'), subfarmData);
       return { success: true, error: null };
     } catch (error) {
       return { success: false, error: error.message };
@@ -153,11 +153,7 @@ export function createPushService() {
    */
   async function updateAuctionList(subfarmData) {
     try {
-      await fetch('/auctionlist-subscription', {
-        method: 'POST',
-        body: JSON.stringify(subfarmData),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      await postJson(endpointUrl('/auctionlist-subscription'), subfarmData);
       return { success: true, error: null };
     } catch (error) {
       return { success: false, error: error.message };

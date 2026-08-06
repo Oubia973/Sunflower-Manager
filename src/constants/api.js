@@ -2,8 +2,7 @@
  * API and configuration constants for the application.
  */
 
-export const runLocal = true;
-export const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
+export const API_URL = String(process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
 export const LOAD_FARM_COOLDOWN_MS = 6000;
 export const LOAD_FARM_SPAM_WINDOW_MS = 2500;
 export const LOAD_FARM_SPAM_THRESHOLD = 4;

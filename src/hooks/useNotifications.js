@@ -108,7 +108,7 @@ export function useNotifications(
           if (!nativePushListenersBoundRef.current) {
             nativePushListenersBoundRef.current = true;
             PushNotifications.addListener('registration', async (token) => {
-              console.log('FCM token:', token.value);
+              console.log('FCM token registered');
               const liveDataSet = getDataSet();
               liveDataSet.options = { ...(liveDataSet.options || {}) };
               liveDataSet.options.pushToken = token.value;
@@ -121,7 +121,11 @@ export function useNotifications(
                 notifOffItems: buildDisabledNotifItems(liveDataSet.options?.notifList),
                 auctionWatch: buildAuctionWatchEntries(liveDataSet.options?.auctionNotifSelection),
               };
-              await pushService.subscribeFCM(token, subfarm);
+              const result = await pushService.subscribeFCM(token, subfarm);
+              if (!result.success) {
+                console.error('FCM subscription save failed:', result.error);
+                await promptInfo('Unable to save notifications on this device right now.', 'Notifications', 'OK');
+              }
             });
             PushNotifications.addListener('registrationError', (err) => {
               console.error('FCM registration error:', err);
@@ -197,7 +201,8 @@ export function useNotifications(
     if (isNativeApp) {
       const token = currentDataSet.options?.pushToken;
       if (token) subfarmData.token = token;
-      await pushService.unsubscribe('fcm', subfarmData);
+      const result = await pushService.unsubscribe('fcm', subfarmData);
+      if (!result.success) console.error('FCM unsubscribe failed:', result.error);
       currentDataSet.options = { ...(currentDataSet.options || {}), pushToken: '' };
     } else {
       try {
@@ -210,7 +215,8 @@ export function useNotifications(
       } catch (error) {
         console.error('Web push unsubscribe error:', error);
       }
-      await pushService.unsubscribe('web', subfarmData);
+      const result = await pushService.unsubscribe('web', subfarmData);
+      if (!result.success) console.error('Web push unsubscribe failed:', result.error);
     }
   }, [getFarmId, getDataSet, deviceIdRef, pushService]);
 
@@ -298,7 +304,9 @@ export function useNotifications(
       auctionWatch: buildAuctionWatchEntries(currentDataSet.options?.auctionNotifSelection),
     };
 
-    await pushService.updateNotifList(subfarmData);
+    const result = await pushService.updateNotifList(subfarmData);
+    if (!result.success) console.error('Notification preferences update failed:', result.error);
+    return result.success;
   }, [getFarmId, getDataSet, deviceIdRef, pushService, buildDisabledNotifItems, buildAuctionWatchEntries]);
 
   /**
@@ -316,7 +324,9 @@ export function useNotifications(
       auctionWatch: Array.isArray(auctionWatchInput) ? auctionWatchInput : buildAuctionWatchEntries(currentDataSet.options?.auctionNotifSelection),
     };
 
-    await pushService.updateAuctionList(subfarmData);
+    const result = await pushService.updateAuctionList(subfarmData);
+    if (!result.success) console.error('Auction notification update failed:', result.error);
+    return result.success;
   }, [getFarmId, getDataSet, deviceIdRef, pushService, buildAuctionWatchEntries]);
 
   /**
