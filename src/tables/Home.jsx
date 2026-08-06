@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import DList from "../dlist.jsx";
 import { frmtNb, ColorValue } from "../fct.js";
+import { fetchJson } from "../services/apiClient.js";
 import {
     imgna,
     imgadmin,
@@ -139,21 +140,21 @@ export default function HomeTable() {
             }
         }
 
-        const response = await fetch(API_URL + "/getbumpkin", {
-            method: "GET",
-            headers: {
-                frmid: currentFarmId,
-                username: dataSetRef.options.username,
-                tknuri: dataSetRef.bumpkin.tkuri,
-            }
-        });
-        if (response.ok) {
-            const data = await response.json();
-            dataSetRef.bumpkinImg = data.responseImage;
+        try {
+            const bumpkinResponse = await fetchJson(API_URL, "/getbumpkin", {
+                method: "GET",
+                headers: {
+                    frmid: currentFarmId,
+                    username: dataSetRef?.options?.username || "",
+                    tknuri: dataSetRef?.bumpkin?.tkuri || "",
+                },
+            });
+            dataSetRef.bumpkinImg = bumpkinResponse.responseImage;
             dataSetRef.bumpkinImgFarmId = currentFarmId;
-            return { success: true, data };
+            return { success: true, data: bumpkinResponse };
+        } catch (error) {
+            return { success: false, error: error?.message || "Bumpkin request failed" };
         }
-        return { success: false, error: response.statusText };
     }
 
     useEffect(() => {

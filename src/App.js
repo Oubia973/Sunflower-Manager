@@ -13,6 +13,7 @@ import DList from "./dlist.jsx";
 import { Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, UpdatedSince, getOrCreateDeviceId } from './fct.js';
 import { promptPass, promptInfo, promptConfirm, promptChoice, promptInput } from './promptW';
+import { fetchJson } from './services/apiClient.js';
 
 import { AppCtx } from "./context/AppCtx";
 import PanelTable from "./tables/PanelTable";
@@ -1082,16 +1083,13 @@ function App() {
   const handleTradeListClick = useCallback(async (frmid, element, platform) => {
     setPlatformListings(platform);
     if (platform === "OS") {
-      const response = await fetch(API_URL + "/get50listing", {
-        method: 'GET',
-        headers: { frmid: frmid, listid: element, platform: platform }
-      });
-      if (response.ok) {
-        try {
-          const responseData = await response.json();
-          if (responseData !== 'error') { setlistingsData(responseData); setShowCadre(true); }
-        } catch (error) { console.log(error); }
-      }
+      try {
+        const responseData = await fetchJson(API_URL, "/get50listing", {
+          method: 'GET',
+          headers: { frmid: frmid, listid: element, platform: platform },
+        });
+        if (responseData !== 'error') { setlistingsData(responseData); setShowCadre(true); }
+      } catch (error) { console.log(error); }
     }
   }, [API_URL]);
 
@@ -1264,13 +1262,7 @@ function App() {
   useEffect(() => {
     const loadSectionsMeta = async () => {
       try {
-        const response = await fetch(API_URL + "/getsectionsmeta", { method: "GET" });
-        if (!response.ok) {
-          setSectionsMeta(null);
-          setSectionsMetaError(`Config sections not found (${response.status})`);
-          return;
-        }
-        const meta = await response.json();
+        const meta = await fetchJson(API_URL, "/getsectionsmeta", { method: "GET" });
         const pageReq = meta?.pageSectionRequirements;
         const secKeys = meta?.sectionKeys;
         const secTablePaths = meta?.sectionTablePaths;

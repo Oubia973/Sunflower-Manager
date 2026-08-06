@@ -23,7 +23,7 @@ import {
   hasInventoryItemFields,
 } from '../utils/farmState.js';
 import { getBalanceValue } from '../utils/balance.js';
-import { fetchJsonResponse } from '../services/apiClient.js';
+import { fetchJson, fetchJsonResponse } from '../services/apiClient.js';
 import { LOAD_FARM_SPAM_WINDOW_MS, LOAD_FARM_SPAM_THRESHOLD } from '../constants/api.js';
 import { imgsuspicious, normalizeServerImagesDeep, versionImageUrl } from '../constants/images.js';
 
@@ -132,22 +132,17 @@ export function useFarmLoader(
         }
       }
 
-      const response = await fetch(API_URL + '/getbumpkin', {
+      const data = await fetchJson(API_URL, '/getbumpkin', {
         method: 'GET',
         headers: {
           frmid: currentFarmId,
           username: dataSet?.options?.username || '',
           tknuri: bumpkin.tkuri,
-        }
+        },
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        dataSet.bumpkinImg = data.responseImage;
-        dataSet.bumpkinImgFarmId = currentFarmId;
-        return { success: true, data };
-      }
-      return { success: false, error: response.statusText };
+      dataSet.bumpkinImg = data.responseImage;
+      dataSet.bumpkinImgFarmId = currentFarmId;
+      return { success: true, data };
     } catch (error) {
       return { success: false, error: error.message };
     } finally {

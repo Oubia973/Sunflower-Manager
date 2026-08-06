@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { imgpetEgg, imggem, imgsfl, imgsyncing, imgusdc } from "../constants/images.js";
+import { fetchJson } from "../services/apiClient.js";
 
 const GET_AUCTION_COOLDOWN_MS = 10_000;
 const AUCTIONS_COLUMNS_TEMPLATE = [
@@ -401,14 +402,8 @@ export default function AuctionsTable() {
       setListLoading(true);
       setListError("");
       try {
-        const url = `${API_URL}/auctions?from=${encodeURIComponent(startDate)}&to=${encodeURIComponent(endDate)}`;
-        const response = await fetch(url, { method: "GET" });
-        if (!response.ok) {
-          if (!cancelled) setListError(`Erreur auctions (${response.status})`);
-          if (!cancelled) setAuctions([]);
-          return;
-        }
-        const payload = await response.json();
+        const endpoint = `/auctions?from=${encodeURIComponent(startDate)}&to=${encodeURIComponent(endDate)}`;
+        const payload = await fetchJson(API_URL, endpoint, { method: "GET" });
         const rows = normalizeAuctionsPayload(payload).slice();
         rows.sort((a, b) => Number(getAuctionDateMs(b) || 0) - Number(getAuctionDateMs(a) || 0));
         if (!cancelled) setAuctions(rows);
@@ -525,13 +520,8 @@ export default function AuctionsTable() {
     setCooldownUntil(Date.now() + GET_AUCTION_COOLDOWN_MS);
     try {
       const username = String(dataSetFarm?.username || "");
-      const url = `${API_URL}/getauction?auctionId=${encodeURIComponent(auctionId)}&farmId=${encodeURIComponent(farmId)}&username=${encodeURIComponent(username)}`;
-      const response = await fetch(url, { method: "GET" });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setDetailsError(payload?.error ? String(payload.error) : `Erreur getAuction (${response.status})`);
-        return;
-      }
+      const endpoint = `/getauction?auctionId=${encodeURIComponent(auctionId)}&farmId=${encodeURIComponent(farmId)}&username=${encodeURIComponent(username)}`;
+      const payload = await fetchJson(API_URL, endpoint, { method: "GET" });
       setAuctionDetailsCache((prev) => ({
         ...(prev || {}),
         [cacheKey]: payload,
