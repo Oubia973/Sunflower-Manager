@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getOrCreateDeviceId } from "../fct.js";
 import { imgna, imgexchng, imgconfirm } from "../constants/images.js";
+import { fetchJson } from "../services/apiClient.js";
 
 export default function HeaderTrades({
   API_URL,
@@ -165,12 +166,9 @@ export default function HeaderTrades({
   const getTrades = useCallback(async () => {
     if (!stableFarmId) return;
     try {
-      const response = await fetch(API_URL + "/getdatacrypto", {
+      const responseData = await fetchJson(API_URL, "/getdatacrypto", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+        body: {
           frmid: stableFarmId,
           deviceId: deviceIdRef.current,
           options: optionsRef.current,
@@ -181,10 +179,9 @@ export default function HeaderTrades({
           ...(currentTradesRef.current && Object.keys(tradeEntryHashesRef.current || {}).length > 0
             ? { knownTradeHashes: tradeEntryHashesRef.current || {} }
             : {}),
-        }),
+        },
+        timeoutMs: 30_000,
       });
-      if (!response.ok) return;
-      const responseData = await response.json();
       const rawRespData = responseData?.allData || {};
       const respData = applyTradesDelta(rawRespData);
       if (rawRespData?.sectionHashes?.trades) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Graph from './graph.js';
 import DList from "./dlist.jsx";
 import { imgna, imgcancel, normalizeServerImagesDeep, normalizeServerImageUrl } from "./constants/images.js";
+import { fetchJson } from "./services/apiClient.js";
 
 function parseGraphDate(value) {
   if (value instanceof Date) {
@@ -222,15 +223,15 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
         xformdate = "D";
         xinterval = "3d";
       }
-      let fetchtype = "";
+      let endpoint = "";
       if (fetchMode === "boost") {
-        fetchtype = API_URL + "/getHB";
+        endpoint = "/getHB";
       } else {
-        if (graphtype === "Marketplace") { fetchtype = API_URL + "/getHT" }
-        if (graphtype === "Nifty") { fetchtype = API_URL + "/getHN" }
-        if (graphtype === "OpenSea") { fetchtype = API_URL + "/getHO" }
+        if (graphtype === "Marketplace") { endpoint = "/getHT" }
+        if (graphtype === "Nifty") { endpoint = "/getHN" }
+        if (graphtype === "OpenSea") { endpoint = "/getHO" }
       }
-      const response = await fetch(fetchtype, {
+      const responseData = await fetchJson(API_URL, endpoint, {
         method: 'GET',
         headers: {
           xformdate: xformdate,
@@ -239,10 +240,9 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
           frmid: frmid,
           username: username,
           xsource: graphtype,
-        }
+        },
+        timeoutMs: 30_000,
       });
-      if (response.ok) {
-        const responseData = await response.json();
         const sampledRows = (fetchMode === "boost")
           ? (Array.isArray(responseData) ? responseData : [])
           : downsampleGraphResponse(responseData, Graphstartdate);
@@ -261,29 +261,22 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
         const missingIds = rowIds.filter((id) => !nextMeta[id]);
         const idsToFetch = fetchMode === "boost" ? rowIds : missingIds;
         if (idsToFetch.length > 0) {
-          const metaResp = await fetch(API_URL + "/getGraphMeta", {
+          const payload = await fetchJson(API_URL, "/getGraphMeta", {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
               frmid: frmid,
               username: username
             },
-            body: JSON.stringify({ ids: idsToFetch })
+            body: { ids: idsToFetch },
           });
-          if (metaResp.ok) {
-            const payload = await metaResp.json();
             const fetched = (payload && typeof payload === "object" && payload.items && typeof payload.items === "object")
               ? normalizeServerImagesDeep(payload.items)
               : {};
             Object.keys(fetched).forEach((idKey) => {
               nextMeta[idKey] = fetched[idKey];
             });
-          }
         }
         setGraphMetaById(nextMeta);
-      } else {
-        console.log(`Error : ${response.status}`);
-      }
     } catch (error) {
       console.log(`Error : ${error}`);
     } finally {

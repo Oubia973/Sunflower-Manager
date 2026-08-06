@@ -16,6 +16,7 @@ import {
   buildItemCategoryIndex,
 } from "./tryNftTaxonomy.js";
 import { getSkillPointsAtLevel } from "./utils/skillPoints.js";
+import { fetchJson } from "./services/apiClient.js";
 
 export const TRY_SHARE_ALL_TABLES = ["nft", "nftw", "skill", "skilllgc", "buildng", "bud", "shrine"];
 
@@ -241,12 +242,9 @@ async function resolveShortTryProfile(code) {
   const shortCode = String(code || "").trim();
   if (!shortCode) return null;
   try {
-    const response = await fetch(`/trynft-short/${encodeURIComponent(shortCode)}`, {
+    const json = await fetchJson("", `/trynft-short/${encodeURIComponent(shortCode)}`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
     });
-    if (!response.ok) return null;
-    const json = await response.json();
     const payload = (json?.payload && typeof json.payload === "object") ? json.payload : null;
     return payload;
   } catch {
@@ -256,13 +254,10 @@ async function resolveShortTryProfile(code) {
 
 export async function createShortTryProfileShareUrl(payload) {
   try {
-    const response = await fetch("/trynft-short", {
+    const json = await fetchJson("", "/trynft-short", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ payload: payload || {} }),
+      body: { payload: payload || {} },
     });
-    if (!response.ok) return null;
-    const json = await response.json();
     const code = String(json?.code || "").trim();
     if (!code) return null;
     return `${window.location.origin}${window.location.pathname}?tnfts=${encodeURIComponent(code)}`;

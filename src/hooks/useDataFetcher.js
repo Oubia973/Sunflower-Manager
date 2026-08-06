@@ -26,8 +26,8 @@ import {
   hasInventoryItemFields,
 } from '../utils/farmState.js';
 import { getBalanceValue } from '../utils/balance.js';
-import { formatHttpErrorMessage } from '../utils/http.js';
 import { computeRequiredSections } from '../utils/sections.js';
+import { fetchJson } from '../services/apiClient.js';
 import { normalizeServerImagesDeep, versionImageUrl } from '../constants/images.js';
 
 /**
@@ -208,13 +208,11 @@ export function useDataFetcher(
       beginHeaderRequest();
     }
     try {
-      const response = await fetch(API_URL + "/getdatacrypto", {
+      const responseData = await fetchJson(API_URL, "/getdatacrypto", {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(vHeaders),
+        body: vHeaders,
+        timeoutMs: 30_000,
       });
-      if (response.ok) {
-        const responseData = await response.json();
         const latestTryitSignature = buildTryitCoverageSignature(
           getTryitRequestPayload(dataSetFarmRef.current || {})
         );
@@ -348,10 +346,6 @@ export function useDataFetcher(
         }
         setReqState('');
         return mergedFarmData;
-      } else {
-        setReqState(await formatHttpErrorMessage(response, "/getdatacrypto"));
-        return null;
-      }
     } catch (error) {
       setReqState(`Error : ${error.message}`);
       throw error;
