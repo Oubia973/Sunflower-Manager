@@ -66,6 +66,8 @@ export function useDataFetcher(
 ) {
   // Internal header request tracking (eliminates circular dependency with useSectionLoader)
   const headerRequestCountRef = useRef(0);
+  const farmRequestSequenceRef = useRef(0);
+  const refreshRequestCountRef = useRef(0);
 
   const beginHeaderRequest = useCallback(() => {
     headerRequestCountRef.current += 1;
@@ -202,10 +204,15 @@ export function useDataFetcher(
     }
     const isRefreshRequest = !onlyPrices && !withSectionLoader;
     if (isRefreshRequest) {
+      refreshRequestCountRef.current += 1;
       refreshInFlightRef.current = true;
     }
     if (!onlyPrices) {
       beginHeaderRequest();
+    }
+    const requestSequence = onlyPrices ? 0 : farmRequestSequenceRef.current + 1;
+    if (!onlyPrices) {
+      farmRequestSequenceRef.current = requestSequence;
     }
     try {
       const responseData = await fetchJson(API_URL, "/getdatacrypto", {
@@ -213,6 +220,22 @@ export function useDataFetcher(
         body: vHeaders,
         timeoutMs: 30_000,
       });
+        if (!onlyPrices && requestSequence !== farmRequestSequenceRef.current) {
+          console.log(`[farm] stale response ignored${requestTag ? ` (${requestTag})` : ""}`);
+          return dataSetFarmRef.current || null;
+        }
+        const latestFarmId = String(
+          dataSetFarmRef.current?.frmid || dataSet?.options?.farmId || ""
+        ).trim();
+        if (
+          !onlyPrices &&
+          String(requestFarmId || "").trim() &&
+          latestFarmId &&
+          String(requestFarmId).trim() !== latestFarmId
+        ) {
+          console.log(`[farm] response for previous farm ignored${requestTag ? ` (${requestTag})` : ""}`);
+          return dataSetFarmRef.current || null;
+        }
         const latestTryitSignature = buildTryitCoverageSignature(
           getTryitRequestPayload(dataSetFarmRef.current || {})
         );
@@ -347,11 +370,16 @@ export function useDataFetcher(
         setReqState('');
         return mergedFarmData;
     } catch (error) {
+      if (!onlyPrices && requestSequence !== farmRequestSequenceRef.current) {
+        console.log(`[farm] stale request error ignored${requestTag ? ` (${requestTag})` : ""}`);
+        return dataSetFarmRef.current || null;
+      }
       setReqState(`Error : ${error.message}`);
       throw error;
     } finally {
       if (isRefreshRequest) {
-        refreshInFlightRef.current = false;
+        refreshRequestCountRef.current = Math.max(0, refreshRequestCountRef.current - 1);
+        refreshInFlightRef.current = refreshRequestCountRef.current > 0;
       }
       if (!onlyPrices) {
         endHeaderRequest();
