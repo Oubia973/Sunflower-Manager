@@ -24,7 +24,6 @@
     "@emotion/styled": "^11.14.0",
     "@mui/material": "^6.4.7",
     "ajv": "^8.18.0",
-    "axios": "^1.8.2",
     "chart.js": "^4.4.8",
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^4.1.0",
