@@ -6,6 +6,7 @@ const cleanGlobals = Object.fromEntries(
   Object.entries({
     ...globals.browser,
     ...globals.node,
+    ...globals.es2021,
   }).map(([key, value]) => [key.trim(), value])
 );
 
@@ -31,6 +32,14 @@ export default [
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
       "no-unused-vars": "off",
+    },
+  },
+  {
+    files: ["**/*.test.{js,jsx}", "**/*.spec.{js,jsx}"],
+    languageOptions: {
+      globals: Object.fromEntries(
+        Object.entries(globals.jest).map(([key, value]) => [key.trim(), value])
+      ),
     },
   },
 ];

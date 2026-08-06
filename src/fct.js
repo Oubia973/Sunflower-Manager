@@ -581,7 +581,7 @@ export function filterTryit(dataSet, toArray, tryitConfig = null) {
 export function getMaxValue(value1, value2, value3) {
   const positiveValues = [parseFloat(value1).toFixed(20), parseFloat(value2).toFixed(20), parseFloat(value3).toFixed(20)].filter(value => value > 0);
   return positiveValues.length > 0 ? parseFloat(Math.max(...positiveValues)).toFixed(20).toString() : null;
-};
+}
 
 export function PBar(val, pval, max, left, width = 60) {
   const maxNum = Number(max);

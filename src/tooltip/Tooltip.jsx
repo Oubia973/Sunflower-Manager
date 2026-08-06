@@ -453,7 +453,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
 
     try {
         if (it?.[item]) {
-            function getNodeImg(item) {
+            const getNodeImg = (item) => {
                 const retObj = {};
                 switch (true) {
                     case (it[item]?.greenhouse):
@@ -520,7 +520,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                         break;
                 }
                 return retObj;
-            }
+            };
             const Spot1 = (it[item][key("spot")] || 0) - ((it[item]?.[key("spot2")] || 0) + (it[item]?.[key("spot3")] || 0));
             const nodeImg = getNodeImg(item);
             const imgNode = <img src={nodeImg.nodeImg1} style={{ width: "20px", height: "20px" }} />
@@ -596,10 +596,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                             let toolCost = 0; //Item[costortry];
                             let imgSeason = imgna;
                             let SeasonCurName = dataSetFarm.curSeason;
-                            if (SeasonCurName === "winter") { imgSeason = imgwinter; };
-                            if (SeasonCurName === "spring") { imgSeason = imgspring; };
-                            if (SeasonCurName === "summer") { imgSeason = imgsummer; };
-                            if (SeasonCurName === "autumn") { imgSeason = imgautumn; };
+                            if (SeasonCurName === "winter") { imgSeason = imgwinter; }
+                            if (SeasonCurName === "spring") { imgSeason = imgspring; }
+                            if (SeasonCurName === "summer") { imgSeason = imgsummer; }
+                            if (SeasonCurName === "autumn") { imgSeason = imgautumn; }
                             isFree = false;
                             /* const obsiCompoOrTry = ForTry ? Item.compotry : Item.compo;
                             let toolCompo = [];
@@ -618,10 +618,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                             let txtCompos = [];
                             Object.keys(it[item][key("compos")]).map(SeasonName => {
                                 if (SeasonName === dataSetFarm.curSeason) return;
-                                if (SeasonName === "winter") { imgSeason = imgwinter; };
-                                if (SeasonName === "spring") { imgSeason = imgspring; };
-                                if (SeasonName === "summer") { imgSeason = imgsummer; };
-                                if (SeasonName === "autumn") { imgSeason = imgautumn; };
+                                if (SeasonName === "winter") { imgSeason = imgwinter; }
+                                if (SeasonName === "spring") { imgSeason = imgspring; }
+                                if (SeasonName === "summer") { imgSeason = imgsummer; }
+                                if (SeasonName === "autumn") { imgSeason = imgautumn; }
                                 let lineCompos = [];
                                 let toolCostOther = 0;
                                 lineCompos.push(<><span>{imgSeason} :</span> </>);
@@ -1711,7 +1711,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             }
             if (context === "ratiodigp" && value.qtoday === "total") {
                 txtPattern = <><div>This is patterns values</div>
-                    <div>it's what you can have without dig any Sand, Crab or Bone</div></>;
+                    <div>it&apos;s what you can have without dig any Sand, Crab or Bone</div></>;
             }
             if (txtItem !== "") {
                 txt = <>{txtItem}{txtPattern}
@@ -2175,7 +2175,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         }
         if (context === "askIA") {
             if (value) {
-                function formatIAAnswerJSX(answer) {
+                const formatIAAnswerJSX = (answer) => {
                     if (!answer) return null;
                     const parts = answer
                         .replace(/\\n/g, "\n")
@@ -2194,13 +2194,13 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                         }
                         return <span key={index}>{part}</span>;
                     });
-                }
-                function formatIAAnswerHTML(answer) {
+                };
+                const formatIAAnswerHTML = (answer) => {
                     return answer
                         .replace(/\\n/g, "\n")
                         .replace(/\*\*(.*?)\*\*/g, "🔹 $1")
                         .trim();
-                }
+                };
                 const textIA = formatIAAnswerJSX(value);
                 //const username = dataSet?.options?.username || "No Name";
                 //const farmId = dataSet?.options?.farmId || "Unknown";

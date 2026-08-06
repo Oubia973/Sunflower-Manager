@@ -397,7 +397,9 @@ function bytesLen(text) {
     if (typeof TextEncoder !== "undefined") {
       return new TextEncoder().encode(String(text || "")).length;
     }
-  } catch {}
+  } catch {
+    // TextEncoder is optional on older WebViews; use the character count below.
+  }
   return String(text || "").length;
 }
 

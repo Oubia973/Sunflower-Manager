@@ -312,7 +312,9 @@ function TryProfileShareBar({
       } else {
         localStorage.removeItem(TRY_ACTIVE_PROFILE_ID_KEY);
       }
-    } catch {}
+    } catch {
+      // Storage can be unavailable in private or restricted browser contexts.
+    }
   }, [selectedProfileId]);
   const selectedProfile = useMemo(
     () => profiles.find((p) => String(p?.id || "") === String(selectedProfileId || "")) || null,

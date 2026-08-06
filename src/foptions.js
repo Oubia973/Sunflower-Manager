@@ -107,7 +107,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
         dragLiveOffset.current = {
             x: dragStartOffset.current.x + (x - dragStartMouse.current.x),
             y: dragStartOffset.current.y + (y - dragStartMouse.current.y),
-        };
+        }
         if (!dragFrameRef.current) {
             dragFrameRef.current = window.requestAnimationFrame(() => {
                 dragFrameRef.current = 0;
@@ -191,7 +191,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 document.body.removeChild(tooltip);
             }, 2000);
             document.body.removeChild(textarea);
-        };
+        }
     }
     const paymentWalletAddress = "0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA";
     const paymentExplorerBaseUrl = "https://polygonscan.com";
@@ -316,7 +316,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     cursor: dragging ? "grabbing" : "grab",
                 }}
             >
-                <button onClick={closeModal} className="button" align="right" position='absolute'><img src={imgcancel} alt="" className="resico" /></button>
+                <button onClick={closeModal} className="button"><img src={imgcancel} alt="" className="resico" /></button>
                 <span style={{ fontWeight: "bold", fontSize: "16px" }}>Preferences</span>
                 <div><input type="checkbox" onChange={onOptionChange} checked={dataSet.autoRefresh !== false}
                     name={"autoRefresh"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Auto refresh tables</div>
@@ -433,9 +433,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                             }, 2000);
                         }}
                         //onClick={resetTax}
-                        className="button small-btn"
-                        align="right"
-                        position='absolute'><img src={imgrefresh} alt="" className="resico" />
+                        className="button small-btn"><img src={imgrefresh} alt="" className="resico" />
                     </button>
                     Trade Tax
                     <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoTradeTax}
