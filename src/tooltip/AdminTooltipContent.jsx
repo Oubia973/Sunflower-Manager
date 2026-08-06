@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { formatHttpErrorMessage } from "../utils/http.js";
+import { fetchJson } from "../services/apiClient.js";
 import { imgcancel } from "../constants/images.js";
 
 export default function AdminTooltipContent({
@@ -66,18 +66,11 @@ export default function AdminTooltipContent({
             return { farmId, username: String(adminVipValidation?.username || "") };
         }
 
-        const response = await fetch(`${String(API_URL).replace(/\/$/, "")}/getfarm`, {
+        const responseData = await fetchJson(API_URL, "/getfarm", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ frmid: input }),
+            body: { frmid: input },
         });
-
-        if (!response.ok) {
-            throw new Error(await formatHttpErrorMessage(response, "/getfarm"));
-        }
-
-        const responseData = await response.json();
         const farmId = Number(
             responseData?.frmid
             || responseData?.farmData?.frmid

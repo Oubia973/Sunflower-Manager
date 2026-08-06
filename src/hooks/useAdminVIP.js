@@ -5,8 +5,8 @@
 
 import { useState, useCallback } from 'react';
 import { imgusdc, imgmatic, imgbase, imgeth, imgsfl } from '../constants/images.js';
-import { formatHttpErrorMessage } from '../utils/http.js';
 import { formatVipPromptMessage } from '../utils/formatting.js';
+import { fetchJson } from '../services/apiClient.js';
 
 /**
  * Hook for admin and VIP functionality
@@ -21,90 +21,63 @@ export function useAdminVIP(API_URL, dataSetFarm, dataSet, promptPass, promptCho
    */
   const fetchAdminView = useCallback(async (payload = {}, allowPrompt = true) => {
     const isAboListRequest = String(payload?.action || '') === 'getabolist';
-    const requestUrl = API_URL + (isAboListRequest ? '/getabolist' : '/getadminstats');
+    const endpoint = isAboListRequest ? '/getabolist' : '/getadminstats';
     const requestInit = isAboListRequest
       ? { method: 'GET', credentials: 'include' }
       : {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify(payload || {}),
+          body: payload || {},
         };
 
-    let response = await fetch(requestUrl, requestInit);
-    
-    if (response.status === 401 && allowPrompt && promptPass) {
+    const requestAdminData = () => fetchJson(API_URL, endpoint, requestInit);
+    try {
+      return await requestAdminData();
+    } catch (error) {
+      if (error?.status !== 401 || !allowPrompt || !promptPass) throw error;
       const password = await promptPass();
       if (password === null) {
         throw new Error('Admin login cancelled');
       }
-      const loginResponse = await fetch(API_URL + '/admin/login', {
+      await fetchJson(API_URL, '/admin/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ password }),
+        body: { password },
       });
-      if (!loginResponse.ok) {
-        const loginMsg = await formatHttpErrorMessage(loginResponse, '/admin/login');
-        throw new Error(loginMsg);
-      }
-      response = await fetch(requestUrl, requestInit);
+      return await requestAdminData();
     }
-
-    if (!response.ok) {
-      const message = await formatHttpErrorMessage(
-        response,
-        isAboListRequest ? '/getabolist' : '/getadminstats'
-      );
-      throw new Error(message);
-    }
-    return await response.json();
   }, [API_URL, promptPass]);
 
   /**
    * Request VIP payment
    */
   const requestVipPayment = useCallback(async ({ farmId, username, isAbo, vipExpiresAt, tokenSymbol, chainKey }) => {
-    const response = await fetch(API_URL + '/request-payment', {
+    return await fetchJson(API_URL, '/request-payment', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({
+      body: {
         farmId: Number(farmId || 0),
         username: String(username || ''),
         isAbo: !!isAbo,
         vipExpiresAt: vipExpiresAt || null,
         tokenSymbol: String(tokenSymbol || 'USDC').toUpperCase(),
         chainKey: String(chainKey || 'polygon').toLowerCase(),
-      }),
+      },
     });
-
-    if (!response.ok) {
-      const message = await formatHttpErrorMessage(response, '/request-payment');
-      throw new Error(message);
-    }
-    return await response.json();
   }, [API_URL]);
 
   /**
    * Confirm VIP payment
    */
   const confirmVipPayment = useCallback(async ({ paymentId, txHash }) => {
-    const response = await fetch(API_URL + '/confirm-payment', {
+    return await fetchJson(API_URL, '/confirm-payment', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({
+      body: {
         paymentId: String(paymentId || ''),
         txHash: String(txHash || ''),
-      }),
+      },
     });
-
-    if (!response.ok) {
-      const message = await formatHttpErrorMessage(response, '/confirm-payment');
-      throw new Error(message);
-    }
-    return await response.json();
   }, [API_URL]);
 
   /**

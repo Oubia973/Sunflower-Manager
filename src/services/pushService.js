@@ -3,6 +3,8 @@
  * Extracted from App.js subscribeToPush, unsubscribeFromPush
  */
 
+import { fetchJson } from './apiClient.js';
+
 /**
  * Convert base64 string to Uint8Array for applicationServerKey
  */
@@ -14,38 +16,11 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
 }
 
-async function postJson(endpoint, payload) {
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-  let responseData = null;
-  try {
-    responseData = await response.json();
-  } catch {
-    responseData = null;
-  }
-
-  if (!response.ok) {
-    const message = responseData?.error || responseData?.message || `${endpoint} failed (${response.status})`;
-    const error = new Error(String(message));
-    error.status = response.status;
-    error.code = responseData?.code || '';
-    error.retryAfterMs = Number(responseData?.retryAfterMs || 0);
-    throw error;
-  }
-
-  return responseData;
-}
-
 /**
  * Create a push service instance
  */
 export function createPushService(apiUrl = '') {
   const baseUrl = String(apiUrl || '').replace(/\/$/, '');
-  const endpointUrl = (endpoint) => `${baseUrl}${endpoint}`;
   
   /**
    * Subscribe to web push notifications
@@ -68,7 +43,7 @@ export function createPushService(apiUrl = '') {
         subscription: subscriptionJson
       };
 
-      await postJson(endpointUrl('/save-subscription'), subfarm);
+      await fetchJson(baseUrl, '/save-subscription', { method: 'POST', body: subfarm });
 
       return { success: true, error: null };
     } catch (error) {
@@ -87,7 +62,7 @@ export function createPushService(apiUrl = '') {
     };
 
     try {
-      await postJson(endpointUrl('/save-subscription'), subfarm);
+      await fetchJson(baseUrl, '/save-subscription', { method: 'POST', body: subfarm });
       return { success: true, error: null };
     } catch (error) {
       return { success: false, error: error.message };
@@ -117,7 +92,7 @@ export function createPushService(apiUrl = '') {
     }
 
     try {
-      await postJson(endpointUrl('/remove-subscription'), subfarm);
+      await fetchJson(baseUrl, '/remove-subscription', { method: 'POST', body: subfarm });
       return { success: true, error: null };
     } catch (error) {
       return { success: false, error: error.message };
@@ -129,7 +104,7 @@ export function createPushService(apiUrl = '') {
    */
   async function checkStatus(subfarmData) {
     try {
-      const data = await postJson(endpointUrl('/subscription-status'), subfarmData);
+      const data = await fetchJson(baseUrl, '/subscription-status', { method: 'POST', body: subfarmData });
       return { success: true, data, error: null };
     } catch (error) {
       return { success: false, data: null, error: error.message };
@@ -141,7 +116,7 @@ export function createPushService(apiUrl = '') {
    */
   async function updateNotifList(subfarmData) {
     try {
-      await postJson(endpointUrl('/notiflist-subscription'), subfarmData);
+      await fetchJson(baseUrl, '/notiflist-subscription', { method: 'POST', body: subfarmData });
       return { success: true, error: null };
     } catch (error) {
       return { success: false, error: error.message };
@@ -153,7 +128,7 @@ export function createPushService(apiUrl = '') {
    */
   async function updateAuctionList(subfarmData) {
     try {
-      await postJson(endpointUrl('/auctionlist-subscription'), subfarmData);
+      await fetchJson(baseUrl, '/auctionlist-subscription', { method: 'POST', body: subfarmData });
       return { success: true, error: null };
     } catch (error) {
       return { success: false, error: error.message };

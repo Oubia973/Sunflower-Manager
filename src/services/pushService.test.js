@@ -4,7 +4,9 @@ function mockResponse({ ok = true, status = 200, payload = {} } = {}) {
   return {
     ok,
     status,
+    headers: { get: jest.fn().mockReturnValue('application/json') },
     json: jest.fn().mockResolvedValue(payload),
+    text: jest.fn().mockResolvedValue(JSON.stringify(payload)),
   };
 }
 
@@ -57,4 +59,3 @@ describe('pushService HTTP contract', () => {
     expect(result).toEqual({ success: false, error: 'Too many requests' });
   });
 });
-
