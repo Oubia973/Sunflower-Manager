@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit shipped dependencies
+        run: npm audit --omit=dev --audit-level=moderate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test -- --watchAll=false
+        env:
+          CI: true
+
+      - name: Build web application
+        run: npm run build
+        env:
+          CI: true
+
+      - name: Synchronize Capacitor
+        run: npx cap sync android
+
+      - name: Build Android debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
