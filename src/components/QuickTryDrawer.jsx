@@ -25,12 +25,13 @@ const TABLE_LABELS = {
 const TABLE_ORDER = ["nft", "nftw", "buildng", "bud", "shrine", "skill", "skilllgc"];
 const APPLY_DELAY_MS = 650;
 const QUICK_TRY_POSITION_KEY = "sunflower-manager:quick-try-position";
+const QUICK_TRY_PANEL_POSITION_KEY = "sunflower-manager:quick-try-panel-position";
 const QUICK_TRY_MARGIN = 9;
 const QUICK_TRY_BUTTON_SIZE = 36;
 
-function clampQuickTryPosition(position) {
-  const maxLeft = Math.max(QUICK_TRY_MARGIN, window.innerWidth - QUICK_TRY_BUTTON_SIZE - QUICK_TRY_MARGIN);
-  const maxTop = Math.max(QUICK_TRY_MARGIN, window.innerHeight - QUICK_TRY_BUTTON_SIZE - QUICK_TRY_MARGIN);
+function clampQuickTryPosition(position, width = QUICK_TRY_BUTTON_SIZE, height = QUICK_TRY_BUTTON_SIZE) {
+  const maxLeft = Math.max(QUICK_TRY_MARGIN, window.innerWidth - width - QUICK_TRY_MARGIN);
+  const maxTop = Math.max(QUICK_TRY_MARGIN, window.innerHeight - height - QUICK_TRY_MARGIN);
   return {
     left: Math.min(Math.max(QUICK_TRY_MARGIN, Number(position?.left) || QUICK_TRY_MARGIN), maxLeft),
     top: Math.min(Math.max(QUICK_TRY_MARGIN, Number(position?.top) || QUICK_TRY_MARGIN), maxTop),
@@ -92,8 +93,8 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [position, setPosition] = useState(null);
+  const [panelPosition, setPanelPosition] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [panelOffset, setPanelOffset] = useState(null);
   const latestStateRef = useRef(null);
   const applyTimerRef = useRef(null);
   const requestIdRef = useRef(0);
@@ -101,7 +102,6 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
   const dragRef = useRef(null);
   const didDragRef = useRef(false);
   const panelRef = useRef(null);
-  const panelOffsetRef = useRef(null);
   const validConfig = isValidTryitConfig(tryitConfig);
   const farmId = String(dataSet?.options?.farmId || dataSetFarm?.frmid || "");
   const hasBoostData = !!withTryTables(dataSetFarm)?.boostables;
@@ -119,44 +119,40 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
     try {
       const savedPosition = JSON.parse(localStorage.getItem(QUICK_TRY_POSITION_KEY));
       if (savedPosition) setPosition(clampQuickTryPosition(savedPosition));
+      const savedPanelPosition = JSON.parse(localStorage.getItem(QUICK_TRY_PANEL_POSITION_KEY));
+      if (savedPanelPosition) setPanelPosition(savedPanelPosition);
     } catch {
       // A saved position is optional; leave the button at its default location.
     }
   }, []);
 
   useEffect(() => {
-    const keepPositionVisible = () => setPosition((current) => current && clampQuickTryPosition(current));
+    const keepPositionVisible = () => {
+      setPosition((current) => current && clampQuickTryPosition(current));
+      setPanelPosition((current) => {
+        if (!current || !panelRef.current) return current;
+        const rect = panelRef.current.getBoundingClientRect();
+        return clampQuickTryPosition(current, rect.width, rect.height);
+      });
+    };
     window.addEventListener("resize", keepPositionVisible);
     return () => window.removeEventListener("resize", keepPositionVisible);
   }, []);
 
   useLayoutEffect(() => {
-    if (!open || !panelRef.current) {
-      panelOffsetRef.current = null;
-      setPanelOffset(null);
-      return;
-    }
+    if (!open || !panelRef.current) return;
     const keepPanelVisible = () => {
       if (!panelRef.current) return;
       const rect = panelRef.current.getBoundingClientRect();
-      const previousX = panelOffsetRef.current?.x || 0;
-      const previousY = panelOffsetRef.current?.y || 0;
-      const baseRect = {
-        left: rect.left - previousX,
-        right: rect.right - previousX,
-        top: rect.top - previousY,
-        bottom: rect.bottom - previousY,
-      };
-      let x = baseRect.right > window.innerWidth - QUICK_TRY_MARGIN
-        ? window.innerWidth - QUICK_TRY_MARGIN - baseRect.right : 0;
-      let y = baseRect.bottom > window.innerHeight - QUICK_TRY_MARGIN
-        ? window.innerHeight - QUICK_TRY_MARGIN - baseRect.bottom : 0;
-      if (baseRect.left + x < QUICK_TRY_MARGIN) x = QUICK_TRY_MARGIN - baseRect.left;
-      if (baseRect.top + y < QUICK_TRY_MARGIN) y = QUICK_TRY_MARGIN - baseRect.top;
-      const nextOffset = x || y ? { x, y } : null;
-      if (previousX === (nextOffset?.x || 0) && previousY === (nextOffset?.y || 0)) return;
-      panelOffsetRef.current = nextOffset;
-      setPanelOffset(nextOffset);
+      setPanelPosition((current) => {
+        if (current) return clampQuickTryPosition(current, rect.width, rect.height);
+        const buttonRect = document.querySelector(".quick-try-fab")?.getBoundingClientRect();
+        return clampQuickTryPosition(
+          { left: buttonRect?.left ?? rect.left, top: buttonRect?.top ?? rect.top },
+          rect.width,
+          rect.height,
+        );
+      });
     };
     keepPanelVisible();
     const resizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(keepPanelVisible) : null;
@@ -166,7 +162,7 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
       resizeObserver?.disconnect();
       window.removeEventListener("resize", keepPanelVisible);
     };
-  }, [open, position]);
+  }, [open]);
 
   const entries = useMemo(() => {
     const boosts = withTryTables(dataSetFarm)?.boostables || {};
@@ -278,16 +274,18 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
       : status === "done" ? "Up to date"
         : status === "error" ? error : "Auto";
 
-  const handleDragStart = (event, allowWhenOpen = false) => {
-    if ((!allowWhenOpen && open) || event.button > 0) return;
+  const handleDragStart = (event, target = "button") => {
+    if ((target === "button" && open) || event.button > 0) return;
     const rect = event.currentTarget.getBoundingClientRect();
-    const draggedRect = allowWhenOpen ? panelRef.current?.getBoundingClientRect() || rect : rect;
+    const draggedRect = target === "panel" ? panelRef.current?.getBoundingClientRect() || rect : rect;
+    const currentPosition = target === "panel" ? panelPosition : position;
     dragRef.current = {
+      target,
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      left: position?.left ?? rect.left,
-      top: position?.top ?? rect.top,
+      left: currentPosition?.left ?? draggedRect.left,
+      top: currentPosition?.top ?? draggedRect.top,
       draggedRect,
     };
     didDragRef.current = false;
@@ -309,10 +307,12 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
       Math.max(QUICK_TRY_MARGIN - drag.draggedRect.top, event.clientY - drag.startY),
       window.innerHeight - QUICK_TRY_MARGIN - drag.draggedRect.bottom,
     );
-    setPosition(clampQuickTryPosition({
+    const nextPosition = clampQuickTryPosition({
       left: drag.left + deltaX,
       top: drag.top + deltaY,
-    }));
+    }, drag.draggedRect.width, drag.draggedRect.height);
+    if (drag.target === "panel") setPanelPosition(nextPosition);
+    else setPosition(nextPosition);
   };
 
   const handleDragEnd = (event) => {
@@ -321,8 +321,10 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
     dragRef.current = null;
     setIsDragging(false);
     if (didDragRef.current) {
-      setPosition((current) => {
-        if (current) localStorage.setItem(QUICK_TRY_POSITION_KEY, JSON.stringify(current));
+      const setDraggedPosition = drag.target === "panel" ? setPanelPosition : setPosition;
+      const storageKey = drag.target === "panel" ? QUICK_TRY_PANEL_POSITION_KEY : QUICK_TRY_POSITION_KEY;
+      setDraggedPosition((current) => {
+        if (current) localStorage.setItem(storageKey, JSON.stringify(current));
         return current;
       });
     }
@@ -376,14 +378,14 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
           ref={panelRef}
           id="quick-try-panel"
           className="quick-try-panel"
-          style={panelOffset ? { transform: `translate(${panelOffset.x}px, ${panelOffset.y}px)` } : undefined}
+          style={panelPosition ? { left: `${panelPosition.left}px`, top: `${panelPosition.top}px` } : undefined}
           aria-label="Quick Tryset controls"
         >
           <header
             className={`quick-try-header ${isDragging ? "is-dragging" : ""}`}
             onPointerDown={(event) => {
               if (event.target.closest("button")) return;
-              handleDragStart(event, true);
+              handleDragStart(event, "panel");
             }}
             onPointerMove={handleDragMove}
             onPointerUp={handleDragEnd}

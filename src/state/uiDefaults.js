@@ -168,6 +168,25 @@ export const uiDefaults = {
  */
 export function normalizeUI(raw) {
   const next = { ...(raw || {}) };
+  // Chapter selections are persisted in localStorage. Older cached UI states may
+  // contain serialized values ("true"/"false", 1/0) which the calculator API
+  // correctly rejects because its contract requires actual booleans.
+  const normalizeChapterSelection = (value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => key && key.length <= 160)
+        .slice(0, 150)
+        .map(([key, selected]) => [
+          key,
+          !(selected === false || selected === "false" || selected === 0 || selected === "0"),
+        ])
+    );
+  };
+  next.chapterNpcSelection = normalizeChapterSelection(next.chapterNpcSelection);
+  next.chapterBountySelection = normalizeChapterSelection(next.chapterBountySelection);
+  next.chapterChoreSelection = normalizeChapterSelection(next.chapterChoreSelection);
+  next.chapterPoppyCategorySelection = normalizeChapterSelection(next.chapterPoppyCategorySelection);
   const currency = String(next.selectedCurr || "").trim().toUpperCase();
   next.selectedCurr = (currency === "FLOWER" || currency === "SFL" || currency === "")
     ? "SFL"

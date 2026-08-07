@@ -101,6 +101,34 @@ const ASCENSION_EXPAND_TYPES = new Set([
   "galaxy",
   "marble",
 ]);
+const EXPAND_RANGES = {
+  basic: { base: 1, max: 9 },
+  spring: { base: 1, max: 16 },
+  desert: { base: 1, max: 25 },
+  volcano: { base: 1, max: 30 },
+  swamp: { base: 30, max: 42 },
+  spooky: { base: 30, max: 42 },
+  crystal: { base: 30, max: 42 },
+  galaxy: { base: 30, max: 42 },
+  marble: { base: 30, max: 42 },
+};
+
+function normalizeExpandRange(type, rawFrom, rawTo) {
+  const range = EXPAND_RANGES[type] || EXPAND_RANGES.spring;
+  const from = Math.max(
+    range.base,
+    Math.min(range.max - 1, Number(rawFrom) || range.base),
+  );
+  const preservedTo = Math.max(
+    range.base + 1,
+    Math.min(range.max, Number(rawTo) || range.max),
+  );
+  const to = preservedTo > from
+    ? preservedTo
+    : Math.min(range.max, from + 1);
+
+  return { from, to };
+}
 
 function App() {
   // ========== Core State ==========
@@ -686,10 +714,6 @@ function App() {
     setUIField("selectedInv", "home");
   }, [aboStatusKnown, isAboFarm, ui?.selectedInv, setUIField]);
 
-  const expandProfileRef = useRef(
-    `${selectedExpandType}|${selectedExpandAscension || 1}`,
-  );
-
   useEffect(() => {
     const fixedAscensionByIsland = {
       swamp: 1,
@@ -713,52 +737,43 @@ function App() {
       return;
     }
 
-    const profileKey = `${selectedExpandType}|${normalizedAscension}`;
-    if (expandProfileRef.current === profileKey) return;
-    expandProfileRef.current = profileKey;
-
-    const ranges = {
-      basic: { base: 1, max: 9 },
-      spring: { base: 1, max: 16 },
-      desert: { base: 1, max: 25 },
-      volcano: { base: 1, max: 30 },
-      swamp: { base: 30, max: 42 },
-      spooky: { base: 30, max: 42 },
-      crystal: { base: 30, max: 42 },
-      galaxy: { base: 30, max: 42 },
-      marble: { base: 30, max: 42 },
-    };
-    const range = ranges[selectedExpandType] || ranges.spring;
-    setUI((previous) => ({
-      ...previous,
-      fromexpand: Math.max(
-        range.base,
-        Math.min(range.max, Number(previous.fromexpand) || range.base),
-      ),
-      toexpand: (() => {
-        const nextFrom = Math.max(
-          range.base,
-          Math.min(range.max, Number(previous.fromexpand) || range.base),
-        );
-        const preservedTo = Math.max(
-          range.base,
-          Math.min(range.max, Number(previous.toexpand) || range.max),
-        );
-        return preservedTo > nextFrom
-          ? preservedTo
-          : Math.min(range.max, nextFrom + 1);
-      })(),
-    }));
+    setUI((previous) => {
+      const normalized = normalizeExpandRange(
+        selectedExpandType,
+        previous.fromexpand,
+        previous.toexpand,
+      );
+      if (
+        Number(previous.fromexpand) === normalized.from
+        && Number(previous.toexpand) === normalized.to
+      ) {
+        return previous;
+      }
+      return {
+        ...previous,
+        fromexpand: normalized.from,
+        toexpand: normalized.to,
+      };
+    });
   }, [
     selectedExpandType,
     selectedExpandAscension,
+    fromexpand,
+    toexpand,
     setUI,
   ]);
 
   useEffect(() => {
+    const normalized = normalizeExpandRange(selectedExpandType, fromexpand, toexpand);
+    if (
+      Number(fromexpand) !== normalized.from
+      || Number(toexpand) !== normalized.to
+    ) {
+      return;
+    }
     getFromToExpand(
-      Number(fromexpand) + 1,
-      Number(toexpand),
+      normalized.from + 1,
+      normalized.to,
       selectedExpandType,
       selectedExpandAscension,
     );
