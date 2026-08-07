@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx.js";
 import { fetchJson } from "../services/apiClient.js";
 import { getOrCreateDeviceId, mergeFarmStateDeep, unpackFarmPayloadTables } from "../fct.js";
+import { imgna, normalizeServerImagesDeep } from "../constants/images.js";
 import {
   buildCanonicalTryitSnapshot,
   hasTryitPayloadContent,
@@ -23,6 +24,18 @@ const TABLE_LABELS = {
 
 const TABLE_ORDER = ["nft", "nftw", "buildng", "bud", "shrine", "skill", "skilllgc"];
 const APPLY_DELAY_MS = 650;
+const QUICK_TRY_POSITION_KEY = "sunflower-manager:quick-try-position";
+const QUICK_TRY_MARGIN = 9;
+const QUICK_TRY_BUTTON_SIZE = 36;
+
+function clampQuickTryPosition(position) {
+  const maxLeft = Math.max(QUICK_TRY_MARGIN, window.innerWidth - QUICK_TRY_BUTTON_SIZE - QUICK_TRY_MARGIN);
+  const maxTop = Math.max(QUICK_TRY_MARGIN, window.innerHeight - QUICK_TRY_BUTTON_SIZE - QUICK_TRY_MARGIN);
+  return {
+    left: Math.min(Math.max(QUICK_TRY_MARGIN, Number(position?.left) || QUICK_TRY_MARGIN), maxLeft),
+    top: Math.min(Math.max(QUICK_TRY_MARGIN, Number(position?.top) || QUICK_TRY_MARGIN), maxTop),
+  };
+}
 
 function withTryTables(farmState = {}) {
   const extra = farmState?.tryNftData;
@@ -45,6 +58,26 @@ function getActiveValue(tableName, item) {
   return Number(item?.isactive || 0) > 0 ? 1 : 0;
 }
 
+function getQuickTryFallbackImage(entry) {
+  const wearableId = String(entry?.item?.id || "").trim();
+  if (entry?.tableName === "nftw" && /^\d+$/.test(wearableId)) {
+    return `https://sunflower-land.com/play/wearables/images/${wearableId}.png`;
+  }
+  return imgna;
+}
+
+function handleQuickTryImageError(event, entry) {
+  const image = event.currentTarget;
+  const fallback = getQuickTryFallbackImage(entry);
+  if (!image.dataset.quickTryFallback && fallback !== imgna) {
+    image.dataset.quickTryFallback = "official";
+    image.src = fallback;
+    return;
+  }
+  image.onerror = null;
+  image.src = imgna;
+}
+
 export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSections = [] }) {
   const {
     data: { dataSet, dataSetFarm },
@@ -58,10 +91,17 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
   const [changedOnly, setChangedOnly] = useState(false);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
+  const [position, setPosition] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [panelOffset, setPanelOffset] = useState(null);
   const latestStateRef = useRef(null);
   const applyTimerRef = useRef(null);
   const requestIdRef = useRef(0);
   const abortRef = useRef(null);
+  const dragRef = useRef(null);
+  const didDragRef = useRef(false);
+  const panelRef = useRef(null);
+  const panelOffsetRef = useRef(null);
   const validConfig = isValidTryitConfig(tryitConfig);
   const farmId = String(dataSet?.options?.farmId || dataSetFarm?.frmid || "");
   const hasBoostData = !!withTryTables(dataSetFarm)?.boostables;
@@ -74,6 +114,59 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
     if (applyTimerRef.current) clearTimeout(applyTimerRef.current);
     abortRef.current?.abort?.();
   }, []);
+
+  useEffect(() => {
+    try {
+      const savedPosition = JSON.parse(localStorage.getItem(QUICK_TRY_POSITION_KEY));
+      if (savedPosition) setPosition(clampQuickTryPosition(savedPosition));
+    } catch {
+      // A saved position is optional; leave the button at its default location.
+    }
+  }, []);
+
+  useEffect(() => {
+    const keepPositionVisible = () => setPosition((current) => current && clampQuickTryPosition(current));
+    window.addEventListener("resize", keepPositionVisible);
+    return () => window.removeEventListener("resize", keepPositionVisible);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open || !panelRef.current) {
+      panelOffsetRef.current = null;
+      setPanelOffset(null);
+      return;
+    }
+    const keepPanelVisible = () => {
+      if (!panelRef.current) return;
+      const rect = panelRef.current.getBoundingClientRect();
+      const previousX = panelOffsetRef.current?.x || 0;
+      const previousY = panelOffsetRef.current?.y || 0;
+      const baseRect = {
+        left: rect.left - previousX,
+        right: rect.right - previousX,
+        top: rect.top - previousY,
+        bottom: rect.bottom - previousY,
+      };
+      let x = baseRect.right > window.innerWidth - QUICK_TRY_MARGIN
+        ? window.innerWidth - QUICK_TRY_MARGIN - baseRect.right : 0;
+      let y = baseRect.bottom > window.innerHeight - QUICK_TRY_MARGIN
+        ? window.innerHeight - QUICK_TRY_MARGIN - baseRect.bottom : 0;
+      if (baseRect.left + x < QUICK_TRY_MARGIN) x = QUICK_TRY_MARGIN - baseRect.left;
+      if (baseRect.top + y < QUICK_TRY_MARGIN) y = QUICK_TRY_MARGIN - baseRect.top;
+      const nextOffset = x || y ? { x, y } : null;
+      if (previousX === (nextOffset?.x || 0) && previousY === (nextOffset?.y || 0)) return;
+      panelOffsetRef.current = nextOffset;
+      setPanelOffset(nextOffset);
+    };
+    keepPanelVisible();
+    const resizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(keepPanelVisible) : null;
+    resizeObserver?.observe(panelRef.current);
+    window.addEventListener("resize", keepPanelVisible);
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", keepPanelVisible);
+    };
+  }, [open, position]);
 
   const entries = useMemo(() => {
     const boosts = withTryTables(dataSetFarm)?.boostables || {};
@@ -132,7 +225,7 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
         },
       });
       if (requestId !== requestIdRef.current) return;
-      const responseState = withTryTables(unpackFarmPayloadTables(payload));
+      const responseState = withTryTables(normalizeServerImagesDeep(unpackFarmPayloadTables(payload)));
       const latestState = latestStateRef.current || state;
       const merged = syncTryitStateAcrossFarmState(
         mergeFarmStateDeep(latestState, responseState, tryitConfig),
@@ -140,7 +233,7 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
         buildCanonicalTryitSnapshot(latestState, tryitConfig)
       );
       latestStateRef.current = merged;
-      handleRefreshfTNFT(dataSet, merged, { persistTrySnapshot: false });
+      handleRefreshfTNFT(dataSet, merged, { persistTrySnapshot: false, markTryitSynced: true });
       setStatus("done");
     } catch (applyError) {
       if (requestId !== requestIdRef.current || applyError?.code === "REQUEST_CANCELLED") return;
@@ -179,24 +272,86 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
 
   if (!farmId || !validConfig) return null;
 
-  const visibleEntries = entries.slice(0, 100);
   const statusLabel = status === "pending" ? "Changes…"
     : status === "applying" ? "Applying…"
       : status === "loading" ? "Loading…"
       : status === "done" ? "Up to date"
         : status === "error" ? error : "Auto";
 
+  const handleDragStart = (event, allowWhenOpen = false) => {
+    if ((!allowWhenOpen && open) || event.button > 0) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const draggedRect = allowWhenOpen ? panelRef.current?.getBoundingClientRect() || rect : rect;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      left: position?.left ?? rect.left,
+      top: position?.top ?? rect.top,
+      draggedRect,
+    };
+    didDragRef.current = false;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const handleDragMove = (event) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const moved = Math.abs(event.clientX - drag.startX) > 4 || Math.abs(event.clientY - drag.startY) > 4;
+    if (!moved && !didDragRef.current) return;
+    didDragRef.current = true;
+    setIsDragging(true);
+    const deltaX = Math.min(
+      Math.max(QUICK_TRY_MARGIN - drag.draggedRect.left, event.clientX - drag.startX),
+      window.innerWidth - QUICK_TRY_MARGIN - drag.draggedRect.right,
+    );
+    const deltaY = Math.min(
+      Math.max(QUICK_TRY_MARGIN - drag.draggedRect.top, event.clientY - drag.startY),
+      window.innerHeight - QUICK_TRY_MARGIN - drag.draggedRect.bottom,
+    );
+    setPosition(clampQuickTryPosition({
+      left: drag.left + deltaX,
+      top: drag.top + deltaY,
+    }));
+  };
+
+  const handleDragEnd = (event) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setIsDragging(false);
+    if (didDragRef.current) {
+      setPosition((current) => {
+        if (current) localStorage.setItem(QUICK_TRY_POSITION_KEY, JSON.stringify(current));
+        return current;
+      });
+    }
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+
   return (
-    <div className={`quick-try ${open ? "is-open" : ""}`}>
+    <div
+      className={`quick-try ${open ? "is-open" : ""}`}
+      style={position ? { left: `${position.left}px`, top: `${position.top}px`, right: "auto", bottom: "auto" } : undefined}
+    >
       <button
         type="button"
-        className="quick-try-fab"
+        className={`quick-try-fab ${isDragging ? "is-dragging" : ""}`}
+        onPointerDown={handleDragStart}
+        onPointerMove={handleDragMove}
+        onPointerUp={handleDragEnd}
+        onPointerCancel={handleDragEnd}
         onClick={async () => {
+          if (didDragRef.current) {
+            didDragRef.current = false;
+            return;
+          }
           if (open) {
             setOpen(false);
             return;
           }
-          if (!hasBoostData && typeof onEnsureData === "function") {
+          setOpen(true);
+          if (typeof onEnsureData === "function") {
             setStatus("loading");
             setError("");
             try {
@@ -208,7 +363,6 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
               setError("Unable to load boosts");
             }
           }
-          setOpen(true);
         }}
         aria-expanded={open}
         aria-controls="quick-try-panel"
@@ -218,8 +372,23 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
         {changedCount > 0 && <span className="quick-try-badge">{changedCount}</span>}
       </button>
       {open && (
-        <section id="quick-try-panel" className="quick-try-panel" aria-label="Quick Tryset controls">
-          <header className="quick-try-header">
+        <section
+          ref={panelRef}
+          id="quick-try-panel"
+          className="quick-try-panel"
+          style={panelOffset ? { transform: `translate(${panelOffset.x}px, ${panelOffset.y}px)` } : undefined}
+          aria-label="Quick Tryset controls"
+        >
+          <header
+            className={`quick-try-header ${isDragging ? "is-dragging" : ""}`}
+            onPointerDown={(event) => {
+              if (event.target.closest("button")) return;
+              handleDragStart(event, true);
+            }}
+            onPointerMove={handleDragMove}
+            onPointerUp={handleDragEnd}
+            onPointerCancel={handleDragEnd}
+          >
             <div>
               <strong>Quick Tryset</strong>
               <span className={`quick-try-status is-${status}`}>{statusLabel}</span>
@@ -236,7 +405,7 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
             />
             <select value={tableFilter} onChange={(event) => setTableFilter(event.target.value)} aria-label="Category">
               <option value="all">All</option>
-              {TABLE_ORDER.filter((tableName) => dataSetFarm?.boostables?.[tableName]).map((tableName) => (
+              {TABLE_ORDER.filter((tableName) => withTryTables(dataSetFarm)?.boostables?.[tableName]).map((tableName) => (
                 <option key={tableName} value={tableName}>{TABLE_LABELS[tableName]}</option>
               ))}
             </select>
@@ -246,12 +415,17 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
             Changed <span>{changedCount}</span>
           </label>
           <div className="quick-try-list">
-            {visibleEntries.map((entry) => {
+            {entries.map((entry) => {
               const isSkill = entry.tableName === "skill";
               const currentValue = entry.tryValue;
               return (
                 <div className={`quick-try-row ${currentValue !== entry.activeValue ? "is-changed" : ""}`} key={`${entry.tableName}:${entry.name}`}>
-                  <img src={entry.item?.img || ""} alt="" loading="lazy" />
+                  <img
+                    src={entry.item?.img || getQuickTryFallbackImage(entry)}
+                    alt=""
+                    loading="lazy"
+                    onError={(event) => handleQuickTryImageError(event, entry)}
+                  />
                   <button type="button" className="quick-try-name" onClick={() => !isSkill && commitEntry(entry, currentValue ? 0 : 1)}>
                     <span>{entry.name}</span>
                     <small>{entry.item?.boost || TABLE_LABELS[entry.tableName]}</small>
@@ -271,8 +445,7 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
                 </div>
               );
             })}
-            {visibleEntries.length === 0 && <p className="quick-try-empty">{hasBoostData ? "No results" : "Loading boosts…"}</p>}
-            {entries.length > visibleEntries.length && <p className="quick-try-empty">Refine your search to see the other {entries.length - visibleEntries.length}.</p>}
+            {entries.length === 0 && <p className="quick-try-empty">{hasBoostData ? "No results" : "Loading boosts…"}</p>}
           </div>
           <footer className="quick-try-footer">
             <span>Auto-apply</span>

@@ -178,6 +178,13 @@ export function useModalHandlers(
     const cleanFarmData = stripFarmMetadata(mergedFarmState, 'useModalHandlers/onRefresh');
     dataSetFarmRef.current = cleanFarmData;
     setdataSetFarm(cleanFarmData);
+    if (options?.markTryitSynced === true) {
+      tryNftOpenCoverageRef.current = {
+        farmId: String(cleanFarmData?.frmid || dataSet?.options?.farmId || ""),
+        signature: buildTryitCoverageSignature(getTryitRequestPayload(cleanFarmData)),
+        updatedAt: Date.now(),
+      };
+    }
     setCookie(mergedFarmState, dataSet, lastID);
     if (options?.persistTrySnapshot !== false && tryitSnapshot) {
       writeTryitSnapshot(tryitSnapshot, mergedFarmState?.frmid || dataSet?.options?.farmId || "");
@@ -187,7 +194,8 @@ export function useModalHandlers(
         console.log("TryNFT refresh trades sync error", error);
       });
     }
-  }, [dataSet, dataSetFarmRef, setdataSetFarm, setCookie, lastID, tryitConfig, farmSectionHashesRef, farmTableHashesRef, getPrices]);
+  }, [dataSet, dataSetFarmRef, setdataSetFarm, setCookie, lastID, tryitConfig, farmSectionHashesRef, farmTableHashesRef,
+    tryNftOpenCoverageRef, getTryitRequestPayload, getPrices]);
 
   return {
     handleButtonfTNFTClick,

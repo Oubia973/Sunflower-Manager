@@ -16,7 +16,13 @@
   background: linear-gradient(145deg, #713d21, #2b1710);
   box-shadow: 0 5px 18px rgba(0, 0, 0, 0.5);
   cursor: pointer;
+  touch-action: none;
+  user-select: none;
   font-size: 18px;
+}
+
+.quick-try-fab.is-dragging {
+  cursor: grabbing;
 }
 
 .quick-try.is-open .quick-try-fab {
@@ -68,6 +74,13 @@
   min-height: 32px;
   padding: 3px 7px 3px 9px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.quick-try-header.is-dragging {
+  cursor: grabbing;
 }
 
 .quick-try-header > div {
@@ -163,6 +176,20 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+  scrollbar-color: #7a7a7a #1d1d1d;
+}
+
+.quick-try-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.quick-try-list::-webkit-scrollbar-thumb {
+  background-color: #7a7a7a;
+}
+
+.quick-try-list::-webkit-scrollbar-track {
+  background-color: #1d1d1d;
 }
 
 .quick-try-row {
