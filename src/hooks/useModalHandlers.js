@@ -39,7 +39,7 @@ export function useModalHandlers(
   /**
    * Handle TryNFT modal open
    */
-  const handleButtonfTNFTClick = useCallback(async () => {
+  const handleButtonfTNFTClick = useCallback(async (options = {}) => {
     if (!isValidTryitConfig(tryitConfig)) {
       console.error("TRYIT_CONFIG missing: TryNFT opening blocked to preserve local selections.");
       return;
@@ -68,7 +68,10 @@ export function useModalHandlers(
         }
       } catch (error) { console.log("TryNFT preload error", error); }
     }
-    setShowfTNFT(true);
+    if (options?.openModal !== false) {
+      setShowfTNFT(true);
+    }
+    return dataSetFarmRef.current || null;
   }, [dataSet, dataSetFarmRef, getTryitRequestPayload, tryitConfig, sectionPayloadKeys, sectionTablePaths,
     farmSectionHashesRef, farmTableHashesRef, tryNftOpenCoverageRef, lastID, getPrices]);
 

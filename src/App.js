@@ -20,6 +20,7 @@ import PanelTable from "./tables/PanelTable";
 import HeaderTrades from "./components/HeaderTrades";
 import AutoRefreshProgress from "./components/AutoRefreshProgress";
 import TryProfileSummaryModal from "./components/TryProfileSummaryModal.jsx";
+import QuickTryDrawer from "./components/QuickTryDrawer.jsx";
 import {
   parseTryProfileFromLocation,
   clearTryProfileFromUrl,
@@ -1671,6 +1672,11 @@ function App() {
           {buttonClicked ?
             <AppCtx.Provider value={ctx}>
               {canRenderCurrentPage ? <PanelTable /> : <div>Loading page data...</div>}
+              <QuickTryDrawer
+                onOpenFull={handleButtonfTNFTClick}
+                onEnsureData={() => handleButtonfTNFTClick({ openModal: false })}
+                currentSections={requiredSectionsForView}
+              />
             </AppCtx.Provider> : null}
         </div>
         {showOptions && (
