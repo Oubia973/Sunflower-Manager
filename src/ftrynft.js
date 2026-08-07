@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAppCtx } from "./context/AppCtx";
-import { Switch, FormControlLabel } from '@mui/material';
+import { Switch, FormControlLabel, CircularProgress } from '@mui/material';
 import CounterInput from "./counterinput.js";
 import DList from "./dlist.jsx";
 import { frmtNb, ColorValue, mergeFarmStateDeep, getOrCreateDeviceId, unpackFarmPayloadTables } from './fct.js';
@@ -8,7 +8,6 @@ import Help from './fhelp.js';
 import TryProfileShareBar from "./components/TryProfileShareBar.jsx";
 import TryProfileSummaryModal from "./components/TryProfileSummaryModal.jsx";
 import { getScopeTablesFromPayload } from "./tryProfileShare.js";
-import { getSkillPointsAtLevel } from "./utils/skillPoints.js";
 import { fetchJson } from "./services/apiClient.js";
 import { readTryitSnapshot, writeTryitSnapshot, buildCanonicalTryitSnapshot, applyTryitSnapshotToFarmState, syncTryitStateAcrossFarmState, hasTryitPayloadContent, isValidTryitConfig } from "./tryitStorage.js";
 import {
@@ -253,6 +252,31 @@ function buildTryRefreshSignature(state, selectedSeason = "") {
   return parts.join("|");
 }
 
+function buildSkillBudgetRequestState(state = {}) {
+  const activeLevels = {};
+  const selectedLevels = {};
+  const signatureParts = [];
+  Object.entries(state?.boostables?.skill || {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([name, skill]) => {
+      const activeLevel = Math.max(0, Math.floor(Number(skill?.level || 0)));
+      const selectedLevel = Math.max(0, Math.floor(Number(skill?.leveltry ?? skill?.level ?? 0)));
+      if (activeLevel > 0) activeLevels[name] = activeLevel;
+      if (activeLevel > 0 || selectedLevel > 0) selectedLevels[name] = selectedLevel;
+      signatureParts.push(`${name}:${activeLevel}:${selectedLevel}`);
+    });
+  const availablePoints = Number(state?.skillUpgrade?.availablePoints || 0);
+  const availableShards = Number(state?.skillUpgrade?.shards || 0);
+  signatureParts.push(`budget:${availablePoints}:${availableShards}`);
+  return {
+    activeLevels,
+    selectedLevels,
+    availablePoints,
+    availableShards,
+    signature: signatureParts.join("|"),
+  };
+}
+
 function ModalTNFT({ onClose }) {
   const {
     data: { dataSet, dataSetFarm, priceData },
@@ -280,6 +304,11 @@ function ModalTNFT({ onClose }) {
         tryNftData?.skillUpgrade && typeof tryNftData.skillUpgrade === "object"
           ? tryNftData.skillUpgrade
           : farmState?.skillUpgrade
+      ) || {},
+      trySummary: (
+        tryNftData?.trySummary && typeof tryNftData.trySummary === "object"
+          ? tryNftData.trySummary
+          : farmState?.trySummary
       ) || {},
       itables: {
         ...(farmState?.itables || {}),
@@ -387,6 +416,14 @@ function ModalTNFT({ onClose }) {
   const [nftPriceCols, setNftPriceCols] = useState(["market", "profiles", "share", "summary"]);
   const [nftPriceUnit, setNftPriceUnit] = useState("flower");
   const [summaryProfile, setSummaryProfile] = useState(null);
+  const skillBudgetRequest = buildSkillBudgetRequestState(dataSetLocal);
+  const [skillBudgetPreview, setSkillBudgetPreview] = useState(() => ({
+    summary: dataSetLocal?.trySummary?.skills || null,
+    signature: skillBudgetRequest.signature,
+  }));
+  const [isSkillBudgetLoading, setIsSkillBudgetLoading] = useState(false);
+  const skillBudgetRequestSeqRef = useRef(0);
+  const skillBudgetAbortRef = useRef(null);
   const currentRefreshSig = buildTryRefreshSignature(dataSetLocal, selectedTrySeason);
   const deviceId = getOrCreateDeviceId();
   function key(name) {
@@ -422,6 +459,65 @@ function ModalTNFT({ onClose }) {
     }
     setShowTryRefreshHalo(currentRefreshSig !== refreshBaselineSig);
   }, [refreshBaselineSig, currentRefreshSig]);
+  useEffect(() => {
+    const backendSummary = dataSetLocal?.trySummary?.skills;
+    if (!backendSummary || currentRefreshSig !== refreshBaselineSig) return;
+    setSkillBudgetPreview({
+      summary: backendSummary,
+      signature: skillBudgetRequest.signature,
+    });
+  }, [dataSetLocal?.trySummary?.skills, currentRefreshSig, refreshBaselineSig, skillBudgetRequest.signature]);
+  useEffect(() => {
+    if (selectedBoostTab !== "skills") {
+      setIsSkillBudgetLoading(false);
+      return undefined;
+    }
+    if (skillBudgetPreview.signature === skillBudgetRequest.signature && skillBudgetPreview.summary) {
+      setIsSkillBudgetLoading(false);
+      return undefined;
+    }
+    const requestId = ++skillBudgetRequestSeqRef.current;
+    skillBudgetAbortRef.current?.abort?.();
+    skillBudgetAbortRef.current = null;
+    setIsSkillBudgetLoading(true);
+    const timer = setTimeout(async () => {
+      const controller = new AbortController();
+      skillBudgetAbortRef.current = controller;
+      try {
+        const summary = await fetchJson(API_URL, "/getskillbudgetcalc", {
+          method: "POST",
+          signal: controller.signal,
+          timeoutMs: 10_000,
+          body: {
+            activeLevels: skillBudgetRequest.activeLevels,
+            selectedLevels: skillBudgetRequest.selectedLevels,
+            availablePoints: skillBudgetRequest.availablePoints,
+            availableShards: skillBudgetRequest.availableShards,
+          },
+        });
+        if (requestId !== skillBudgetRequestSeqRef.current) return;
+        setSkillBudgetPreview({ summary, signature: skillBudgetRequest.signature });
+      } catch (error) {
+        if (requestId !== skillBudgetRequestSeqRef.current || error?.code === "REQUEST_CANCELLED") return;
+        console.log(`Skill budget calculation error: ${error?.message || error}`);
+      } finally {
+        if (requestId === skillBudgetRequestSeqRef.current) setIsSkillBudgetLoading(false);
+      }
+    }, 400);
+    return () => {
+      clearTimeout(timer);
+      if (requestId === skillBudgetRequestSeqRef.current) {
+        skillBudgetAbortRef.current?.abort?.();
+        skillBudgetAbortRef.current = null;
+      }
+    };
+  }, [
+    API_URL,
+    selectedBoostTab,
+    skillBudgetPreview.signature,
+    skillBudgetPreview.summary,
+    skillBudgetRequest.signature,
+  ]);
   const handleChangeTotalCostDisplay = (event) => {
     const selectedValue = event.target.value;
     setTotalCostDisplay(selectedValue);
@@ -1294,18 +1390,6 @@ function ModalTNFT({ onClose }) {
           }
           continue;
         }
-        if (mode === "points") {
-          const tryLevel = getSkillLevel(value, true);
-          const activeLevel = getSkillLevel(value, false);
-          if (tryLevel > 0) {
-            totalCost += getSkillPointsAtLevel(value, tryLevel);
-            totalCostM += Math.max(0, tryLevel - 1) * Math.max(1, toNum(value?.tier));
-          }
-          if (activeLevel > 0) {
-            totalCostactiv += getSkillPointsAtLevel(value, activeLevel);
-            totalCostactivM += Math.max(0, activeLevel - 1) * Math.max(1, toNum(value?.tier));
-          }
-        }
       }
     };
 
@@ -1314,7 +1398,19 @@ function ModalTNFT({ onClose }) {
     if (showCraft) { addTotalsFromEntries(buildEntries, "price"); }
     if (showBud) { addTotalsFromEntries(budEntries, "price"); }
     if (showShrine) { addTotalsFromEntries(shrineEntries, "price"); }
-    if (showSkill) { addTotalsFromEntries(skillEntries, "points"); }
+    const skillTrySummary = skillBudgetPreview?.summary;
+    const hasSkillTrySummary = !!(
+      skillTrySummary
+      && typeof skillTrySummary === "object"
+      && Number.isFinite(Number(skillTrySummary?.selectedPoints))
+      && Number.isFinite(Number(skillTrySummary?.selectedShards))
+    );
+    if (showSkill && hasSkillTrySummary) {
+      totalCost = Number(skillTrySummary.selectedPoints || 0);
+      totalCostM = Number(skillTrySummary.selectedShards || 0);
+      totalCostactiv = Number(skillTrySummary.activePoints || 0);
+      totalCostactivM = Number(skillTrySummary.activeShards || 0);
+    }
 
     if (showCompost) {
       const compostRows = [];
@@ -1619,26 +1715,10 @@ function ModalTNFT({ onClose }) {
       : totalCostToDisplayRaw;
     const totalCostactivDisplay = (nftPriceUnit === "flower" && usdPerSfl > 0) ? (totalCostactiv / usdPerSfl) : totalCostactiv;
     const totalCostactivMDisplay = (nftPriceUnit === "flower" && usdPerSfl > 0) ? (totalCostactivM / usdPerSfl) : totalCostactivM;
-    const skillBudget = [
-      dataSetLocal?.skillUpgrade,
-      dataSetLocal?.tryNftData?.skillUpgrade,
-      dataSetFarm?.skillUpgrade,
-      dataSetFarm?.tryNftData?.skillUpgrade,
-    ].find((candidate) => (
-      candidate
-      && typeof candidate === "object"
-      && (
-        Number.isFinite(Number(candidate?.earnedPoints))
-        || Number.isFinite(Number(candidate?.availablePoints))
-        || Number.isFinite(Number(candidate?.shards))
-      )
-    )) || {};
-    const extraSkillPoints = Math.max(0, totalCost - totalCostactiv);
-    const extraShards = Math.max(0, totalCostM - totalCostactivM);
-    const remainingSkillPoints = Number(skillBudget?.availablePoints || 0) - extraSkillPoints;
-    const remainingShards = Number(skillBudget?.shards || 0) - extraShards;
-    const farmRemainingSkillPoints = Number(skillBudget?.availablePoints || 0);
-    const farmRemainingShards = Number(skillBudget?.shards || 0);
+    const remainingSkillPoints = Number(skillTrySummary?.remainingPoints || 0);
+    const remainingShards = Number(skillTrySummary?.remainingShards || 0);
+    const farmRemainingSkillPoints = Number(skillTrySummary?.availablePoints || 0);
+    const farmRemainingShards = Number(skillTrySummary?.availableShards || 0);
     /* NFT.unshift(
       <tr key="total">
         <td colSpan="3">Total</td>
@@ -1652,7 +1732,14 @@ function ModalTNFT({ onClose }) {
         <thead style={{ position: "sticky", top: 0, zIndex: 5 }}>
           <tr>
             {/* <td style={{ display: 'none' }}>ID</td> */}
-            <th style={{ width: widthTotal }} colSpan={2}>Item</th>
+            <th style={{ width: widthTotal }} colSpan={2}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                Item
+                {showSkill && isSkillBudgetLoading ? (
+                  <CircularProgress size={12} sx={{ color: "rgb(255, 205, 96)" }} />
+                ) : null}
+              </span>
+            </th>
             {/* <th className="tdcenter"> </th> */}
             <th className="tdcenter">Try</th>
             <th className="tdcenter" style={{ fontSize: "10px" }}>Active</th>
@@ -1690,19 +1777,23 @@ function ModalTNFT({ onClose }) {
             {/* <td className="tdcenter"></td> */}
             <td className="tdcenter">
               {showSkill ? (
-                <span style={{ display: "inline-block", whiteSpace: "nowrap", lineHeight: 1.3 }}>
-                  <span style={{ color: "#7fe36f" }}>{frmtNb(totalCostToDisplay, 0)}</span> · <span style={{ color: "#86bdff" }}>{frmtNb(totalCostM, 0)}</span>
-                  <br />
-                  left <strong style={{ fontSize: 16, color: remainingSkillPoints < 0 ? "#ff8e8e" : "#7fe36f" }}>{frmtNb(remainingSkillPoints, 0)}</strong> · shards <strong style={{ fontSize: 16, color: remainingShards < 0 ? "#ff8e8e" : "#86bdff" }}>{frmtNb(remainingShards, 0)}</strong>
-                </span>
+                hasSkillTrySummary ? (
+                  <span style={{ display: "inline-block", whiteSpace: "nowrap", lineHeight: 1.3 }}>
+                    <span style={{ color: "#7fe36f" }}>{frmtNb(totalCostToDisplay, 0)}</span> · <span style={{ color: "#86bdff" }}>{frmtNb(totalCostM, 0)}</span>
+                    <br />
+                    left <strong style={{ fontSize: 16, color: remainingSkillPoints < 0 ? "#ff8e8e" : "#7fe36f" }}>{frmtNb(remainingSkillPoints, 0)}</strong> · shards <strong style={{ fontSize: 16, color: remainingShards < 0 ? "#ff8e8e" : "#86bdff" }}>{frmtNb(remainingShards, 0)}</strong>
+                  </span>
+                ) : ""
               ) : (showTotal ? frmtNb(totalCostToDisplay, 2) : "")}
             </td>
             <td className="tdcenter">{showSkill ? (
-              <span style={{ display: "inline-block", whiteSpace: "nowrap", lineHeight: 1.3 }}>
-                <span style={{ color: "#7fe36f" }}>{frmtNb(totalCostactiv, 0)}</span> · <span style={{ color: "#86bdff" }}>{frmtNb(totalCostactivM, 0)}</span>
-                <br />
-                <strong style={{ fontSize: 16, color: "#7fe36f" }}>{frmtNb(farmRemainingSkillPoints, 0)}</strong> · <strong style={{ fontSize: 16, color: "#86bdff" }}>{frmtNb(farmRemainingShards, 0)}</strong>
-              </span>
+              hasSkillTrySummary ? (
+                <span style={{ display: "inline-block", whiteSpace: "nowrap", lineHeight: 1.3 }}>
+                  <span style={{ color: "#7fe36f" }}>{frmtNb(totalCostactiv, 0)}</span> · <span style={{ color: "#86bdff" }}>{frmtNb(totalCostactivM, 0)}</span>
+                  <br />
+                  <strong style={{ fontSize: 16, color: "#7fe36f" }}>{frmtNb(farmRemainingSkillPoints, 0)}</strong> · <strong style={{ fontSize: 16, color: "#86bdff" }}>{frmtNb(farmRemainingShards, 0)}</strong>
+                </span>
+              ) : ""
             ) : ""}</td>
             {showOpenSeaCol ? (<td className="tdcenter">{frmtNb(totalCostactivDisplay, 2)}</td>) : ("")}
             {showMarketCol ? (<td className="tdcenter">{frmtNb(totalCostactivMDisplay, 2)}</td>) : ("")}
