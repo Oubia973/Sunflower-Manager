@@ -100,6 +100,16 @@ function stableSerialize(value) {
   return `{${keys.map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(",")}}`;
 }
 
+function hashOrderedTryitKeys(keys) {
+  let hash = 2166136261;
+  const input = (Array.isArray(keys) ? keys : []).join("\u001f");
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
 function getItableNamesFromSources(sources) {
   return (Array.isArray(sources) ? sources : [])
     .map((sourcePath) => {
@@ -181,6 +191,50 @@ export function buildCanonicalTryitSnapshot(farmState, tryitConfig) {
   });
 
   return normalizeTryitPayload(out);
+}
+
+export function buildPackedTryitSnapshot(farmState, tryitSnapshot, tryitConfig) {
+  const cfg = isValidTryitConfig(tryitConfig) ? tryitConfig : null;
+  if (!cfg) return null;
+  const state = (farmState && typeof farmState === "object") ? farmState : {};
+  const snapshot = normalizeTryitPayload(tryitSnapshot || {});
+  const tables = {};
+  const keyHashes = {};
+
+  const packTable = (payloadKey, orderedKeys) => {
+    const source = snapshot?.[payloadKey];
+    if (!source || typeof source !== "object" || Object.keys(source).length < 1) return true;
+    const indexByName = new Map(orderedKeys.map((name, index) => [name, index]));
+    keyHashes[payloadKey] = hashOrderedTryitKeys(orderedKeys);
+    const packed = [];
+    for (const [itemName, value] of Object.entries(source)) {
+      const index = indexByName.get(itemName);
+      // Falling back to named JSON is safer than silently applying a stale catalog index.
+      if (index === undefined) return false;
+      packed.push([index, Number(value || 0)]);
+    }
+    if (packed.length > 0) tables[payloadKey] = packed;
+    return true;
+  };
+
+  for (const tableName of cfg.boostTables || []) {
+    if (!packTable(tableName, Object.keys(state?.boostables?.[tableName] || {}))) return null;
+  }
+
+  for (const [payloadKey, tableCfg] of Object.entries(cfg.itemTables || {})) {
+    const orderedKeys = [];
+    const seen = new Set();
+    (Array.isArray(tableCfg?.sources) ? tableCfg.sources : []).forEach((sourcePath) => {
+      Object.keys(getByPath(state, sourcePath) || {}).forEach((itemName) => {
+        if (seen.has(itemName)) return;
+        seen.add(itemName);
+        orderedKeys.push(itemName);
+      });
+    });
+    if (!packTable(payloadKey, orderedKeys)) return null;
+  }
+
+  return { mode: "idx-v1", keyHashes, tables };
 }
 
 export function resolveTryitSnapshot({

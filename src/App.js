@@ -1691,6 +1691,8 @@ function App() {
                 onOpenFull={handleButtonfTNFTClick}
                 onEnsureData={() => handleButtonfTNFTClick({ openModal: false })}
                 currentSections={requiredSectionsForView}
+                knownHashes={farmSectionHashesRef.current}
+                knownTableHashes={farmTableHashesRef.current}
               />
             </AppCtx.Provider> : null}
         </div>

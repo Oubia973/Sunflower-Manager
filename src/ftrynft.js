@@ -409,6 +409,8 @@ function ModalTNFT({ onClose }) {
   selectedTrySeasonRef.current = selectedTrySeason;
   const [showTryRefreshHalo, setShowTryRefreshHalo] = useState(false);
   const [refreshBaselineSig, setRefreshBaselineSig] = useState("");
+  const refreshBaselineSigRef = useRef(refreshBaselineSig);
+  refreshBaselineSigRef.current = refreshBaselineSig;
   const [iTotBuyCheck, setTotBuyCheck] = useState(false);
   const [selectedBoostTab, setSelectedBoostTab] = useState("collectibles");
   const [boostTypeFilters, setBoostTypeFilters] = useState([]);
@@ -728,6 +730,17 @@ function ModalTNFT({ onClose }) {
   };
   const Refresh = async () => {
     if (applyingTrysetRef.current || closingTrysetRef.current) return false;
+    const cur = dataSetLocalRef.current || {};
+    const requestedRefreshSig = buildTryRefreshSignature(cur, selectedTrySeasonRef.current);
+    const forceActiveTryRefresh = resetToActivePendingRef.current === true;
+    if (
+      !forceActiveTryRefresh
+      && requestedRefreshSig
+      && requestedRefreshSig === refreshBaselineSigRef.current
+    ) {
+      setShowTryRefreshHalo(false);
+      return true;
+    }
     applyingTrysetRef.current = true;
     setIsApplyingTryset(true);
     try {
@@ -735,9 +748,6 @@ function ModalTNFT({ onClose }) {
         console.log("Tryit config missing");
         return false;
       }
-      const cur = dataSetLocalRef.current || {};
-      const requestedRefreshSig = buildTryRefreshSignature(cur, selectedTrySeasonRef.current);
-      const forceActiveTryRefresh = resetToActivePendingRef.current === true;
       const tryitSnapshot = forceActiveTryRefresh ? {} : (buildCanonicalTryitSnapshot(cur, tryitConfig) || {});
       if (!forceActiveTryRefresh && !hasTryitPayloadContent(tryitSnapshot)) {
         console.error("TRYIT refresh blocked: no explicit tryit fields found in TryNFT state.");

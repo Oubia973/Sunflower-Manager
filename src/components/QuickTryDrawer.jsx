@@ -5,11 +5,13 @@ import { getOrCreateDeviceId, mergeFarmStateDeep, unpackFarmPayloadTables } from
 import { imgna, normalizeServerImagesDeep } from "../constants/images.js";
 import {
   buildCanonicalTryitSnapshot,
+  buildPackedTryitSnapshot,
   hasTryitPayloadContent,
   isValidTryitConfig,
   syncTryitStateAcrossFarmState,
   writeTryitSnapshot,
 } from "../tryitStorage.js";
+import { getQuickTryKnownHashes } from "../utils/quickTryHashes.js";
 
 const TABLE_LABELS = {
   all: "All",
@@ -26,8 +28,11 @@ const TABLE_ORDER = ["nft", "nftw", "buildng", "bud", "shrine", "skill", "skilll
 const APPLY_DELAY_MS = 650;
 const QUICK_TRY_POSITION_KEY = "sunflower-manager:quick-try-position";
 const QUICK_TRY_PANEL_POSITION_KEY = "sunflower-manager:quick-try-panel-position";
+const QUICK_TRY_PANEL_SIZE_KEY = "sunflower-manager:quick-try-panel-size";
 const QUICK_TRY_MARGIN = 9;
 const QUICK_TRY_BUTTON_SIZE = 36;
+const QUICK_TRY_PANEL_MIN_WIDTH = 230;
+const QUICK_TRY_PANEL_MIN_HEIGHT = 180;
 
 function clampQuickTryPosition(position, width = QUICK_TRY_BUTTON_SIZE, height = QUICK_TRY_BUTTON_SIZE) {
   const maxLeft = Math.max(QUICK_TRY_MARGIN, window.innerWidth - width - QUICK_TRY_MARGIN);
@@ -35,6 +40,15 @@ function clampQuickTryPosition(position, width = QUICK_TRY_BUTTON_SIZE, height =
   return {
     left: Math.min(Math.max(QUICK_TRY_MARGIN, Number(position?.left) || QUICK_TRY_MARGIN), maxLeft),
     top: Math.min(Math.max(QUICK_TRY_MARGIN, Number(position?.top) || QUICK_TRY_MARGIN), maxTop),
+  };
+}
+
+function clampQuickTryPanelSize(size) {
+  const maxWidth = Math.max(QUICK_TRY_PANEL_MIN_WIDTH, Math.min(320, window.innerWidth - 18));
+  const maxHeight = Math.max(QUICK_TRY_PANEL_MIN_HEIGHT, Math.min(540, window.innerHeight - 78));
+  return {
+    width: Math.min(Math.max(QUICK_TRY_PANEL_MIN_WIDTH, Number(size?.width) || QUICK_TRY_PANEL_MIN_WIDTH), maxWidth),
+    height: Math.min(Math.max(QUICK_TRY_PANEL_MIN_HEIGHT, Number(size?.height) || QUICK_TRY_PANEL_MIN_HEIGHT), maxHeight),
   };
 }
 
@@ -79,7 +93,13 @@ function handleQuickTryImageError(event, entry) {
   image.src = imgna;
 }
 
-export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSections = [] }) {
+export default function QuickTryDrawer({
+  onOpenFull,
+  onEnsureData,
+  currentSections = [],
+  knownHashes = {},
+  knownTableHashes = {},
+}) {
   const {
     data: { dataSet, dataSetFarm },
     config: { API_URL, tryitConfig },
@@ -94,12 +114,16 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
   const [error, setError] = useState("");
   const [position, setPosition] = useState(null);
   const [panelPosition, setPanelPosition] = useState(null);
+  const [panelSize, setPanelSize] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const latestStateRef = useRef(null);
   const applyTimerRef = useRef(null);
+  const pendingDeltaRef = useRef({});
   const requestIdRef = useRef(0);
   const abortRef = useRef(null);
   const dragRef = useRef(null);
+  const resizeRef = useRef(null);
   const didDragRef = useRef(false);
   const panelRef = useRef(null);
   const validConfig = isValidTryitConfig(tryitConfig);
@@ -121,6 +145,8 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
       if (savedPosition) setPosition(clampQuickTryPosition(savedPosition));
       const savedPanelPosition = JSON.parse(localStorage.getItem(QUICK_TRY_PANEL_POSITION_KEY));
       if (savedPanelPosition) setPanelPosition(savedPanelPosition);
+      const savedPanelSize = JSON.parse(localStorage.getItem(QUICK_TRY_PANEL_SIZE_KEY));
+      if (savedPanelSize) setPanelSize(clampQuickTryPanelSize(savedPanelSize));
     } catch {
       // A saved position is optional; leave the button at its default location.
     }
@@ -134,6 +160,7 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
         const rect = panelRef.current.getBoundingClientRect();
         return clampQuickTryPosition(current, rect.width, rect.height);
       });
+      setPanelSize((current) => current && clampQuickTryPanelSize(current));
     };
     window.addEventListener("resize", keepPositionVisible);
     return () => window.removeEventListener("resize", keepPositionVisible);
@@ -185,7 +212,7 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
       .filter((item) => getTryValue(tableName, item) !== getActiveValue(tableName, item)).length, 0);
   }, [dataSetFarm]);
 
-  const applyState = async (state, requestId) => {
+  const applyState = async (state, requestId, delta) => {
     const snapshot = buildCanonicalTryitSnapshot(state, tryitConfig) || {};
     if (!hasTryitPayloadContent(snapshot)) return;
     abortRef.current?.abort?.();
@@ -194,11 +221,7 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
     setStatus("applying");
     setError("");
     try {
-      const payload = await fetchJson(API_URL, "/settry", {
-        method: "POST",
-        signal: controller.signal,
-        timeoutMs: 30000,
-        body: {
+      const baseBody = {
           frmid: farmId,
           deviceId: getOrCreateDeviceId(),
           options: {
@@ -207,20 +230,47 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
           },
           username: dataSet?.options?.username || state?.username || "",
           simulatedSeason: selectedTrySeason,
-          tryitarrays: snapshot,
-          tryitMode: "snapshot",
-          include: [...new Set([
-            "inventory",
-            "boosts",
-            "trynftpage",
-            ...(Array.isArray(currentSections) ? currentSections : []),
-          ])],
+          include: [...new Set(Array.isArray(currentSections) ? currentSections : [])],
           page: selectedInv || "trynft",
-          knownHashes: state?.sectionHashes || {},
-          knownTableHashes: state?.tableHashes || {},
-        },
+          knownHashes: getQuickTryKnownHashes(knownHashes, currentSections),
+          knownTableHashes,
+      };
+      const sendTryRequest = (body) => fetchJson(API_URL, "/settry", {
+        method: "POST",
+        signal: controller.signal,
+        timeoutMs: 30000,
+        body: { ...baseBody, ...body },
       });
+      const sendSnapshot = async () => {
+        const packed = buildPackedTryitSnapshot(state, snapshot, tryitConfig);
+        if (!packed) return sendTryRequest({ tryitarrays: snapshot, tryitMode: "snapshot" });
+        try {
+          return await sendTryRequest({ tryitarrays: {}, tryitpacked: packed, tryitMode: "snapshot" });
+        } catch (packedError) {
+          if (packedError?.status !== 409 || packedError?.code !== "TRYIT_PACKED_CATALOG_MISMATCH") {
+            throw packedError;
+          }
+          return sendTryRequest({ tryitarrays: snapshot, tryitMode: "snapshot" });
+        }
+      };
+      const revision = Math.floor(Number(latestStateRef.current?.tryitRevision ?? state?.tryitRevision) || 0);
+      let payload;
+      if (revision > 0 && hasTryitPayloadContent(delta)) {
+        try {
+          payload = await sendTryRequest({
+            tryitarrays: delta,
+            tryitMode: "delta",
+            tryitRevision: revision,
+          });
+        } catch (deltaError) {
+          if (deltaError?.status !== 409 || deltaError?.code !== "TRYSET_RESYNC_REQUIRED") throw deltaError;
+          payload = await sendSnapshot();
+        }
+      } else {
+        payload = await sendSnapshot();
+      }
       if (requestId !== requestIdRef.current) return;
+      pendingDeltaRef.current = {};
       const responseState = withTryTables(normalizeServerImagesDeep(unpackFarmPayloadTables(payload)));
       const latestState = latestStateRef.current || state;
       const merged = syncTryitStateAcrossFarmState(
@@ -238,11 +288,20 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
     }
   };
 
-  const queueApply = (nextState) => {
+  const queueApply = (nextState, delta) => {
     const requestId = ++requestIdRef.current;
     if (applyTimerRef.current) clearTimeout(applyTimerRef.current);
+    Object.entries(delta || {}).forEach(([tableName, tableDelta]) => {
+      pendingDeltaRef.current[tableName] = {
+        ...(pendingDeltaRef.current?.[tableName] || {}),
+        ...(tableDelta || {}),
+      };
+    });
     setStatus("pending");
-    applyTimerRef.current = setTimeout(() => applyState(nextState, requestId), APPLY_DELAY_MS);
+    applyTimerRef.current = setTimeout(() => {
+      const batchedDelta = JSON.parse(JSON.stringify(pendingDeltaRef.current || {}));
+      applyState(nextState, requestId, batchedDelta);
+    }, APPLY_DELAY_MS);
   };
 
   const commitEntry = (entry, nextValue) => {
@@ -263,7 +322,10 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
     if (snapshot) writeTryitSnapshot(snapshot, farmId);
     handleRefreshfTNFT(dataSet, synced);
     if (!TryChecked) setUIField("TryChecked", true);
-    queueApply(synced);
+    const appliedValue = entry.tableName === "skill"
+      ? Number(table[entry.name]?.leveltry || 0)
+      : Number(table[entry.name]?.tryit || 0);
+    queueApply(synced, { [entry.tableName]: { [entry.name]: appliedValue } });
   };
 
   if (!farmId || !validConfig) return null;
@@ -331,6 +393,42 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   };
 
+  const handleResizeStart = (event) => {
+    if (event.button > 0 || !panelRef.current) return;
+    const rect = panelRef.current.getBoundingClientRect();
+    resizeRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      width: rect.width,
+      height: rect.height,
+    };
+    setIsResizing(true);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  };
+
+  const handleResizeMove = (event) => {
+    const resize = resizeRef.current;
+    if (!resize || resize.pointerId !== event.pointerId) return;
+    setPanelSize(clampQuickTryPanelSize({
+      width: resize.width + event.clientX - resize.startX,
+      height: resize.height + event.clientY - resize.startY,
+    }));
+  };
+
+  const handleResizeEnd = (event) => {
+    const resize = resizeRef.current;
+    if (!resize || resize.pointerId !== event.pointerId) return;
+    resizeRef.current = null;
+    setIsResizing(false);
+    setPanelSize((current) => {
+      if (current) localStorage.setItem(QUICK_TRY_PANEL_SIZE_KEY, JSON.stringify(current));
+      return current;
+    });
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+
   return (
     <div
       className={`quick-try ${open ? "is-open" : ""}`}
@@ -377,8 +475,11 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
         <section
           ref={panelRef}
           id="quick-try-panel"
-          className="quick-try-panel"
-          style={panelPosition ? { left: `${panelPosition.left}px`, top: `${panelPosition.top}px` } : undefined}
+          className={`quick-try-panel ${isResizing ? "is-resizing" : ""}`}
+          style={{
+            ...(panelPosition ? { left: `${panelPosition.left}px`, top: `${panelPosition.top}px` } : {}),
+            ...(panelSize ? { width: `${panelSize.width}px`, height: `${panelSize.height}px` } : {}),
+          }}
           aria-label="Quick Tryset controls"
         >
           <header
@@ -453,6 +554,14 @@ export default function QuickTryDrawer({ onOpenFull, onEnsureData, currentSectio
             <span>Auto-apply</span>
             <button type="button" onClick={() => { setOpen(false); onOpenFull?.(); }}>Full view</button>
           </footer>
+          <div
+            className="quick-try-resize-handle"
+            role="presentation"
+            onPointerDown={handleResizeStart}
+            onPointerMove={handleResizeMove}
+            onPointerUp={handleResizeEnd}
+            onPointerCancel={handleResizeEnd}
+          />
         </section>
       )}
     </div>

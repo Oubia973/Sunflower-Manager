@@ -6,6 +6,34 @@
 import { useState, useRef, useCallback } from 'react';
 import { fetchJson } from '../services/apiClient.js';
 
+const EXPAND_TRYSET_BOOSTS = {
+  monument: "Ascension Monument",
+  hammer: "Grinx's Hammer",
+};
+
+function findBoostItem(farmState, tableName, itemName) {
+  const direct = farmState?.boostables?.[tableName]?.[itemName];
+  if (direct && typeof direct === 'object') return direct;
+
+  // Page-scoped responses (notably Quick Tryset while on Expand) can keep the
+  // boost catalog in a projection until it is merged back into the root state.
+  for (const pageData of Object.values(farmState || {})) {
+    const projected = pageData?.boostables?.[tableName]?.[itemName];
+    if (projected && typeof projected === 'object') return projected;
+  }
+  return null;
+}
+
+export function getExpandTrysetModifiers(farmState, tryChecked = false) {
+  const activeField = tryChecked ? 'tryit' : 'isactive';
+  const monument = findBoostItem(farmState, 'nft', EXPAND_TRYSET_BOOSTS.monument);
+  const hammer = findBoostItem(farmState, 'nft', EXPAND_TRYSET_BOOSTS.hammer);
+  return {
+    timeMultiplier: Number(monument?.[activeField]) === 1 ? 0.8 : 1,
+    resourceMultiplier: Number(hammer?.[activeField]) === 1 ? 0.5 : 1,
+  };
+}
+
 /**
  * Hook for XP and Expand helpers
  */
@@ -42,12 +70,10 @@ export function useExpandHelpers(API_URL, dataSet, dataSetFarm, tryChecked = fal
       return;
     }
     const spot = Number(dataSetFarm?.spot || 0);
-    const monument = dataSetFarm?.boostables?.nft?.["Ascension Monument"];
-    const monumentActive = Number(tryChecked ? monument?.tryit : monument?.isactive) === 1;
-    const timeMultiplier = monumentActive ? 0.8 : 1;
-    const grinxHammer = dataSetFarm?.boostables?.nft?.["Grinx's Hammer"];
-    const grinxHammerActive = Number(tryChecked ? grinxHammer?.tryit : grinxHammer?.isactive) === 1;
-    const resourceMultiplier = grinxHammerActive ? 0.5 : 1;
+    const { timeMultiplier, resourceMultiplier } = getExpandTrysetModifiers(
+      dataSetFarm,
+      tryChecked,
+    );
     const requestSignature = `${farmId}|${spot}|${xfrom}|${xto}|${xtype}|${xascension}|${timeMultiplier}|${resourceMultiplier}`;
     if (requestSignature === expandRequestSignatureRef.current) {
       return;
@@ -73,7 +99,14 @@ export function useExpandHelpers(API_URL, dataSet, dataSetFarm, tryChecked = fal
       if (reqSeq === expandRequestSeqRef.current) {
         dataSet.fromtoexpand = responseDataExp;
       }
-    } catch (error) { console.log("getFromToExpand error", error); }
+    } catch (error) {
+      // Do not permanently deduplicate a failed calculation. A subsequent
+      // Quick Tryset/server update must be allowed to request it again.
+      if (requestSignature === expandRequestSignatureRef.current) {
+        expandRequestSignatureRef.current = "";
+      }
+      console.log("getFromToExpand error", error);
+    }
     finally {
       if (reqSeq === expandRequestSeqRef.current) setExpandLoading(false);
     }
