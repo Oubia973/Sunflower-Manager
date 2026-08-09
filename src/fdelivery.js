@@ -85,6 +85,7 @@ function ModalDlvr({
   const imgbsfl = <img src={imgsfl} alt="" title="SFL" style={{ width: '15px', height: '15px' }} />;
   const imgbcoins = <img src={imgcoins} alt="" title="Coins" style={{ width: '15px', height: '15px' }} />;
   const imgbgems = <img src={imggem} alt="" title="Coins" style={{ width: '15px', height: '15px' }} />;
+  const poppyBonusAmount = Date.parse(dataSetFarm?.constants?.dateSeason || "") >= Date.parse("2026-08-03T00:00:00Z") ? 100 : 50;
   function key(name) {
     if (name === "active") { return TryChecked ? "tryit" : "isactive"; }
     return TryChecked ? name + "try" : name;
@@ -731,7 +732,7 @@ function ModalDlvr({
       const displayMarketTotal = categoryMarketCostTotal;
       const poppyBaseRewardDone = Object.values(rewardTotals).reduce((acc, rewardData) => acc + Number(rewardData?.done || 0), 0);
       const poppyBaseRewardTotal = Object.values(rewardTotals).reduce((acc, rewardData) => acc + Number(rewardData?.total || 0), 0);
-      const poppyBonusReward = isPoppyCategory && categoryItems.length > 0 && categoryDone === categoryItems.length ? 50 : 0;
+      const poppyBonusReward = isPoppyCategory && categoryItems.length > 0 && categoryDone === categoryItems.length ? poppyBonusAmount : 0;
       const showPoppyBonusHint = isPoppyCategory && categoryItems.length > 0 && categoryDone < categoryItems.length;
       return (
         <div key={categoryName} style={{ marginBottom: '8px' }}>
@@ -762,7 +763,7 @@ function ModalDlvr({
                 </span>
               </span>
             ) : null}
-            {showPoppyBonusHint ? <span> (+50 when all done)</span> : null}
+            {showPoppyBonusHint ? <span> (+{poppyBonusAmount} when all done)</span> : null}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
             {categoryItems.map(([bountyName, bountyItem], index) => renderBountyCard(bountyName, bountyItem, `${categoryName}-${bountyName}-${index}`))}

@@ -60,6 +60,7 @@ const POPPY_CATEGORY_ICONS = {
   Dolls: imgdoll,
   Obsidian: imgobsidian,
 };
+const CHAPTER_TICKET_BOOST_WEARABLES = ["Swamp Lily Hat", "Swamp Armor", "Swamp Pants"];
 
 export default function ChapterTable() {
   const stickyBarRef = useRef(null);
@@ -123,6 +124,10 @@ export default function ChapterTable() {
   const isDoubleDeliveryActive = dataSetFarm?.frmData?.seasonEvent === "doubledelivery";
   const vipChapterTickets = 290;
   const isTryMode = !!TryChecked;
+  const chapterTicketBoost = CHAPTER_TICKET_BOOST_WEARABLES.reduce((sum, name) => {
+    const wearable = dataSetFarm?.boostables?.nftw?.[name] || {};
+    return sum + (Number(isTryMode ? wearable?.tryit : wearable?.isactive) > 0 ? 1 : 0);
+  }, 0);
   const costMode = chapterCostMode === "market" ? "market" : "prod";
   const isMarketCostMode = costMode === "market";
   const costType = chapterCostType === "custom" ? "custom" : "average";
@@ -243,6 +248,7 @@ export default function ChapterTable() {
       costType,
       bountyRewardType,
       currentTickets: Number(chapterCurrentTickets || 0),
+      ticketBoost: chapterTicketBoost,
       coinsRatio,
       npcSelection: chapterNpcSelection || {},
       npcCostOverride: chapterNpcCostOverride || {},
@@ -251,10 +257,19 @@ export default function ChapterTable() {
       bountyOverride: chapterBountyOverride || {},
       choreSelection: chapterChoreSelection || {},
       poppyCategorySelection: chapterPoppyCategorySelection || {},
-      dailyChestDate: dataSet?.dailychest?.chest || dataSetFarm?.frmData?.dailychest?.chest || "",
+      dailyChestDate: dataSetFarm?.homeData?.dailyChest?.collectedAt
+        || dataSet?.dailychest?.chest
+        || dataSetFarm?.frmData?.dailychest?.chest
+        || "",
     },
   };
-  const chapterRequestSignature = JSON.stringify(chapterRequest);
+  const chapterRequestSignature = JSON.stringify({
+    request: chapterRequest,
+    tryitRevision: Number(dataSetFarm?.tryitRevision || 0),
+    chapterTicketBoost: Number(orderstable?.chapterTicketBoost || 0),
+    chapterTicketBoosttry: Number(orderstable?.chapterTicketBoosttry || 0),
+    directChapterTicketBoost: chapterTicketBoost,
+  });
 
   useEffect(() => {
     if (!farmId) return undefined;
@@ -269,7 +284,14 @@ export default function ChapterTable() {
           method: "POST",
           signal: controller.signal,
           timeoutMs: 10000,
-          body: chapterRequest,
+          body: {
+            ...chapterRequest,
+            source: {
+              orderstable: dataSetFarm?.orderstable || {},
+              constants: dataSetFarm?.constants || {},
+              frmData: dataSetFarm?.frmData || {},
+            },
+          },
         };
         let result;
         try {
@@ -303,7 +325,8 @@ export default function ChapterTable() {
     };
   }, [API_URL, farmId, chapterRequestSignature]);
 
-  const deliveryRows = (chapterProjection?.deliveryRows || []).map((row) => ({ ...row, icon: getNpcIcon(row.name) }));
+  const deliveryRows = (chapterProjection?.deliveryRows || [])
+    .map((row) => ({ ...row, icon: getNpcIcon(row.name) }));
   const choreRowsWithTickets = chapterProjection?.choreRows || [];
   const bountyRows = (chapterProjection?.bountyRows || []).map((row) => ({ ...row, icon: getCategoryIcon(row.key) }));
   const poppyBountyCategoryRows = (chapterProjection?.poppyCategoryRows || []).map((row) => ({ ...row, icon: POPPY_CATEGORY_ICONS[row.key] || imgpoppy }));
@@ -377,6 +400,8 @@ export default function ChapterTable() {
   const totalWeekTickets = Number(metrics.totalWeekTickets || 0);
   const totalChapterTickets = Number(metrics.totalChapterTickets || 0);
   const totalFromZeroTickets = Number(metrics.totalFromZeroTickets || 0);
+  const hasEstimatedProjection = !!metrics.hasEstimatedProjection;
+  const appliedChapterTicketBoost = Number(metrics.chapterTicketBoost || 0);
   const projectedEndSeasonTickets = Number(metrics.projectedEndTickets || 0);
   const totalNpcCostLeftDisplay = Number(metrics.npcCostLeft || 0);
   const totalNpcCostTotalDisplay = Number(metrics.npcCostTotal || 0);
@@ -452,6 +477,15 @@ export default function ChapterTable() {
       >
         Season start: {seasonStartLabel} | Tickets start: {seasonQuestStartLabel} | Auctions week: {auctionTicketWeekStartLabel}
       </span>
+      {hasEstimatedProjection ? (
+        <span
+          title="Current rewards are not Chapter tickets. Week, Left and Total use conservative planning values; Daily remains the actual reward."
+          style={{ fontSize: "11px", width: "100%", color: "rgb(255, 205, 105)" }}
+        >
+          ≈ Estimated projection — current non-ticket rewards are not counted as tickets
+          {appliedChapterTicketBoost > 0 ? ` · Ticket boost +${frmtNb(appliedChapterTicketBoost)}` : ""}
+        </span>
+      ) : null}
     </div>
   );
 
@@ -642,7 +676,7 @@ export default function ChapterTable() {
                 <td className="tditem">
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                     <img src={row.icon} alt="" className="itico" />
-                    <span>{row.name}</span>
+                    <span>{row.name}{row.estimated ? " ≈" : ""}</span>
                   </span>
                 </td>
                 <td className="tdcenter">{row.completed ? imgDone : imgCancel}</td>
@@ -777,9 +811,9 @@ export default function ChapterTable() {
                       onClick={() => setUIField("chapterPoppyExpanded", !chapterPoppyExpanded)}
                       style={{ background: "transparent", border: "none", color: "inherit", padding: 0, cursor: "pointer" }}
                     >
-                      {chapterPoppyExpanded ? "▾" : "▸"} {row.label}
+                      {chapterPoppyExpanded ? "▾" : "▸"} {row.label}{row.estimated ? " ≈" : ""}
                     </button>
-                  ) : row.label}
+                  ) : <span>{row.label}{row.estimated ? " ≈" : ""}</span>}
                 </td>
                 <td className="tdcenter">
                   {row.key === "Poppy" && !row.done
@@ -855,7 +889,7 @@ export default function ChapterTable() {
                 <td className="tditem">
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                     <img src={row.icon} alt="" className="itico" />
-                    <span>{row.label}</span>
+                    <span>{row.label}{row.estimated ? " ≈" : ""}</span>
                   </span>
                 </td>
                 <td className="tdcenter">{row.totalCount > 0 ? `${row.completedCount}/${row.totalCount}` : "-"}</td>

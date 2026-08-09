@@ -1942,6 +1942,7 @@ function setActivityTot(activityData, xContext, dataSetFarm, dataSet, prevDayAct
                 return Number.isNaN(dt.getTime()) ? null : dt;
             };
             const currentActivityDate = formatDate(DataContext.date);
+            const poppyBonusAmount = new Date(DataContext.date).getTime() >= Date.parse("2026-08-03T00:00:00Z") ? 100 : 50;
             const poppyBounties = [];
             Object.values(DataContext.data.bounties || {}).forEach((bountyItem) => {
                 const rewardItem = String(bountyItem?.rewarditem || "");
@@ -1973,14 +1974,14 @@ function setActivityTot(activityData, xContext, dataSetFarm, dataSet, prevDayAct
                 }
             });
             if (poppyBounties.length > 0 && weeklyAnchorDay) {
-                tot.bountiestkt += 50;
-                tot.bountyPoppyTkt += 50;
-                tot.poppyTktReward += 50;
-                tot.bountyTktMax += 50;
-                tot.tktMax += 50;
-                tot.tktMaxBounties += 50;
+                tot.bountiestkt += poppyBonusAmount;
+                tot.bountyPoppyTkt += poppyBonusAmount;
+                tot.poppyTktReward += poppyBonusAmount;
+                tot.bountyTktMax += poppyBonusAmount;
+                tot.tktMax += poppyBonusAmount;
+                tot.tktMaxBounties += poppyBonusAmount;
                 compoHarvested["TKT"] = compoHarvested["TKT"] || 0;
-                compoHarvested["TKT"] += 50;
+                compoHarvested["TKT"] += poppyBonusAmount;
             }
         }
         i++;
