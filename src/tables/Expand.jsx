@@ -1,6 +1,7 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb, convTime } from "../fct.js";
+import { selectCurrentProjection } from "../utils/farmState.js";
 import {
   imgappleTree,
   imgironSmall,
@@ -107,8 +108,8 @@ export default function ExpandTable() {
     },
   } = useAppCtx();
 
-  const expandPageData = dataSetFarm?.expandPageData || {};
-  const expandFrmData = expandPageData?.frmData || dataSetFarm?.frmData || {};
+  const expandPageData = selectCurrentProjection(dataSetFarm, "expandPageData") || {};
+  const expandFrmData = expandPageData?.frmData || {};
   const expandTables = expandPageData?.itables || dataSetFarm?.itables || {};
   const fromToExpand = dataSet?.fromtoexpand;
   const expandData = fromToExpand?.expandData;

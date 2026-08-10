@@ -7,8 +7,11 @@ import { frmtNb, ColorValue, mergeFarmStateDeep, getOrCreateDeviceId, unpackFarm
 import Help from './fhelp.js';
 import TryProfileShareBar from "./components/TryProfileShareBar.jsx";
 import TryProfileSummaryModal from "./components/TryProfileSummaryModal.jsx";
+import Tooltip from "./tooltip/Tooltip.jsx";
 import { getScopeTablesFromPayload } from "./tryProfileShare.js";
 import { fetchJson } from "./services/apiClient.js";
+import { buildSupplyTooltipContract } from "./tooltip/supplyTooltipContract.js";
+import { buildBoostTooltipContract } from "./tooltip/boostTooltipContract.js";
 import { readTryitSnapshot, writeTryitSnapshot, buildCanonicalTryitSnapshot, applyTryitSnapshotToFarmState, syncTryitStateAcrossFarmState, hasTryitPayloadContent, isValidTryitConfig } from "./tryitStorage.js";
 import {
   computeProfileSummaryPayload,
@@ -287,7 +290,6 @@ function ModalTNFT({ onClose }) {
     },
     actions: {
       handleUIChange,
-      handleTooltip,
       handleRefreshfTNFT,
     },
     config: { API_URL, tryitConfig },
@@ -377,6 +379,7 @@ function ModalTNFT({ onClose }) {
     writeTryitSnapshot(snapshot, frmid);
   };
   const [dataSetLocal, setdataSetLocal] = useState(() => buildHydratedTryState());
+  const boostTooltipIndex = dataSetLocal?.tryNftData?.tooltipData?.boostIndex || dataSetLocal?.tooltipData?.boostIndex || {};
   const dataSetLocalRef = useRef(dataSetLocal);
   dataSetLocalRef.current = dataSetLocal;
   const commitTryState = (nextState, refreshOptions, { preserveResetPending = false } = {}) => {
@@ -397,7 +400,18 @@ function ModalTNFT({ onClose }) {
   const isUserEditingRef = useRef(false);
   const hasTryNftTables = !!dataSetLocal?.boostables && !!dataSetLocal?.itables?.it;
   const [TotalCostDisplay, setTotalCostDisplay] = useState("market");
-  //const [tooltipData, setTooltipData] = useState(null);
+  const [tooltipData, setTooltipData] = useState(null);
+  const handleTooltip = (item, context, value, event) => {
+    const { clientX = 0, clientY = 0 } = event || {};
+    setTooltipData({
+      x: clientX,
+      y: clientY,
+      item,
+      context,
+      value,
+      bdrag: true,
+    });
+  };
   const [tableFlexDirection, setTableFlexDirection] = useState(() => getInitialTryNftTableFlexDirection());
   const [tableView, setTableView] = useState('both');
   const [showHelp, setShowHelp] = useState(false);
@@ -1217,21 +1231,21 @@ function ModalTNFT({ onClose }) {
             <td id="iccolumn"><i><img src={ico} alt={''} className="itico" title={item} /></i></td>
             {/* <td className="tditem">{item}</td> */}
             <td className="tdcenter tooltipcell"
-              onClick={(e) => handleTooltip(item, "trynft", "timechg", e)}>{xtime}</td>
+              onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "timechg"), e)}>{xtime}</td>
             <td className={parseFloat(timechg).toFixed(0) > 0 ? 'chgneg tooltipcell' : parseFloat(timechg).toFixed(0) < 0 ? 'chgpos tooltipcell' : 'chgeq tooltipcell'}
-              onClick={(e) => handleTooltip(item, "trynft", "timechg", e)}>{txtTimeChg}</td>
+              onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "timechg"), e)}>{txtTimeChg}</td>
             <td className="tdcenter tooltipcell"
-              onClick={(e) => handleTooltip(item, "trynft", "costchg", e)}>{frmtNb(xcost)}</td>
+              onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "costchg"), e)}>{frmtNb(xcost)}</td>
             <td className={parseFloat(costpchg).toFixed(0) > 0 ? 'chgneg tooltipcell' : parseFloat(costpchg).toFixed(0) < 0 ? 'chgpos tooltipcell' : 'chgeq tooltipcell'}
-              onClick={(e) => handleTooltip(item, "trynft", "costchg", e)}>{txtCostpChg}</td>
+              onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "costchg"), e)}>{txtCostpChg}</td>
             <td className="tdcenter tooltipcell"
-              onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{parseFloat(xmyield).toFixed(2)}</td>
+              onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "yieldchg"), e)}>{parseFloat(xmyield).toFixed(2)}</td>
             <td className={parseFloat(imyieldchg).toFixed(0) > 0 ? 'chgpos tooltipcell' : parseFloat(imyieldchg).toFixed(0) < 0 ? 'chgneg tooltipcell' : 'chgeq tooltipcell'}
-              onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{txtMyieldChg}</td>
+              onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "yieldchg"), e)}>{txtMyieldChg}</td>
             <td className="tdcenter tooltipcell"
-              onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{parseFloat(xharvest).toFixed(2)}</td>
+              onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "yieldchg"), e)}>{parseFloat(xharvest).toFixed(2)}</td>
             <td className={parseFloat(iharvestchg).toFixed(0) > 0 ? 'chgpos tooltipcell' : parseFloat(iharvestchg).toFixed(0) < 0 ? 'chgneg tooltipcell' : 'chgeq tooltipcell'}
-              onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{txtHarvestChg}</td>
+              onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "yieldchg"), e)}>{txtHarvestChg}</td>
             <td className="tdcenter">
               {/* <input
                 type="checkbox"
@@ -1478,7 +1492,7 @@ function ModalTNFT({ onClose }) {
             </td>
             {showOpenSeaCol ? (<td className="tdcenter">{formatPriceCell(value.price)}</td>) : ("")}
             {showMarketCol ? (<td className="tdcenter">{formatPriceCell(value.pricem || 0)}</td>) : ("")}
-            <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item, "trynftsupply", "nft", e)}>{isupply}</td>
+            <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item, "trynftsupply", buildSupplyTooltipContract(item, value), e)}>{isupply}</td>
             <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{value.boost}</td>
           </tr>
         );
@@ -1501,7 +1515,7 @@ function ModalTNFT({ onClose }) {
             </td>
             {showOpenSeaCol ? (<td className="tdcenter">{formatPriceCell(valuew.price)}</td>) : ("")}
             {showMarketCol ? (<td className="tdcenter">{formatPriceCell(valuew.pricem || 0)}</td>) : ("")}
-            <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(itemw, "trynftsupply", "nftw", e)}>{isupplyw}</td>
+            <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(itemw, "trynftsupply", buildSupplyTooltipContract(itemw, valuew), e)}>{isupplyw}</td>
             <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{valuew.boost}</td>
           </tr>
         );
@@ -2011,7 +2025,7 @@ function ModalTNFT({ onClose }) {
           </div>
         )}
       </div>
-      {/* {tooltipData && (
+      {tooltipData && (
         <Tooltip
           onClose={() => setTooltipData(null)}
           clickPosition={tooltipData}
@@ -2020,9 +2034,9 @@ function ModalTNFT({ onClose }) {
           value={tooltipData.value}
           dataSet={dataSet}
           dataSetFarm={dataSetLocal}
-          ForTry={TryChecked}
+          forTry={TryChecked}
         />
-      )} */}
+      )}
       {showHelp && (
         <Help onClose={handleCloseHelp} image={helpImage} />
       )}

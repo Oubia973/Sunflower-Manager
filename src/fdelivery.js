@@ -4,6 +4,8 @@ import { frmtNb, PBar, timeToDays } from './fct.js';
 import { Switch, FormControlLabel } from '@mui/material';
 import Tooltip from "./tooltip.js";
 import AutoRefreshProgress from "./components/AutoRefreshProgress";
+import { selectCurrentProjection } from "./utils/farmState.js";
+import { selectChoreComponentsContract } from "./tooltip/choreComponentsContract.js";
 import {
   imgcancel,
   imgalready,
@@ -52,7 +54,12 @@ function ModalDlvr({
       imgna,
     }
   } = useAppCtx();
-  const deliveryTables = dataSetFarm?.deliveryData?.itables || dataSetFarm?.itables || EMPTY_DELIVERY_TABLES;
+  const deliveryPageData = selectCurrentProjection(dataSetFarm, "deliveryData") || {};
+  const choreComponentsContract = selectChoreComponentsContract(
+    deliveryPageData?.tooltipData?.choreComponents,
+    TryChecked
+  );
+  const deliveryTables = deliveryPageData?.itables || dataSetFarm?.itables || EMPTY_DELIVERY_TABLES;
   const hasDeliveryTables = !!deliveryTables?.it || !!Object.keys(deliveryTables || {}).length;
   const {
     it = {},
@@ -150,6 +157,7 @@ function ModalDlvr({
   const computeOrderItemsCosts = (itemsMap) => {
     let totalCost = 0;
     let totalMarket = 0;
+    const rows = [];
     Object.entries(itemsMap || {}).forEach(([itemName, qty]) => {
       const low = String(itemName).toLowerCase();
       const qtyNum = Number(qty || 0);
@@ -157,16 +165,36 @@ function ModalDlvr({
         const coinValue = (1 / coinsRatio) * qtyNum;
         totalCost += coinValue;
         totalMarket += coinValue;
+        rows.push({ name: itemName, displayName: "Coins", img: imgcoins, quantity: qtyNum, cost: coinValue, market: coinValue });
         return;
       }
       const itemBase = getItemBase(itemName);
       if (!itemBase) { return; }
       const unitCost = Number(itemBase?.[key("cost")] ?? itemBase?.cost ?? 0) / coinsRatio;
       const unitMarket = getOrderItemMarketUnit(itemBase);
-      totalCost += unitCost * qtyNum;
-      totalMarket += unitMarket * qtyNum;
+      const cost = unitCost * qtyNum;
+      const market = unitMarket * qtyNum;
+      totalCost += cost;
+      totalMarket += market;
+      rows.push({ name: itemName, displayName: itemName, img: itemBase?.img || imgna, quantity: qtyNum, cost, market });
     });
-    return { totalCost, totalMarket };
+    return { rows, totalCost, totalMarket };
+  };
+  const buildDeliveryRatioContract = ({ type, from, rewardCoins, cost, market }) => {
+    const coins = Number(rewardCoins || 0);
+    const productionCost = Number(cost || 0);
+    const marketCost = Number(market || 0);
+    return {
+      type,
+      from,
+      isCoinsReward: true,
+      rewardCoins: coins,
+      rewardSfl: coins / coinsRatio,
+      cost: productionCost,
+      market: marketCost,
+      ratio: productionCost > 0 ? coins / productionCost : 0,
+      ratioMarket: marketCost > 0 ? coins / marketCost : 0,
+    };
   };
   const renderOrderItems = (itemsMap) => {
     const entries = Object.entries(itemsMap || {});
@@ -344,24 +372,21 @@ function ModalDlvr({
       const rowElement = (
         <tr key={index}>
           <td id="iccolumn" className="tdcenter"><img src={xfrom} alt="" title={ofrom} style={{ width: '25px', height: '25px' }} /></td>
-          <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(ofrom, "deliverycost", { items: orderItemsMap, market: selectedCost }, e)}>{renderOrderItems(orderItemsMap)}</td>
+          <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(ofrom, "deliverycost", computedCosts, e)}>{renderOrderItems(orderItemsMap)}</td>
           <td className="tdcenter">{imgComplete}</td>
           {/* <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.reward }}>{coinrewardconvertsfl}</td> */}
           <td className="tdcenter" style={cellRewardStyle}>{textReward}</td>
-          <td className="tdcenter tooltipcell" style={cellCostStyle} onClick={(e) => handleTooltip(ofrom, "deliverycost", { items: orderItemsMap, market: selectedCost }, e)}>{frmtNb(costProd)}</td>
-          <td className="tdcenter tooltipcell" style={cellMarketStyle} onClick={(e) => handleTooltip(ofrom, "deliverycost", { items: orderItemsMap, market: selectedCost }, e)}>{costp2p}</td>
+          <td className="tdcenter tooltipcell" style={cellCostStyle} onClick={(e) => handleTooltip(ofrom, "deliverycost", computedCosts, e)}>{frmtNb(costProd)}</td>
+          <td className="tdcenter tooltipcell" style={cellMarketStyle} onClick={(e) => handleTooltip(ofrom, "deliverycost", computedCosts, e)}>{costp2p}</td>
           <td
             className={`tdcenter${iscoins ? " tooltipcell" : ""}`}
-            onClick={iscoins ? (e) => handleTooltip(ofrom, "deliveryratio", {
+            onClick={iscoins ? (e) => handleTooltip(ofrom, "deliveryratio", buildDeliveryRatioContract({
               type: "row",
               from: ofrom,
-              isCoinsReward: true,
               rewardCoins: rewardQty,
-              rewardSfl: convRewardSfl,
               cost: costProd,
               market: costp2pNum,
-              ratio: addRatio ? (rewardQty / costProd) : 0
-            }, e) : undefined}
+            }), e) : undefined}
           >
             {ratioCoins}
           </td>
@@ -398,16 +423,13 @@ function ModalDlvr({
             <td className="tdcenter">{frmtNb(cat.marketDone)}/{frmtNb(cat.marketTotal)}</td>
             <td
               className={`tdcenter${catKey === "coins" ? " tooltipcell" : ""}`}
-              onClick={catKey === "coins" ? (e) => handleTooltip(`total-${catKey}`, "deliveryratio", {
+              onClick={catKey === "coins" ? (e) => handleTooltip(`total-${catKey}`, "deliveryratio", buildDeliveryRatioContract({
                 type: "total-category",
                 from: `TOTAL ${cat.label}`,
-                isCoinsReward: true,
                 rewardCoins: cat.coinsRewardDone,
-                rewardSfl: (cat.coinsRewardDone / coinsRatio),
                 cost: cat.coinsCostDone,
                 market: cat.marketDone,
-                ratio: (cat.coinsCostDone > 0 ? (cat.coinsRewardDone / cat.coinsCostDone) : 0)
-              }, e) : undefined}
+              }), e) : undefined}
             >
               {categoryRatio}
             </td>
@@ -455,16 +477,13 @@ function ModalDlvr({
               <td className="tdcenter">{frmtNb(totCostp2p)}</td>
               <td
                 className="tdcenter tooltipcell"
-                onClick={(e) => handleTooltip("total", "deliveryratio", {
+                onClick={(e) => handleTooltip("total", "deliveryratio", buildDeliveryRatioContract({
                   type: "total",
                   from: "TOTAL",
-                  isCoinsReward: true,
                   rewardCoins: totCoinsR,
-                  rewardSfl: (totCoinsR / coinsRatio),
                   cost: totCostR,
                   market: totCostp2pR,
-                  ratio: (totCostR > 0 ? (totCoinsR / totCostR) : 0)
-                }, e)}
+                }), e)}
               >
                 {frmtNb(ratioCoins)}
               </td>
@@ -560,7 +579,7 @@ function ModalDlvr({
         type="button"
         className="button"
         style={{ marginTop: 4 }}
-        onClick={(e) => handleTooltip(tableData.totcomp, "totChoreComp", "Weekly Chores", e)}
+        onClick={(e) => handleTooltip("Weekly Chores", "totChoreComp", choreComponentsContract, e)}
         title="Total components details"
       >
         {totCompImg}
@@ -733,6 +752,24 @@ function ModalDlvr({
       const poppyBaseRewardDone = Object.values(rewardTotals).reduce((acc, rewardData) => acc + Number(rewardData?.done || 0), 0);
       const poppyBaseRewardTotal = Object.values(rewardTotals).reduce((acc, rewardData) => acc + Number(rewardData?.total || 0), 0);
       const poppyBonusReward = isPoppyCategory && categoryItems.length > 0 && categoryDone === categoryItems.length ? poppyBonusAmount : 0;
+      const poppyRewardDone = poppyBaseRewardDone + poppyBonusReward;
+      const poppyRewardTotal = poppyBaseRewardTotal + 50;
+      const bountyCostTooltip = {
+        rows: categoryCostItems,
+        costDone: displayProdDone,
+        costTotal: displayProdTotal,
+        marketDone: displayMarketDone,
+        marketTotal: displayMarketTotal,
+        rewardDone: poppyRewardDone,
+        rewardTotal: poppyRewardTotal,
+        bonusReward: poppyBonusReward,
+        costPerTicket: poppyRewardDone > 0
+          ? displayProdDone / poppyRewardDone
+          : (poppyRewardTotal > 0 ? displayProdTotal / poppyRewardTotal : 0),
+        marketPerTicket: poppyRewardDone > 0
+          ? displayMarketDone / poppyRewardDone
+          : (poppyRewardTotal > 0 ? displayMarketTotal / poppyRewardTotal : 0),
+      };
       const showPoppyBonusHint = isPoppyCategory && categoryItems.length > 0 && categoryDone < categoryItems.length;
       return (
         <div key={categoryName} style={{ marginBottom: '8px' }}>
@@ -742,16 +779,7 @@ function ModalDlvr({
               <span
                 className="tooltipcell"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginRight: '10px', verticalAlign: 'middle' }}
-                onClick={(e) => handleTooltip("Poppy", "deliverybountycost", {
-                  items: categoryCostItems,
-                  costDone: displayProdDone,
-                  costTotal: displayProdTotal,
-                  marketDone: displayMarketDone,
-                  marketTotal: displayMarketTotal,
-                  rewardDone: poppyBaseRewardDone + poppyBonusReward,
-                  rewardTotal: poppyBaseRewardTotal + 50,
-                  bonusReward: poppyBonusReward,
-                }, e)}
+                onClick={(e) => handleTooltip("Poppy", "deliverybountycost", bountyCostTooltip, e)}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}>
                   {frmtNb(displayProdDone)}/{frmtNb(displayProdTotal)}

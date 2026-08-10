@@ -5,6 +5,8 @@ import { frmtNb, convtimenbr, convTime, ColorValue, ColorValueP, Timer, PBar, ti
 import CounterInput from "../counterinput.js";
 import DList from "../dlist.jsx";
 import { imgshovel, imgwinterPath, imgspringPath, imgsummerPath, imgautumnPath, imgconfirm, imgbee, imglove as imgloveIcon, imghappiness03 as imghappiness03Icon, imgfullmoon as imgfullmoonIcon, imgpriceUp, imgpriceDown, imgsaltfarm, imgprod, imgarrowLeft } from "../constants/images.js";
+import { selectCurrentProjection } from "../utils/farmState.js";
+import { buildBoostTooltipContract } from "../tooltip/boostTooltipContract.js";
 
 var xBurning = [];
 xBurning.burn = [];
@@ -57,8 +59,8 @@ export default function InvTable() {
             imgprodit
         }
     } = useAppCtx();
-    const invPageData = dataSetFarm?.invData || {};
-    const invFrmData = invPageData?.frmData || dataSetFarm?.frmData || {};
+    const invPageData = selectCurrentProjection(dataSetFarm, "invData") || {};
+    const invFarmContext = invPageData?.farmContext || {};
     const invTables = dataSetFarm?.itables || invPageData?.itables || {};
     const invBoostables = dataSetFarm?.boostables || invPageData?.boostables || {};
     const lastAuthoritativeBuyRefreshKeyRef = useRef("");
@@ -73,8 +75,8 @@ export default function InvTable() {
     };
     const currentBuyitSig = buildBuyitSignature(invTables?.it);
     const authoritativeBuyRefreshKey = [
-        dataSetFarm?.frmid || invFrmData?.frmid || "",
-        invFrmData?.updated || farmData?.updated || "",
+        dataSetFarm?.frmid || "",
+        invFarmContext?.updated || farmData?.updated || "",
         farmLoadSyncNonce || 0,
     ].join(":");
     useEffect(() => {
@@ -111,16 +113,15 @@ export default function InvTable() {
         setShowTryRefreshHalo(false);
     };
     if (
-        invFrmData?.spot &&
-        invFrmData?.buildngf &&
+        invFarmContext?.buildings &&
         invTables?.it &&
         invTables?.tool &&
         invBoostables?.nft &&
         invBoostables?.buildng
     ) {
-        const { spot, buildngf } = invFrmData;
+        const buildngf = invFarmContext.buildings;
         const { it, tool } = invTables;
-        const inventoryMap = farmData?.inventory || {};
+        const inventoryMap = invPageData?.inventory || {};
         const itemOrder = Object.keys(it);
         //if (selectedQuantity === "daily") {
         const key = (name) => TryChecked ? name + "try" : name;
@@ -304,35 +305,24 @@ export default function InvTable() {
         var BldItems = "";
         if (showBldinv) {
             const bldOrder = ["Fire Pit", "Kitchen", "Deli", "Bakery", "Smoothie Shack", "Fish Market", "Compost Bin", "Turbo Composter", "Premium Composter"];
-            const composterWorms = {
-                "Compost Bin": "Earthworm",
-                "Turbo Composter": "Grub",
-                "Premium Composter": "Red Wiggler",
-            };
             const sortedBldItems = bldOrder.map(item => [item, Number(buildngf?.[item]?.quant ?? inventoryMap[item] ?? 0)]);
             BldItems = sortedBldItems.map(([building], index) => {
                 if (buildngf[building]) {
                     if (buildngf[building].readyAt > 0) {
-                        const itemBuild = buildngf[building];
                         const ico = buildngf[building].img;
                         const item = buildngf[building].name;
                         const icost = buildngf[building].cost;
-                        const buildCraft = buildngf[building].craft;
+                        const buildCraft = invPageData?.tooltipData?.buildCraft?.[building] || null;
                         const irdyat = buildngf[building].readyAt;
                         var xnow = new Date().getTime();
                         const ximgrdy = irdyat > 0 && irdyat < xnow ? <img src={imgrdy} alt="" /> : "";
                         const ximgfood = <img src={buildngf[building].itimg} alt="" style={{ width: '15px', height: '15px' }} />
-                        const producedItems = buildngf[building].items && typeof buildngf[building].items === "object"
-                            ? buildngf[building].items
-                            : {};
-                        const [producedItemName, producedItemQty] = Object.entries(producedItems)[0] || [];
                         const iquant = Number.isFinite(Number(buildngf[building].quant))
                             ? Number(buildngf[building].quant)
-                            : Number(producedItemQty || 0);
+                            : 0;
                         const iquantLabel = iquant > 1 ? iquant : "";
-                        const iquantTitle = composterWorms[building]
-                            ? `${composterWorms[building]} x${iquant}`
-                            : producedItemName ? `${producedItemName} x${iquant}` : "";
+                        const quantityName = buildCraft?.quantityName || "";
+                        const iquantTitle = quantityName ? `${quantityName} x${iquant}` : "";
                         const pNifty = buildngf[building].costp2pn;
                         const pOS = buildngf[building].costp2po;
                         const pTrad = buildngf[building].costp2pt;
@@ -365,7 +355,7 @@ export default function InvTable() {
                                 {xListeCol[11][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 234, 204)` }}></td>) : ("")}
                                 {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 225, 183)` }}></td>) : ("")}
                                 {xListeCol[13][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ color: `rgb(253, 215, 162)` }}
-                                    onClick={(e) => handleTooltip(itemBuild, "buildcraft", buildCraft, e)}
+                                    onClick={(e) => handleTooltip(building, "buildcraft", buildCraft, e)}
                                     title={iquantTitle}>
                                     {iquantLabel}{ximgfood}</td>) : ("")}
                                 {xListeCol[18][1] === 1 ? (<td id={`timer-${index}`} className="tdcenterbrd">{(irdyat > 0 ? selectedReady === "when" ? (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) :
@@ -609,11 +599,13 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             imgbuyit,
         }
     } = useAppCtx();
-    const invPageData = dataSetFarm?.invData || {};
-    const invFrmData = invPageData?.frmData || dataSetFarm?.frmData || {};
+    const invPageData = selectCurrentProjection(dataSetFarm, "invData") || {};
+    const boostTooltipIndex = invPageData?.tooltipData?.boostIndex || {};
+    const invFarmContext = invPageData?.farmContext || {};
     const invTables = dataSetFarm?.itables || invPageData?.itables || {};
     const invBoostables = dataSetFarm?.boostables || invPageData?.boostables || {};
-    const { spot } = invFrmData;
+    const productionCostContracts = invPageData?.tooltipData?.productionCosts?.items || {};
+    const spot = invFarmContext?.nodeCapacity || {};
     const { it } = invTables;
     const { nft, buildng } = invBoostables;
     const farmTime = dataSet.options.inputFarmTime / 24;
@@ -942,6 +934,13 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             //const Dsfl = cobj?.buyit ? 0 : (xDsfl - convPricep) * (!TryChecked ? iharvestdmax : iharvestdmaxtry);
             const Dsfl = (!TryChecked ? cobj.dailysfl : cobj.dailysfltry);
             const gainH = (!TryChecked ? cobj.gainh : cobj.gainhtry) || 0;
+            const hourlyContract = productionCostContracts?.[item]?.[TryChecked ? "try" : "active"]?.hourly;
+            const gainHTooltip = hourlyContract ? {
+                ...hourlyContract,
+                itemName: item,
+                itemImage: productionCostContracts?.[item]?.shared?.itemImage || cobj.img,
+                color: ColorValue(gainH, 0, 1),
+            } : null;
             //const titleTrad = selectedQuant !== "unit" ? Math.ceil(iQuant / itradmax) + " * (" + itradmax + " * " + puTrad + " - 0.25$)" : "";
             const titleTrad = ""; // selectedQuant !== 'unit' ? frmtNb(Math.ceil(iQuant / itradmax)) + ` x (${frmtNb(itradmax)} x ${frmtNb(puTrad)}) - ${frmtNb(TaxTradSfl)}SFL(0.25$)` : "";
             const titleNifty = ""; // selectedQuant !== "unit" ? frmtNb(iQuant * 0.7) + " x " + frmtNb(puNifty) + " - 5%" : "";
@@ -999,11 +998,13 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             let tooltipContnt = [];
             let tltpDBurn = "";
             if (selectedQuantity === "daily") {
-                tooltipContnt = [
-                    iburn,
-                    TryChecked ? (xHrvsttry[item]) : (xHrvst[item]),
-                    iharvest
-                ];
+                const dailyCycles = TryChecked ? xHrvsttry[item] : xHrvst[item];
+                tooltipContnt = {
+                    burn: iburn,
+                    dailyCycles,
+                    harvest: iharvest,
+                    totalHarvested: Number(dailyCycles || 0) * Number(iharvest || 0),
+                };
                 tltpDBurn = "dailyBurn";
             }
             return (
@@ -1062,7 +1063,7 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                         )
                     ) : ("")}
                     {xListeCol[2][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(200, 200, 200)` }}
-                        onClick={(e) => handleTooltip(item, "trynft", "timechg", e)}>{timeToDays(time)}</td>) : ("")}
+                        onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "timechg"), e)}>{timeToDays(time)}</td>) : ("")}
                     {xListeCol[3][1] === 1 ? (<td className="tdcenter tooltipcell" style={cellStyle} onClick={(e) => handleTooltip(item, "costp", costp, e)}>{frmtNb(costp)}{ibuyit ? imgbuyit : null}</td>) : ("")}
                     {xListeCol[21]?.[1] === 1 ? (<td className="tdcenter" style={cellStyle}>
                         <input
@@ -1092,7 +1093,7 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                     {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<td className="tooltipcell" style={{ ...cellStyle, color: colorO, textAlign: 'center', fontSize: '8px' }}
                         onClick={(e) => handleTooltip(item, "coef", coefO, e)}>{coefO > 0 ? coefO : ""}</td>) : ("")}
                     {xListeCol[19]?.[1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, fontSize: "11px", color: colorPChange }}>{imgpriceChange}{txtpriceChange}</td>) : ("")}
-                    {xListeCol[11][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }} onClick={(e) => handleTooltip(item, "trynft", "yield", e)}>
+                    {xListeCol[11][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }} onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "yield"), e)}>
                         {parseFloat(imyield).toFixed(2)}</td>) : ("")}
                     {xListeCol[12][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 225, 183)` }} onClick={(e) => handleTooltip(item, "harvest", 0, e)}>
                         {parseFloat(iharvest).toFixed(2)}</td>) : ("")}
@@ -1105,7 +1106,7 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                         title={titleDsfl} onClick={(e) => handleTooltip(item, "dailysfl", costp, e)}>
                         {parseFloat(Dsfl).toFixed(2)}</td>) : ("")}
                     {xListeCol[20]?.[1] === 1 ? (<td className="tdcenter tooltipcell"
-                        onClick={(e) => handleTooltip(item, "gainh", { gainH: gainH, dailySfl: Dsfl }, e)}
+                        onClick={(e) => handleTooltip(item, "gainh", gainHTooltip, e)}
                         style={{ ...cellStyle, color: ColorValue(gainH, 0, 1) }}>
                         {parseFloat(gainH).toFixed(2)}</td>) : ("")}
                     {xListeCol[16][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat(dailyprodmx).toFixed(2)}</td>) : ("")}

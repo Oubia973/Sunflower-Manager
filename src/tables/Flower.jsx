@@ -1,6 +1,7 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { timeToDays, buildSeriesMeta } from '../fct.js';
+import { selectCurrentProjection } from "../utils/farmState.js";
 
 export default function FlowerTable() {
     const {
@@ -10,7 +11,7 @@ export default function FlowerTable() {
             TryChecked,
         },
     } = useAppCtx();
-    const flowerData = dataSetFarm?.flowerData || {};
+    const flowerData = selectCurrentProjection(dataSetFarm, "flowerData") || {};
     const flowerTables = dataSetFarm?.itables || flowerData?.itables || {};
     const flowerBeds = flowerData?.beds || dataSetFarm?.itables?.it?.Flower?.beds || {};
     if (flowerTables?.flower) {

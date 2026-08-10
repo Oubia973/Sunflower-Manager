@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb, ColorValue, PBar } from '../fct.js';
 import { imgmix, imgomni, imghoneyTreat, imgsaltLick } from "../constants/images.js";
+import { selectCurrentProjection } from "../utils/farmState.js";
+import createAnimalUnitCostContract from "../tooltip/animalUnitCostContract.js";
 
 export default function AnimalTable() {
     const prod1StickyContentRef = useRef(null);
@@ -50,7 +52,7 @@ export default function AnimalTable() {
             imgprodit
         }
     } = useAppCtx();
-    const animalPageData = dataSetFarm?.animalData || {};
+    const animalPageData = selectCurrentProjection(dataSetFarm, "animalData") || {};
     const animalsData = animalPageData?.Animals || dataSetFarm?.Animals || {};
     const animalsAllLvlData = animalPageData?.animalsAllLvl || dataSetFarm?.animalsAllLvl || {};
     const animalTables = { ...(dataSetFarm?.itables || {}), ...(animalPageData?.itables || {}) };
@@ -230,20 +232,22 @@ export default function AnimalTable() {
                         {xListeColAnimals[7][1] === 1 ? (
                             <td
                                 className="tdcenterbrdleft tooltipcell"
-                                onClick={(e) => handleTooltip(prod1name, "animalcostu", {
+                                onClick={(e) => handleTooltip(prod1name, "animalcostu", createAnimalUnitCostContract({
                                     animal: itemName,
                                     product: prod1name,
+                                    productImage: xprod1img,
                                     displayedCost: prod1costRaw,
                                     yieldPerCycle: prod1,
                                     foodQty: food,
                                     foodName: foodname,
+                                    foodImage: xfoodimg,
                                     foodCycleCost: foodcostRaw,
                                     foodCycleMarketCost: foodcostp2pRaw,
                                     currentLvl: xlvl,
                                     buyCropsCostU: prod1costuwithfoodp2pRaw,
                                     marketCostU: prod1costp2pRaw,
                                     tradeTax: dataSet.options.tradeTax,
-                                }, e)}
+                                }), e)}
                             >
                                 {prod1cost}
                             </td>
@@ -255,20 +259,22 @@ export default function AnimalTable() {
                         {xListeColAnimals[9][1] === 1 ? (
                             <td
                                 className="tdcenterbrdleft tooltipcell"
-                                onClick={(e) => handleTooltip(prod2name, "animalcostu", {
+                                onClick={(e) => handleTooltip(prod2name, "animalcostu", createAnimalUnitCostContract({
                                     animal: itemName,
                                     product: prod2name,
+                                    productImage: xprod2img,
                                     displayedCost: prod2costRaw,
                                     yieldPerCycle: prod2,
                                     foodQty: food,
                                     foodName: foodname,
+                                    foodImage: xfoodimg,
                                     foodCycleCost: foodcostRaw,
                                     foodCycleMarketCost: foodcostp2pRaw,
                                     currentLvl: xlvl,
                                     buyCropsCostU: prod2costuwithfoodp2pRaw,
                                     marketCostU: prod2costp2pRaw,
                                     tradeTax: dataSet.options.tradeTax,
-                                }, e)}
+                                }), e)}
                             >
                                 {prod2cost}
                             </td>

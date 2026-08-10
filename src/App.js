@@ -56,7 +56,7 @@ import {
 
 // Extracted utilities
 import { computeRequiredSections } from './utils/sections.js';
-import { hasPathData, hasSectionData, mergeTradeEntryHashesFromPayload } from './utils/farmState.js';
+import { hasPathData, hasSectionData, mergeTradeEntryHashesFromPayload, selectCurrentProjection } from './utils/farmState.js';
 import { formatVipPromptMessage } from './utils/formatting.js';
 import { isValidTryitConfig } from './tryitStorage.js';
 
@@ -222,10 +222,11 @@ function App() {
   const [dataSetFarm, setdataSetFarm] = useState({});
   const [bumpkinData, setBumpkinData] = useState([]);
   const dataSetFarmRef = useRef({});
+  const tooltipTryRevisionRef = useRef(0);
   useEffect(() => {
     const keys = Object.keys(dataSetFarm || {});
     const metadataKeys = keys.filter(k =>
-      k === 'sectionHashes' || k === 'tableHashes' || k === 'unchangedSections' ||
+      k === 'sectionHashes' || k === 'projectionHashes' || k === 'tableHashes' || k === 'unchangedSections' ||
       k === 'requestedSections' || k === 'returnedSections' || k === 'priceData'
     );
     if (metadataKeys.length > 0) {
@@ -234,6 +235,15 @@ function App() {
     }
     dataSetFarmRef.current = dataSetFarm || {};
   }, [dataSetFarm]);
+
+  useEffect(() => {
+    const nextRevision = Math.max(0, Math.floor(Number(dataSetFarm?.tryitRevision) || 0));
+    const previousRevision = tooltipTryRevisionRef.current;
+    tooltipTryRevisionRef.current = nextRevision;
+    if (previousRevision > 0 && nextRevision > 0 && previousRevision !== nextRevision) {
+      setTooltipData(null);
+    }
+  }, [dataSetFarm?.tryitRevision]);
 
   const isAboFarm = !!(dataSetFarm?.isabo ?? dataSet?.options?.isAbo);
   const aboStatusKnown = (dataSetFarm?.isabo !== undefined) || (dataSet?.options?.isAbo !== undefined);
@@ -790,8 +800,8 @@ function App() {
 
   useEffect(() => {
     const it = dataSetFarm?.itables?.it
-      || dataSetFarm?.invData?.itables?.it
-      || dataSetFarm?.cookData?.itables?.it;
+      || selectCurrentProjection(dataSetFarm, "invData")?.itables?.it
+      || selectCurrentProjection(dataSetFarm, "cookData")?.itables?.it;
     if (!it) return;
     const nextHrvst = {};
     const nextHrvstTry = {};
@@ -1450,7 +1460,7 @@ function App() {
           <div style={{ marginTop: 0, margin: 0, padding: 0 }}>
             <div className="horizontal" style={{ margin: "0", padding: "0" }}>
               {buttonClicked ? (<>
-                <div className="horizontal" onClick={(e) => handleTooltip("", "balance", "", e)} style={{ margin: "0", padding: "0" }}>
+                <div className="horizontal" onClick={(e) => handleTooltip("", "balance", dataSetFarm?.farmMeta?.balanceTooltip || null, e)} style={{ margin: "0", padding: "0" }}>
                   {imgSFL}{frmtNb(dataSet?.balance ?? 0)} {imgCoins}{Number(dataSet?.coins ?? 0).toFixed(0)}{dataSet?.isBanned ? dataSet.isBanned : null}
                 </div>
                 <span>{mutData || null}</span>

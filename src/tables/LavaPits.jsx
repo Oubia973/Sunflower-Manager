@@ -1,5 +1,6 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
+import { selectCurrentProjection } from "../utils/farmState.js";
 import { frmtNb } from "../fct.js";
 import { imgna, imgSFL, imgCoins, imgrdy, imgexchng, imgobsidian, imglavaPit, imgstopwatch, imglightning } from "../constants/images.js";
 
@@ -87,7 +88,7 @@ export default function LavaPitsTable() {
 
   if (selectedInv !== "lavapits") return null;
 
-  const lavaPitsData = dataSetFarm?.lavaPitsData || {};
+  const lavaPitsData = selectCurrentProjection(dataSetFarm, "lavaPitsData") || {};
   const summary = lavaPitsData?.summary || {};
   const seasonSummaries = Array.isArray(lavaPitsData?.seasonSummaries) ? lavaPitsData.seasonSummaries : [];
   const projections = Array.isArray(lavaPitsData?.projections) ? lavaPitsData.projections : [];

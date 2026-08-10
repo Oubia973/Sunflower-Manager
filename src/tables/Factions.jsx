@@ -2,6 +2,7 @@ import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb, PBar } from "../fct.js";
 import { imgna, imgfactions, imgconfirm, imgcancel } from "../constants/images.js";
+import { selectCurrentProjection } from "../utils/farmState.js";
 const FACTION_ORDER = ["sunflorians", "nightshades", "bumpkins", "goblins"];
 const FACTION_LABELS = {
   sunflorians: "SUNFLORIANS",
@@ -37,7 +38,8 @@ export default function FactionsTable() {
       imgbuyit,
     },
   } = useAppCtx();
-  const factions = dataSetFarm?.factionsData?.factions || null;
+  const factionsPageData = selectCurrentProjection(dataSetFarm, "factionsData") || {};
+  const factions = factionsPageData?.factions || null;
   if (selectedInv !== "factions") return null;
   if (!factions || typeof factions !== "object") return null;
 
@@ -52,7 +54,9 @@ export default function FactionsTable() {
           factionKey={factionKey}
           factionData={factions[factionKey]}
           dataSet={dataSet}
-          dataSetFarm={dataSetFarm}
+          memberFaction={factionsPageData?.memberFaction || {}}
+          isEligible={!!factionsPageData?.isEligible}
+          factionsItems={factionsPageData?.items || {}}
           imgExchng={imgExchng}
           imgprodit={imgprodit}
           imgbuyit={imgbuyit}
@@ -62,7 +66,7 @@ export default function FactionsTable() {
   );
 }
 
-function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng, imgprodit, imgbuyit }) {
+function FactionCard({ factionKey, factionData, dataSet, memberFaction, isEligible, factionsItems, imgExchng, imgprodit, imgbuyit }) {
   if (!factionData) return null;
   const petRequests = factionData?.pet?.requests || [];
   const kitchenRequests = factionData?.kitchen?.requests || [];
@@ -70,21 +74,11 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng,
   const petGoal = Number(factionData?.petGoal || 0);
   const streak = Number(factionData?.streak || 0);
   const progress = petGoal > 0 ? Math.max(0, (petCurXP / petGoal) * 100) : 0;
-  const currentFactionName =
-    dataSetFarm?.faction?.factionName ||
-    dataSetFarm?.frmData?.faction?.factionName ||
-    "";
+  const currentFactionName = memberFaction?.factionName || "";
   const currentFactionKey = normalizeFactionName(currentFactionName);
   const isCurrentFaction = currentFactionKey === normalizeFactionName(factionKey);
-  const isEligible = Boolean(
-    dataSetFarm?.isElligible ??
-    dataSetFarm?.isEligible ??
-    dataSetFarm?.faction?.isEligible ??
-    dataSetFarm?.frmData?.faction?.isEligible
-  );
   const showContributingMember = isCurrentFaction;
   const contributingIcon = isEligible ? imgconfirm : imgcancel;
-  const memberFaction = dataSetFarm?.frmData?.faction || dataSetFarm?.faction || {};
   const activeStreakForCurrent = Number(memberFaction?.activeStreak ?? streak);
   const displayedStreakForCurrent = Number(memberFaction?.streak ?? streak);
   const streakToMul = (v) => (v >= 8 ? 1.5 : v >= 6 ? 1.3 : v >= 4 ? 1.2 : v >= 2 ? 1.1 : 1);
@@ -105,7 +99,7 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng,
   const petRows = petRequests.map((req, idx) => {
     const name = req.food;
     const quantity = Number(req.quantity || 0);
-    const item = dataSetFarm?.factionsData?.items?.[name] || findItemInAllTables(name, dataSetFarm);
+    const item = factionsItems?.[name];
     // const xp = Number(item?.xp || 0) * quantity;
     const prodCost = getProdCost(item, quantity, dataSet?.options?.coinsRatio || 1);
     const p2pCost = getP2PCost(item, quantity);
@@ -126,7 +120,7 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng,
   const kitchenRows = kitchenRequests.map((req, idx) => {
     const name = req.item;
     const quantity = Number(req.amount || 0);
-    const item = dataSetFarm?.factionsData?.items?.[name] || findItemInAllTables(name, dataSetFarm);
+    const item = factionsItems?.[name];
     const prodCost = getProdCost(item, quantity, dataSet?.options?.coinsRatio || 1);
     const p2pCost = getP2PCost(item, quantity);
     const icon = item?.img || imgna;
@@ -236,28 +230,6 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng,
       </section>
     </article>
   );
-}
-
-function findItemInAllTables(itemName, dataSetFarm) {
-  if (dataSetFarm?.factionsData?.items?.[itemName]) {
-    return dataSetFarm.factionsData.items[itemName];
-  }
-  const tables = [
-    dataSetFarm?.itables?.it,
-    dataSetFarm?.itables?.fish,
-    dataSetFarm?.itables?.flower,
-    dataSetFarm?.itables?.bounty,
-    dataSetFarm?.itables?.craft,
-    dataSetFarm?.itables?.mutant,
-    dataSetFarm?.itables?.petit,
-    dataSetFarm?.itables?.food,
-    dataSetFarm?.boostables?.nft,
-    dataSetFarm?.boostables?.nftw,
-  ];
-  for (const table of tables) {
-    if (table?.[itemName]) return table[itemName];
-  }
-  return null;
 }
 
 function getP2PCost(itemObj, quantity) {

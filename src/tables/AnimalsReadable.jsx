@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb, ColorValue, PBar } from "../fct.js";
 import { imgmix, imgomni } from "../constants/images.js";
+import { selectCurrentProjection } from "../utils/farmState.js";
+import createAnimalUnitCostContract from "../tooltip/animalUnitCostContract.js";
 
 const ANIMAL_PRODUCTS = {
   Chicken: ["Egg", "Feather"],
@@ -21,7 +23,7 @@ export default function AnimalsReadableTable() {
     img: { imgSFL, imgcow, imgsheep, imgchkn, imgna, imgprodit, imgbuyit },
   } = useAppCtx();
 
-  const animalPageData = dataSetFarm?.animalData || {};
+  const animalPageData = selectCurrentProjection(dataSetFarm, "animalData") || {};
   const animalsData = animalPageData?.Animals || dataSetFarm?.Animals || {};
   const animalsAllLvlData = animalPageData?.animalsAllLvl || dataSetFarm?.animalsAllLvl || {};
   const animalTables = { ...(dataSetFarm?.itables || {}), ...(animalPageData?.itables || {}) };
@@ -116,20 +118,22 @@ export default function AnimalsReadableTable() {
 
   const openTooltip = (animal, row, product, e) => {
     const isFirst = product === animal.prod1name;
-    handleTooltip(product, "animalcostu", {
+    handleTooltip(product, "animalcostu", createAnimalUnitCostContract({
       animal: animal.animalName,
       product,
+      productImage: getItemIcon(product),
       displayedCost: isFirst ? row.prod1Cost : row.prod2Cost,
       yieldPerCycle: isFirst ? row.prod1 : row.prod2,
       foodQty: row.foodQty,
       foodName: row.foodName,
+      foodImage: getItemIcon(row.foodName),
       foodCycleCost: row.foodCycleCost,
       foodCycleMarketCost: row.foodMarketCost,
       currentLvl: row.lvl,
       buyCropsCostU: isFirst ? row.prod1BuyFood : row.prod2BuyFood,
       marketCostU: isFirst ? row.prod1Market : row.prod2Market,
       tradeTax: dataSet?.options?.tradeTax || 0,
-    }, e);
+    }), e);
   };
 
   return (

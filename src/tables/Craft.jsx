@@ -1,5 +1,6 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
+import { selectCurrentProjection } from "../utils/farmState.js";
 
 export default function CraftTable() {
     const {
@@ -20,9 +21,11 @@ export default function CraftTable() {
             imgprodit
         }
     } = useAppCtx();
-    const craftTables = dataSetFarm?.craftData?.itables || dataSetFarm?.itables || {};
-    if (craftTables?.it && craftTables?.flower && craftTables?.bounty && craftTables?.craft) {
-        const { it, flower, bounty, craft } = craftTables;
+    const craftPageData = selectCurrentProjection(dataSetFarm, "craftData") || {};
+    const craftTables = craftPageData?.itables || dataSetFarm?.itables || {};
+    const craftCostContracts = craftPageData?.tooltipData?.costBreakdowns || {};
+    if (craftTables?.craft) {
+        const { it = {}, flower = {}, bounty = {}, craft = {} } = craftTables;
         const Keys = Object.keys(craft);
         const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
         const tableContent = Keys.map(element => {
@@ -32,10 +35,11 @@ export default function CraftTable() {
             const itime = TryChecked ? cobj.timetry : cobj.time;
             const stock = cobj.instock > 0 ? cobj.instock : '';
             const icost = TryChecked ? cobj.costtry / dataSet.options.coinsRatio : cobj.cost / dataSet.options.coinsRatio;
-            const icostm = cobj.costp2pt;
+            const icostm = TryChecked ? (cobj.costp2pttry ?? cobj.costp2pt ?? 0) : cobj.costp2pt;
             let icompoimg = [];
-            for (let key in cobj.compo) {
-                const compoQuant = cobj.compo[key];
+            const costContract = craftCostContracts?.[itemName]?.[TryChecked ? "try" : "active"];
+            for (const [key, node] of Object.entries(costContract?.costTree?.nodes || {})) {
+                const compoQuant = Number(node?.qty || 0);
                 let icompoToAdd = imgna;
                 if (it[key]) { icompoToAdd = it[key].img; }
                 if (bounty[key]) { icompoToAdd = bounty[key].img; }

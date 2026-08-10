@@ -61,7 +61,21 @@ export function useModalHandlers(
 
     if (mustSyncTryTables) {
       try {
-        const syncedFarm = await getPrices(false, true, ["boosts", "inventory"], hasTryitOverrides, "trynft", true, hasTryitOverrides ? "TRYNFT_OPEN_TRY_SYNC" : "trynft");
+        // Include the current page too.  Refreshing only the Tryset tables can
+        // invalidate the active page projection (notably invData), causing a
+        // momentary "Loading page data..." while a second request reloads it.
+        const currentPage = String(ui?.selectedInv || "home");
+        const currentPageSections = computeRequiredSections(ui, pageSectionRequirements);
+        const sectionsToSync = [...new Set(["boosts", "inventory", ...currentPageSections])];
+        const syncedFarm = await getPrices(
+          false,
+          true,
+          sectionsToSync,
+          hasTryitOverrides,
+          currentPage,
+          true,
+          hasTryitOverrides ? "TRYNFT_OPEN_TRY_SYNC" : "trynft"
+        );
         if (syncedFarm && typeof syncedFarm === "object") {
           dataSetFarmRef.current = stripFarmMetadata(syncedFarm, 'useModalHandlers/onSync');
           tryNftOpenCoverageRef.current = { farmId: currentFarmId, signature: tryitSignature, updatedAt: Date.now() };
@@ -73,7 +87,7 @@ export function useModalHandlers(
     }
     return dataSetFarmRef.current || null;
   }, [dataSet, dataSetFarmRef, getTryitRequestPayload, tryitConfig, sectionPayloadKeys, sectionTablePaths,
-    farmSectionHashesRef, farmTableHashesRef, tryNftOpenCoverageRef, lastID, getPrices]);
+    farmSectionHashesRef, farmTableHashesRef, tryNftOpenCoverageRef, lastID, getPrices, ui, pageSectionRequirements]);
 
   /**
    * Handle Delivery modal open

@@ -21,6 +21,7 @@ import {
   mergeTradeEntryHashesFromPayload,
   applyTradesDeltaToPayload,
   hasInventoryItemFields,
+  selectCurrentProjection,
 } from '../utils/farmState.js';
 import { getBalanceValue } from '../utils/balance.js';
 import { fetchJson, fetchJsonResponse } from '../services/apiClient.js';
@@ -155,7 +156,11 @@ export function useFarmLoader(
    */
   const processFarmResponse = useCallback((responseData, currentFarmState, dataSet, uiState = null) => {
     const normalizedResponseData = normalizeServerImagesDeep(responseData || {});
-    const responseFrmData = normalizedResponseData?.frmData || {};
+    const responseFrmData = normalizedResponseData?.farmMeta
+      || normalizedResponseData?.frmData
+      || currentFarmState?.farmMeta
+      || currentFarmState?.frmData
+      || {};
     const constants = normalizedResponseData?.constants || {};
     if (constants?.imgtkt) {
       constants.imgtkt = versionImageUrl(constants.imgtkt);
@@ -236,24 +241,10 @@ export function useFarmLoader(
       : mergedInitialFarm;
 
     // Calculate financials
-    const frmData = mergedInitialFarm?.frmData || {};
-    const expandData = mergedInitialFarm?.expandData || {};
+    const frmData = mergedInitialFarm?.farmMeta || mergedInitialFarm?.frmData || {};
     const Fish = mergedInitialFarm?.Fish;
-    const taxFreeSFL = mergedInitialFarm?.taxFreeSFL;
     dataSet.balance = getBalanceValue(frmData?.balance, 'sfl');
     dataSet.coins = getBalanceValue(frmData?.balance, 'coins');
-
-    const balance = getBalanceValue(frmData?.balance, 'sfl');
-    const withdrawreduc = (expandData?.type === 'desert' || expandData?.type === 'spring' || expandData?.type === 'volcano') ? 2.5 : 0;
-    const withdrawtax = (balance < 10 ? 30 : balance < 100 ? 25 : balance < 1000 ? 20 : balance < 5000 ? 15 : 10) - withdrawreduc;
-    dataSet.withdrawtax = withdrawtax;
-
-    const withdrawSFLbeyondTaxFree = Number(taxFreeSFL) - Number(balance);
-    const withdrawsflFree = (withdrawSFLbeyondTaxFree < 0) ? Number(taxFreeSFL) : Number(balance);
-    const withdrawsflNotFree = (withdrawsflFree >= Number(balance)) ? 0 : (Number(balance) - withdrawsflFree);
-    const withdrawSflNotFreeTaxed = (withdrawsflNotFree > 0) ? (withdrawsflNotFree - (withdrawsflNotFree * (withdrawtax / 100))) : 0;
-    const sflwithdraw = frmtNb(withdrawsflFree + withdrawSflNotFreeTaxed);
-    dataSet.sflwithdraw = sflwithdraw;
 
     const tryChecked = !!uiState?.TryChecked;
     const xfishcastmax = Fish && (tryChecked ? Fish.CastMaxtry : Fish.CastMax);
@@ -265,7 +256,7 @@ export function useFarmLoader(
 
     return {
       mergedFarm: mergedInitialFarm,
-      expandData: mergedInitialFarm.frmData?.expandData,
+      expandData: selectCurrentProjection(mergedInitialFarm, "expandPageData")?.frmData?.expandData,
       frmData: frmData,
       Fish: Fish,
       hasMutants: !!(mergedInitialFarm.mutantsHeader || mergedInitialFarm.mutantchickens),
@@ -344,7 +335,7 @@ export function useFarmLoader(
         const result = processFarmResponse(responseData, currentFarmState, dataSetState || dataSet, uiState || ui);
         
         const cleanFarmData = stripFarmMetadata(result.mergedFarm || {}, 'useFarmLoader');
-        setFarmData(result.mergedFarm?.frmData || []);
+        setFarmData(result.mergedFarm?.farmMeta || result.mergedFarm?.frmData || {});
         setdataSetFarm(cleanFarmData);
         setBumpkinData(result.mergedFarm?.Bumpkin || []);
         dataSetFarmRef.current = cleanFarmData;

@@ -1,11 +1,12 @@
 import { useAppCtx } from "../context/AppCtx";
+import { selectCurrentProjection } from "../utils/farmState.js";
 import { imgstage1CollectorEmpty, imggreenhouse, imgbee } from "../constants/images.js";
 
 export default function MapTable() {
     const {
         data: { dataSetFarm },
     } = useAppCtx();
-    const mapSource = dataSetFarm?.mapData || dataSetFarm;
+    const mapSource = selectCurrentProjection(dataSetFarm, "mapData") || dataSetFarm;
     if (!mapSource?.isleMap || !mapSource?.boostables?.nftw || !mapSource?.itables?.it) {
         return <div>Loading map data...</div>;
     }

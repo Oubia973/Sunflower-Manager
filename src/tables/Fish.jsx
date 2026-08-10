@@ -2,8 +2,8 @@
 import { useAppCtx } from "../context/AppCtx";
 import { formatdate, frmtNb, buildSeriesMeta, ColorValue, convTime, convtimenbr, timeToDays } from '../fct.js';
 import DList from "../dlist.jsx";
-import { getChumQuantity, normalizeChumName } from "../fishChumQuantities";
 import { imgwinterPath, imgspringPath, imgsummerPath, imgautumnPath, imgfullmoon, imgwinter, imgspring, imgsummer, imgautumn } from "../constants/images.js";
+import { selectCurrentProjection } from "../utils/farmState.js";
 
 export default function FishTable() {
   const stickyBarRef = useRef(null);
@@ -31,7 +31,6 @@ export default function FishTable() {
     data: {
       dataSet,
       dataSetFarm,
-      farmData,
       priceData,
     },
     ui: {
@@ -59,8 +58,11 @@ export default function FishTable() {
       handleTooltip,
     },
   } = useAppCtx();
+  const fishPageData = selectCurrentProjection(dataSetFarm, "fishData") || {};
+  const fishCostContracts = fishPageData?.tooltipData?.fishCosts || {};
+  const fishItemCostBreakdowns = fishPageData?.tooltipData?.costBreakdowns || {};
   const fishTables = {
-    ...(dataSetFarm?.fishData?.itables || {}),
+    ...(fishPageData?.itables || {}),
     ...(dataSetFarm?.itables || {}),
   };
   const { tool = {}, it = {} } = fishTables;
@@ -68,6 +70,23 @@ export default function FishTable() {
     if (name === "isactive") return TryChecked ? "tryit" : "isactive";
     return TryChecked ? name + "try" : name;
   }
+  const buildItemCostTooltipContract = (itemName, rawQuantity) => {
+    const quantity = Number(rawQuantity || 0);
+    const row = Object.values(fishTables).map((table) => table?.[itemName]).find(Boolean) || {};
+    const breakdown = fishItemCostBreakdowns?.[itemName]?.[TryChecked ? "try" : "active"] || {};
+    const unitCost = Number(row?.[key("cost")] ?? row?.cost ?? 0) / Number(dataSet?.options?.coinsRatio || 1);
+    const selectedMarket = Number(row?.[key("costp2pt")] ?? row?.costp2pt ?? 0);
+    const unitMarket = selectedMarket > 0 ? selectedMarket : Number(row?.costp2pt || 0);
+    return {
+      itemName,
+      itemImage: row?.img || imgna,
+      quantity,
+      totalCost: unitCost * quantity,
+      totalMarket: unitMarket * quantity,
+      costTree: breakdown?.costTree || null,
+      seasonalCostTree: breakdown?.seasonalCostTree || null,
+    };
+  };
   const fishingDetails = dataSetFarm?.Fish || {};
   // Aging Shed values (calculated in backend, sent via fishingDetails)
   const agingSlots = Number(fishingDetails?.agingSlots || 1);
@@ -148,7 +167,7 @@ export default function FishTable() {
       // Salt pricing for aging columns
       const saltProdCost = Number(it?.["Salt"]?.cost || 0) / dataSet.options.coinsRatio;
       const saltMarketPrice = Number(it?.["Salt"]?.costp2pt || 0);
-      const inventoryMap = farmData?.inventory || {};
+      const inventoryMap = fishPageData?.inventory || {};
       const fishNames = Object.keys(fish);
       const sortedInventoryItems = fishNames.map(item => {
         const quantity = Number(fish[item]?.instock ?? inventoryMap[item] ?? 0);
@@ -217,21 +236,14 @@ export default function FishTable() {
           return null;
         }
         const iperiod = xPeriodImg;
-        const fishMyield = Number(TryChecked ? (cobj.myieldtry ?? cobj.myield ?? 1) : (cobj.myield ?? 1)) || 1;
+        const fishCostContract = fishCostContracts?.[item]?.[TryChecked ? "try" : "active"];
+        const fishMyield = Number(fishCostContract?.averageYield ?? (TryChecked ? (cobj.myieldtry ?? cobj.myield ?? 1) : (cobj.myield ?? 1))) || 1;
         const fishSalt = Number(cobj?.[key("salt")] ?? cobj?.salt ?? 0);
-        const chumName = normalizeChumName(cobj?.[key("cheaperchum")] ?? cobj?.cheaperchum ?? "");
-        const chumQty = getChumQuantity(chumName);
-        const chumCostCoinsKey = Number(cobj?.[key("cheaperchumCost")] ?? cobj?.cheaperchumCost ?? 0);
-        const chumCostMarketKey = Number(cobj?.[key("cheaperchumCostp2pt")] ?? cobj?.cheaperchumCostp2pt ?? 0);
-        const chumUnitCostRaw = chumCostCoinsKey / dataSet.options.coinsRatio;
-        const chumUnitCostRawM = chumCostMarketKey;
-        const chumCostRaw = chumUnitCostRaw * chumQty;
-        const chumCostRawM = chumUnitCostRawM * chumQty;
-        let icost = cobj ? (Number(!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : 0;
-        let icostM = cobj ? Number(!TryChecked ? (cobj.costp2pt ?? 0) : (cobj.costp2pttry ?? cobj.costp2pt ?? 0)) : 0;
-        if (countChumCost && fishMyield > 0) {
-          icost += (chumCostRaw / fishMyield);
-          icostM += (chumCostRawM / fishMyield);
+        let icost = Number(countChumCost ? fishCostContract?.unitCostWithChum : fishCostContract?.unitCost);
+        let icostM = Number(countChumCost ? fishCostContract?.unitMarketWithChum : fishCostContract?.unitMarket);
+        if (!fishCostContract) {
+          icost = cobj ? (Number(!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : 0;
+          icostM = cobj ? Number(!TryChecked ? (cobj.costp2pt ?? 0) : (cobj.costp2pttry ?? cobj.costp2pt ?? 0)) : 0;
         }
         // Salt cost for aging mode (used only for XP/SFL, not for Cost column)
         let agingSaltCost = 0;
@@ -241,8 +253,6 @@ export default function FishTable() {
           agingSaltCostM = fishSalt * saltMarketPrice;
         }
         icost = Number.isFinite(icost) ? Math.max(0, icost) : 0;
-        const fishUnitCostRaw = icost;
-        const fishUnitMarketRaw = icostM;
         const iQuant = itemQuantity;
         const valueQuant = fishXpQuantMode === "unit" ? 1 : iQuant;
         const xpKey = fishMode === "aging"
@@ -297,16 +307,8 @@ export default function FishTable() {
         totXpSflCost += xCostForXpSfl;
         const tooltipQty = valueQuant;
         const fishCostTooltip = {
-          fishName: item,
           qty: tooltipQty,
-          fishUnitCost: fishUnitCostRaw,
-          fishUnitMarket: fishUnitMarketRaw,
-          fishMyield: fishMyield,
           includeChum: countChumCost,
-          chumName,
-          chumQty,
-          chumUnitCost: chumUnitCostRaw,
-          chumUnitMarket: chumUnitCostRawM,
         };
         // For XP/SFL ratio, use unit values (XP per unit cost)
         const ixpUnit = xpUnit;
@@ -600,7 +602,7 @@ export default function FishTable() {
       let totCost = 0;
       let totCostMarket = 0;
       let totCostChum = 0;
-      const inventoryMap = farmData?.inventory || {};
+      const inventoryMap = fishPageData?.inventory || {};
       const fishNames = Object.keys(crustacean);
       const sortedInventoryItems = fishNames.map(item => {
         const quantity = Number(crustacean[item]?.instock ?? inventoryMap[item] ?? 0);
@@ -673,7 +675,7 @@ export default function FishTable() {
                 const itemImg = it[critem]?.img || petit[critem]?.img || bounty[critem]?.img || pfood[critem]?.img || imgna;
                 if (critem !== "") {
                   return (<span key={critem}>{quant * iQuant}
-                    <i><img src={itemImg} alt={''} className="itico" title={critem} onClick={(e) => handleTooltip(critem, "costitem", quant * iQuant, e)} /></i></span>)
+                    <i><img src={itemImg} alt={''} className="itico" title={critem} onClick={(e) => handleTooltip(critem, "costitem", buildItemCostTooltipContract(critem, quant * iQuant), e)} /></i></span>)
                 }
                 return null;
               })}</td> : null}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
+import { selectCurrentProjection } from "../utils/farmState.js";
 import DList from "../dlist.jsx";
 import { frmtNb, ColorValue } from "../fct.js";
 import { fetchJson } from "../services/apiClient.js";
@@ -178,7 +179,7 @@ export default function HomeTable() {
 
     if (selectedInv !== "home") return null;
 
-    const homeData = dataSetFarm?.homeData;
+    const homeData = selectCurrentProjection(dataSetFarm, "homeData");
     if (!homeData) return <div>Loading home data...</div>;
 
     const img = dataSet?.bumpkinImg || imglogo512;
@@ -214,20 +215,7 @@ export default function HomeTable() {
     const curHrvst = isDailyMode ? "Daily" : (forTry ? "Average" : "Current");
     let totalCost = 0;
     const cooldownKey = forTry ? "cooldowntry" : "cooldown";
-    const fallbackPowerSkills = Object.entries(dataSetFarm?.boostables?.skill || {})
-        .filter(([, skillCfg]) => Number(skillCfg?.cooldown || 0) > 0 || Number(skillCfg?.cooldowntry || 0) > 0)
-        .map(([name, skillCfg]) => ({
-            name,
-            img: skillCfg?.img || imgna,
-            isactive: Number(skillCfg?.isactive || 0),
-            tryit: Number(skillCfg?.tryit || 0),
-            cooldown: Number(skillCfg?.cooldown || 0),
-            cooldowntry: Number(skillCfg?.cooldowntry || 0),
-            lastUsedAt: Number(dataSetFarm?.frmData?.previousPowerUseAt?.[name] || 0),
-        }));
-    const sourcePowerSkills = (Array.isArray(homeData?.powerSkills) && homeData.powerSkills.length > 0)
-        ? homeData.powerSkills
-        : fallbackPowerSkills;
+    const sourcePowerSkills = Array.isArray(homeData?.powerSkills) ? homeData.powerSkills : [];
     const powerSkillCards = sourcePowerSkills
         .filter((skillCfg) => Number(skillCfg?.isactive || 0) > 0)
         .map((skillCfg) => {

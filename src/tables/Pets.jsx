@@ -2,6 +2,8 @@ import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb } from '../fct.js';
 import DList from "../dlist.jsx";
+import { selectCurrentProjection } from "../utils/farmState.js";
+import { buildPetYieldTooltipContract } from "../tooltip/boostTooltipContract.js";
 import {
   imgSFL,
   imgExchng,
@@ -23,6 +25,7 @@ import {
   imgpetWarthog,
   imgpetWolf,
   imgpetBear,
+  imgxp,
 } from "../constants/images.js";
 
 export default function PetsTable() {
@@ -53,8 +56,9 @@ export default function PetsTable() {
       imgprodit
     }
   } = useAppCtx();
-  const petPageData = dataSetFarm?.petData || {};
+  const petPageData = selectCurrentProjection(dataSetFarm, "petData") || {};
   const Pets = petPageData?.Pets || dataSetFarm?.Pets || {};
+  const shrineCosts = petPageData?.tooltipData?.shrineCosts || {};
   const petTables = { ...(dataSetFarm?.itables || {}), ...(petPageData?.itables || {}) };
   const petBoostables = { ...(petPageData?.boostables || {}), ...(dataSetFarm?.boostables || {}) };
   if (!Pets || !petTables?.it || !petTables?.petit || !petBoostables?.shrine) {
@@ -458,8 +462,9 @@ export default function PetsTable() {
     const shrineCols = xListeColPetShrines || [];
     const shNames = Object.keys(shrine);
     const rows = shNames.map(shName => {
-      let compTotal = 0;
-      let compMTotal = 0;
+      const shrineCostContract = shrineCosts?.[shName]?.[TryChecked ? "try" : "active"];
+      let compTotal = Number(shrineCostContract?.costTree?.totalCost || 0);
+      let compMTotal = Number(shrineCostContract?.costTree?.totalMarket || 0);
       const s = shrine[shName];
       const compo = s?.compo || {};
       const boost = s?.boost || "";
@@ -471,8 +476,10 @@ export default function PetsTable() {
         if (petit[comp]) { itemTable = petit; }
         let cimg = itemTable?.[comp]?.img || imgna;
         //let coinRatioOrNot = (itemTable !== petit) ? dataSet.options.coinsRatio : 1;
-        compTotal += qty * ((itemTable?.[comp]?.[key("cost")] || 0) / dataSet.options.coinsRatio);
-        compMTotal += qty * itemTable?.[comp]?.costp2pt || 0;
+        if (!shrineCostContract?.costTree) {
+          compTotal += qty * ((itemTable?.[comp]?.[key("cost")] || 0) / dataSet.options.coinsRatio);
+          compMTotal += qty * itemTable?.[comp]?.costp2pt || 0;
+        }
         return (
           <span key={comp} title={`${comp}x${qty}`} style={{ marginRight: 8 }}>
             <img src={cimg} alt="" className="itico" />x{qty}
@@ -639,17 +646,13 @@ export default function PetsTable() {
           const contributesNow = isSelectedForComp;
           const reqTotals = getSelectedRequestTotals(petName, petData, dataSet.options.coinsRatio);
           const selectedDailyNrg = Number(reqTotals.selectedEnergyTotal || 0);
-          const fullDailyNrg = Number(petData?.[key("totnrg")] || 0);
           const petEnergyNow = selectedQuantFetch === "pets"
             ? selectedDailyNrg
             : selectedQuantFetch === "petst"
               ? Number(petData?.curnrg || 0)
               : 0;
-          const petEnergyBase = Number(selectedQuantFetch === "petst" ? fullDailyNrg : selectedDailyNrg);
           const itemYield = itemMyield;
           const petYield = Number(byPetYield?.[petName]?.y ?? itemYield) || itemYield;
-          const petBonusYield = Math.max(0, petYield - itemYield);
-          const petQtyNow = contributesNow && energy > 0 ? ((petEnergyNow / energy) * petYield) : 0;
           const reqEnergyTotal = Number(selectedDailyNrg || 0);
           const petReqCost = Number(reqTotals.selectedCostSfl || 0);
           const petReqMarket = Number(reqTotals.selectedCostMarket || 0);
@@ -667,14 +670,8 @@ export default function PetsTable() {
             img: petData?.img || CATEGORY_IMG[petData?.cat] || imgna,
             selected: isSelectedForComp,
             contributesNow,
-            energyNow: Number(petEnergyNow || 0),
-            qtyNow: Number(petQtyNow || 0),
-            energyBase: Number(petEnergyBase || 0),
             yieldBase: Number(petYield || 1),
-            yieldItem: Number(itemYield || 1),
-            yieldPetBonus: Number(petBonusYield || 0),
             reqCost: Number(petReqCost || 0),
-            reqMarket: Number(petReqMarket || 0),
             reqEnergyTotal: Number(reqEnergyTotal || 0),
             unitProdCost: Number(unitProdCost || 0),
             unitProdMarket: Number(unitProdMarket || 0),
@@ -716,7 +713,19 @@ export default function PetsTable() {
       const unitProdMarketDisplay = iQuant > 0
         ? (iProdMarket / iQuant)
         : selectedUnitProdMarket;
+      const displayProducers = baseProducersForUnit.map((p) => ({
+        petName: p.petName,
+        label: p.isNft ? (p.cat || p.petName || "") : (p.petName || ""),
+        img: p.img,
+        yieldBase: Number(p.yieldBase || 1),
+        reqCost: Number(p.reqCost || 0),
+        reqEnergyTotal: Number(p.reqEnergyTotal || 0),
+        reqDetails: Array.isArray(p.reqDetails) ? p.reqDetails : [],
+        costPerUnit: Number(p.unitProdCost || 0),
+        marketPerUnit: Number(p.unitProdMarket || 0),
+      }));
       const fetchCostTooltip = {
+        itemImage: cimg,
         quantMode: selectedQuantFetch,
         quantity: Number(iQuant || 0),
         energyUnit: Number(energy || 0),
@@ -727,7 +736,8 @@ export default function PetsTable() {
         totalProdMarket: Number(iProdMarket || 0),
         unitMarket: Number(cp2pt || 0),
         totalMarket: Number(iMarket || 0),
-        producers: producerPets,
+        displayProducers,
+        showAverageLine: selectedProducersForUnit.length > 1 && iQuant > 0,
       };
       const yieldTooltip = {
         type: "petityield",
@@ -754,7 +764,7 @@ export default function PetsTable() {
               /></td>) :
             (<td className="tdcenter">{selectedQuantFetch === "pets" ? Number(iQuant || 0).toFixed(2) : frmtNb(iQuant)}</td>) : ("")}
           {isColVisible(compCols, 2) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iNrg)}</td> : null}
-          {isColVisible(compCols, 3) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "trynft", yieldTooltip, e)}>{Number(displayedYield || 0).toFixed(2)}</td> : null}
+          {isColVisible(compCols, 3) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "boostdetails", buildPetYieldTooltipContract(yieldTooltip, c, cimg, petBoostables, imgna, imgxp), e)}>{Number(displayedYield || 0).toFixed(2)}</td> : null}
           {isColVisible(compCols, 4) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iCost > 0 ? frmtNb(iCost) : ""}</td> : null}
           {isColVisible(compCols, 5) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iProdMarket > 0 ? frmtNb(iProdMarket) : ""}</td> : null}
           {isColVisible(compCols, 6) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{frmtNb(iMarket)}</td> : null}

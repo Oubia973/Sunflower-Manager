@@ -27,6 +27,39 @@ export function hasPathData(payload, path) {
   return true;
 }
 
+export function collectKnownProjectionHashes(payload) {
+  const src = payload && typeof payload === "object" ? payload : {};
+  return Object.fromEntries(
+    Object.entries(src)
+      .filter(([key, value]) => (
+        key.endsWith("Data")
+        && value
+        && typeof value === "object"
+        && typeof value?._source?.contentHash === "string"
+        && value._source.contentHash.length > 0
+      ))
+      .map(([key, value]) => [key, value._source.contentHash])
+  );
+}
+
+
+export function isProjectionCurrent(payload, projection) {
+  if (!projection || typeof projection !== "object") return false;
+  if (projection?._source?.stale === true) return false;
+  const currentRevision = Math.max(0, Math.floor(Number(payload?.tryitRevision) || 0));
+  const sourceRevision = Math.max(0, Math.floor(Number(projection?._source?.tryitRevision) || 0));
+  // Cached payloads created before revision stamping remain readable until
+  // their section is refreshed by the server.
+  if (currentRevision < 1 || sourceRevision < 1) return true;
+  return currentRevision === sourceRevision;
+}
+
+export function selectCurrentProjection(payload, key) {
+  const projection = payload?.[key];
+  if (!projection || typeof projection !== "object") return null;
+  return isProjectionCurrent(payload, projection) ? projection : null;
+}
+
 export function hasSectionData(
   payload,
   section,
@@ -35,6 +68,10 @@ export function hasSectionData(
 ) {
   const keys = Array.isArray(sectionPayloadKeys?.[section]) ? sectionPayloadKeys[section] : [];
   const nonRootKeys = keys.filter((key) => key !== "itables" && key !== "boostables");
+  const hasCurrentNonRootKey = (key) => {
+    if (!Object.prototype.hasOwnProperty.call(payload || {}, key)) return false;
+    return !key.endsWith("Data") || isProjectionCurrent(payload, payload?.[key]);
+  };
   const tablePaths = sectionTablePaths?.[section];
   if (Array.isArray(tablePaths) && tablePaths.length > 0) {
     const hasAllPaths = tablePaths.every((path) => hasPathData(payload, path));
@@ -47,10 +84,10 @@ export function hasSectionData(
       return false;
     }
     if (nonRootKeys.length < 1) return true;
-    return nonRootKeys.some((key) => Object.prototype.hasOwnProperty.call(payload || {}, key));
+    return nonRootKeys.some(hasCurrentNonRootKey);
   }
   if (keys.length < 1) return false;
-  return keys.some((key) => Object.prototype.hasOwnProperty.call(payload || {}, key));
+  return keys.some(hasCurrentNonRootKey);
 }
 
 export function hasInventoryItemFields(payload) {

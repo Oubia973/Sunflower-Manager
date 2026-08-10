@@ -4,6 +4,8 @@ import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel, Ci
 import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, PBar, timeToDays, flattenCompoit, buildSeriesMeta } from '../fct.js';
 import DList from "../dlist.jsx";
 import { fetchJson } from "../services/apiClient.js";
+import { selectCurrentProjection } from "../utils/farmState.js";
+import { buildBoostTooltipContract } from "../tooltip/boostTooltipContract.js";
 
 let xdxp = 0;
 var dProd = [];
@@ -22,7 +24,6 @@ export default function CookTable() {
         data: {
             dataSet,
             dataSetFarm,
-            farmData,
             bumpkinData,
             priceData,
         },
@@ -60,6 +61,8 @@ export default function CookTable() {
             imgprodit
         }
     } = useAppCtx();
+    const cookPageData = selectCurrentProjection(dataSetFarm, "cookData") || {};
+    const boostTooltipIndex = cookPageData?.tooltipData?.boostIndex || {};
     const levelReqTimerRef = useRef(null);
     const levelReqSeqRef = useRef(0);
     const stickyBarRef = useRef(null);
@@ -112,8 +115,8 @@ export default function CookTable() {
         selectedQuantityCook,
         dataSetFarm?.itables?.food,
         dataSetFarm?.itables?.pfood,
-        dataSetFarm?.cookData?.itables?.food,
-        dataSetFarm?.cookData?.itables?.pfood,
+        cookPageData?.itables?.food,
+        cookPageData?.itables?.pfood,
     ]);
     function scheduleLevelRangeFetch(
         fromAscensionRaw,
@@ -185,7 +188,7 @@ export default function CookTable() {
         }, 750);
     }
     const topLevelCookTables = dataSetFarm?.itables || {};
-    const fallbackCookTables = dataSetFarm?.cookData?.itables || {};
+    const fallbackCookTables = cookPageData?.itables || {};
     const cookTables = (
         topLevelCookTables?.it &&
         topLevelCookTables?.food &&
@@ -197,7 +200,7 @@ export default function CookTable() {
     if (cookTables?.it && cookTables?.food && cookTables?.pfood && cookTables?.fish && cookTables?.bounty && cookTables?.crustacean) {
         const { it, food, fish, bounty, pfood, crustacean } = cookTables;
         //const inventoryEntries = selectedQuantityCook === "farm" || "daily" || "dailymax" ? Object.entries(farmData.inventory) : Object.entries(farmData.inventory);
-        const inventoryMap = farmData?.inventory || {};
+        const inventoryMap = cookPageData?.inventory || {};
         const foodNames = Object.keys(food);
         const pfoodNames = Object.keys(pfood);
         const cookNames = [...foodNames, ...pfoodNames];
@@ -415,9 +418,9 @@ export default function CookTable() {
                     </td> : null}
                     {xListeColCook[2][1] === 1 ? <td className="tdcenter">{iQuant}</td> : null}
                     {xListeColCook[3][1] === 1 ? <td className="tdcenter tooltipcell"
-                        onClick={(e) => handleTooltip(item, "trynft", "xp", e)}>{parseFloat(ixp).toFixed(1)}</td> : null}
+                        onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "xp"), e)}>{parseFloat(ixp).toFixed(1)}</td> : null}
                     {xListeColCook[4][1] === 1 ? <td className="tdcenter tooltipcell"
-                        onClick={(e) => handleTooltip(item, "trynft", "timechg", e)}>{timeToDays(time)}</td> : null}
+                        onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "timechg"), e)}>{timeToDays(time)}</td> : null}
                     {xListeColCook[5][1] === 1 ? <td className="tdcenter">{timecomp}</td> : null}
                     {xListeColCook[6][1] === 1 ? <td className="tdcenter" style={CellXPHStyle}>{ixph}</td> : null}
                     {xListeColCook[7][1] === 1 ? <td className="tdcenter">{ixphcomp}</td> : null}
@@ -765,6 +768,3 @@ function getCookSortValue(sortBy, item, quantity, food, pfood, tryChecked, coins
             return 0;
     }
 }
-
-
-

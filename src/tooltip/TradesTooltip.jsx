@@ -2,248 +2,54 @@ import React from "react";
 import { frmtNb } from "../fct.js";
 import { imgna, imgconfirm } from "../constants/images.js";
 
-const EMPTY_TOTAL = { soldPrice: 0, price: 0, marketPrice: 0, count: 0 };
+const TradesTooltip = ({ contract }) => {
+  const headerRows = Array.isArray(contract?.headerRows) ? contract.headerRows : [];
+  const rows = Array.isArray(contract?.rows) ? contract.rows : [];
+  const totals = Array.isArray(contract?.totals) ? contract.totals : [];
+  if (rows.length === 0 && headerRows.length === 0) return <div>No trades available.</div>;
 
-function normalizeTradeType(value) {
-    const safeValue = String(value || "").trim().toLowerCase();
-    if (safeValue === "resources" || safeValue === "nft" || safeValue === "bud" || safeValue === "pet") {
-        return safeValue;
-    }
-    return "other";
-}
+  if (rows.length === 0) {
+    return <table className="tooltip-trades-table">
+      <thead><tr><th className="tdcenterbrd">Item</th><th className="tdcenterbrd">Sold</th></tr></thead>
+      <tbody>{headerRows.map((row, index) => <tr key={`${row.name}-${index}`}>
+        <td className="tdcenterbrd"><img src={row.image || imgna} className="resicon" alt="" />{row.name}</td>
+        <td className="tdcenterbrd">{row.sold ? <img src={imgconfirm} className="resicon" alt="" /> : ""}</td>
+      </tr>)}</tbody>
+    </table>;
+  }
 
-function getTradeType(itemName, tables, boostables, fallbackType) {
-    const safeName = String(itemName || "");
-    const { it, petit, fish, flower } = tables || {};
-    const { nft, nftw, buildng, skill, skilllgc, shrine } = boostables || {};
-    if (petit?.[itemName]) return "resources";
-    if (boostables?.bud?.[itemName] || /\bbud\b/i.test(safeName)) return "bud";
-    if (/\bpet\b/i.test(safeName)) return "pet";
-    if (nft?.[itemName] || nftw?.[itemName] || buildng?.[itemName] || skill?.[itemName] || skilllgc?.[itemName] || shrine?.[itemName]) return "nft";
-    const normalizedFallback = normalizeTradeType(fallbackType);
-    if (normalizedFallback !== "other") return normalizedFallback;
-    if (it?.[itemName] || fish?.[itemName] || flower?.[itemName]) return "resources";
-    return "other";
-}
-
-function applyCategoryTax(amount, tradeType, resourcesTaxRate) {
-    const numericAmount = Number(amount || 0);
-    if (!numericAmount) return 0;
-    if (tradeType === "resources") {
-        return numericAmount * (1 - resourcesTaxRate);
-    }
-    if (tradeType === "nft" || tradeType === "bud" || tradeType === "pet" || tradeType === "other") {
-        return numericAmount * 0.9;
-    }
-    return numericAmount;
-}
-
-function resolveMarketData(itemName, quantity, sources, fallbackUnitFloor = 0, preferredType = "other") {
-    const { nft, nftw, buildng, bud, skill, skilllgc, shrine, it, fish, flower, petit } = sources;
-    let marketPrice = Number(fallbackUnitFloor || 0) * Number(quantity || 0);
-    let itemImg = "";
-    const makeImg = (src) => {
-        const safeSrc = typeof src === "string" ? src.trim() : "";
-        if (!safeSrc) return "";
-        return <img src={safeSrc} className="resicon" alt="" />;
-    };
-    const setFromBoost = (table, priceField = "pricemsfl") => {
-        if (!table?.[itemName]) return false;
-        marketPrice = Number(table[itemName]?.[priceField] || 0) * Number(quantity || 0);
-        itemImg = makeImg(table[itemName]?.img);
-        return true;
-    };
-    const setFromResource = (table, priceField = "costp2pt", priceOnly = false) => {
-        if (!table?.[itemName]) return false;
-        if (!priceOnly) {
-            marketPrice = Number(table[itemName]?.[priceField] || 0) * Number(quantity || 0);
-        }
-        itemImg = makeImg(table[itemName]?.img);
-        return true;
-    };
-
-    if (preferredType === "nft" || preferredType === "bud" || preferredType === "pet") {
-        if (
-            setFromBoost(nft) ||
-            setFromBoost(nftw) ||
-            setFromBoost(buildng) ||
-            setFromBoost(bud) ||
-            setFromBoost(skill) ||
-            setFromBoost(skilllgc) ||
-            setFromBoost(shrine)
-        ) {
-            return { marketPrice, itemImg };
-        }
-    }
-
-    if (setFromResource(it)) return { marketPrice, itemImg };
-    if (setFromResource(petit)) return { marketPrice, itemImg };
-    if (setFromResource(fish, "costp2pt", true)) return { marketPrice, itemImg };
-    if (setFromResource(flower, "costp2pt", true)) return { marketPrice, itemImg };
-
-    setFromBoost(nft) ||
-        setFromBoost(nftw) ||
-        setFromBoost(buildng) ||
-        setFromBoost(bud) ||
-        setFromBoost(skill) ||
-        setFromBoost(skilllgc) ||
-        setFromBoost(shrine);
-
-    return { marketPrice, itemImg };
-}
-
-const TradesTooltip = ({ trades, tradesHeader, itables, boostables, tradeTax = 0 }) => {
-    const tradeRows = trades && typeof trades === "object" ? Object.values(trades) : [];
-    const headerRows = Array.isArray(tradesHeader) ? tradesHeader.filter((row) => row?.name) : [];
-    const headerImgByName = Object.fromEntries(
-        headerRows.map((row) => [String(row?.name || "").trim().toLowerCase(), row?.img || ""])
-    );
-    const headerFloorByName = Object.fromEntries(
-        headerRows.map((row) => [String(row?.name || "").trim().toLowerCase(), Number(row?.floor || 0)])
-    );
-    const headerCategoryByName = Object.fromEntries(
-        headerRows.map((row) => [String(row?.name || "").trim().toLowerCase(), normalizeTradeType(row?.category)])
-    );
-    if (tradeRows.length === 0 && headerRows.length === 0) {
-        return <div>No trades available.</div>;
-    }
-
-    const { nft, nftw, buildng, bud, skill, skilllgc, shrine } = boostables || {};
-    const { it, fish, flower, petit } = itables || {};
-    const resourcesTaxRate = Number(tradeTax || 0) / 100;
-    const totalsByType = {
-        resources: { ...EMPTY_TOTAL, label: "Resources" },
-        nft: { ...EMPTY_TOTAL, label: "Boosts" },
-        bud: { ...EMPTY_TOTAL, label: "Buds" },
-        pet: { ...EMPTY_TOTAL, label: "Pets" },
-        other: { ...EMPTY_TOTAL, label: "Other" },
-    };
-
-    if (tradeRows.length === 0 && headerRows.length > 0) {
-        return (
-            <table className="tooltip-trades-table">
-                <thead>
-                    <tr>
-                        <th className="tdcenterbrd">Item</th>
-                        <th className="tdcenterbrd">Sold</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {headerRows.map((row, index) => (
-                        <tr key={`${row.name}-${index}`}>
-                            <td className="tdcenterbrd">
-                                <img src={row?.img || ""} className="resicon" alt="" />
-                                {row?.name || ""}
-                            </td>
-                            <td className="tdcenterbrd">
-                                {row?.fulfilledAt ? <img src={imgconfirm} className="resicon" alt="" /> : ""}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        );
-    }
-
-    const rows = tradeRows.map((traderow, index) => {
-        if (!traderow || !traderow.items) return null;
-        const date = new Date(traderow.createdAt).toLocaleString();
-        let itemName = "";
-        let quantity = 0;
-        const isSold = traderow.fulfilledAt;
-
-        Object.entries(traderow.items).forEach(([name, qty]) => {
-            itemName = name;
-            quantity = qty;
-        });
-
-        const price = traderow.sfl || 0;
-        const normalizedName = String(itemName || "").trim().toLowerCase();
-        const fallbackFloor = headerFloorByName[normalizedName] || 0;
-        const fallbackCategory = headerCategoryByName[normalizedName];
-        const { marketPrice, itemImg } = resolveMarketData(itemName, quantity, {
-            nft,
-            nftw,
-            buildng,
-            bud,
-            skill,
-            skilllgc,
-            shrine,
-            it,
-            fish,
-            flower,
-            petit,
-        }, fallbackFloor, fallbackCategory);
-        const fallbackImgSrc = headerImgByName[normalizedName] || imgna;
-        const safeItemImg = itemImg || <img src={fallbackImgSrc} className="resicon" alt="" />;
-        const marketDiffPct = marketPrice ? ((price - marketPrice) / marketPrice) * 100 : null;
-        const marketDiff = marketDiffPct !== null ? `${marketDiffPct.toFixed(2)}%` : "N/A";
-        const marketDiffStyle = marketDiffPct !== null && marketDiffPct > 20 ? { color: "red" } : {};
-        const tradeType = getTradeType(itemName, { it, petit, fish, flower }, { nft, nftw }, fallbackCategory);
-        const totalsTarget = totalsByType[tradeType];
-        totalsTarget.count += 1;
-        totalsTarget.price += price;
-        totalsTarget.marketPrice += marketPrice;
-        if (isSold) totalsTarget.soldPrice += price;
-
-        return (
-            <tr key={index}>
-                <td className="tdcenterbrd">{safeItemImg}{itemName}</td>
-                <td className="tdcenterbrd">{quantity}</td>
-                <td className="tdcenterbrd">{isSold && <img src={imgconfirm} className="resicon" alt="" />}</td>
-                <td className="tdcenterbrd">{frmtNb(price)}</td>
-                <td className="tdcenterbrd">{frmtNb(marketPrice)}</td>
-                <td className="tdcenterbrd" style={marketDiffStyle}>{marketDiff}</td>
-                <td className="tdcenterbrd">{date}</td>
-            </tr>
-        );
-    }).filter(Boolean);
-
-    const totalRows = [
-        totalsByType.resources,
-        totalsByType.nft,
-        totalsByType.bud,
-        totalsByType.pet,
-        totalsByType.other,
-    ].filter((row) => row.count > 0);
-
-    return (
-        <table className="tooltip-trades-table">
-            <thead>
-                <tr>
-                    <th className="tdcenterbrd">Item</th>
-                    <th className="tdcenterbrd">Quantity</th>
-                    <th className="tdcenterbrd">Sold</th>
-                    <th className="tdcenterbrd">Price</th>
-                    <th className="tdcenterbrd">Floor</th>
-                    <th className="tdcenterbrd">Diff</th>
-                    <th className="tdcenterbrd">Date</th>
-                </tr>
-            </thead>
-            <tbody>{rows}</tbody>
-            <tfoot>
-                {totalRows.map((totalsRow, rowIndex, allRows) => {
-                    const bottomOffset = (allRows.length - 1 - rowIndex) * 22;
-                    const tradeType = Object.entries(totalsByType).find(([, value]) => value === totalsRow)?.[0] || "other";
-                    const soldPriceNet = applyCategoryTax(totalsRow.soldPrice, tradeType, resourcesTaxRate);
-                    const priceNet = applyCategoryTax(totalsRow.price, tradeType, resourcesTaxRate);
-                    const marketPriceNet = applyCategoryTax(totalsRow.marketPrice, tradeType, resourcesTaxRate);
-                    return (
-                        <tr key={`${totalsRow.label}-${rowIndex}`} className="tooltip-trades-total-row">
-                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}>{totalsRow.label}</td>
-                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}></td>
-                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}>{frmtNb(soldPriceNet)}</td>
-                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}>{frmtNb(priceNet)}</td>
-                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}>{frmtNb(marketPriceNet)}</td>
-                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}></td>
-                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}></td>
-                        </tr>
-                    );
-                })}
-            </tfoot>
-        </table>
-    );
+  return <table className="tooltip-trades-table">
+    <thead><tr>
+      <th className="tdcenterbrd">Item</th><th className="tdcenterbrd">Quantity</th>
+      <th className="tdcenterbrd">Sold</th><th className="tdcenterbrd">Price</th>
+      <th className="tdcenterbrd">Floor</th><th className="tdcenterbrd">Diff</th>
+      <th className="tdcenterbrd">Date</th>
+    </tr></thead>
+    <tbody>{rows.map((row, index) => {
+      const diff = row.marketDiffPercent === null ? "N/A" : `${Number(row.marketDiffPercent).toFixed(2)}%`;
+      const diffStyle = Number(row.marketDiffPercent) > 20 ? { color: "red" } : {};
+      return <tr key={`${row.itemName}-${index}`}>
+        <td className="tdcenterbrd"><img src={row.itemImage || imgna} className="resicon" alt="" />{row.itemName}</td>
+        <td className="tdcenterbrd">{row.quantity}</td>
+        <td className="tdcenterbrd">{row.sold ? <img src={imgconfirm} className="resicon" alt="" /> : null}</td>
+        <td className="tdcenterbrd">{frmtNb(row.price)}</td>
+        <td className="tdcenterbrd">{frmtNb(row.marketPrice)}</td>
+        <td className="tdcenterbrd" style={diffStyle}>{diff}</td>
+        <td className="tdcenterbrd">{row.createdAt ? new Date(row.createdAt).toLocaleString() : ""}</td>
+      </tr>;
+    })}</tbody>
+    <tfoot>{totals.map((row, index, allRows) => {
+      const bottom = `${(allRows.length - 1 - index) * 22}px`;
+      return <tr key={row.type} className="tooltip-trades-total-row">
+        <td className="tdcenterbrd" style={{ bottom }}>{row.label}</td>
+        <td className="tdcenterbrd" style={{ bottom }}></td>
+        <td className="tdcenterbrd" style={{ bottom }}>{frmtNb(row.soldPriceNet)}</td>
+        <td className="tdcenterbrd" style={{ bottom }}>{frmtNb(row.priceNet)}</td>
+        <td className="tdcenterbrd" style={{ bottom }}>{frmtNb(row.marketPriceNet)}</td>
+        <td className="tdcenterbrd" style={{ bottom }}></td><td className="tdcenterbrd" style={{ bottom }}></td>
+      </tr>;
+    })}</tfoot>
+  </table>;
 };
 
 export default TradesTooltip;
-

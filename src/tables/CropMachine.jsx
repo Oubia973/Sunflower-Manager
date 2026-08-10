@@ -1,5 +1,6 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
+import { selectCurrentProjection } from "../utils/farmState.js";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, convtimenbr, convTime, ColorValue } from '../fct.js';
 import DList from "../dlist.jsx";
@@ -27,7 +28,7 @@ export default function CropMachineTable() {
             imgprodit
         }
     } = useAppCtx();
-    const cmSource = dataSetFarm?.cropMachineData || dataSetFarm;
+    const cmSource = selectCurrentProjection(dataSetFarm, "cropMachineData") || dataSetFarm;
     if (cmSource?.itables?.it && cmSource?.CropMachine && dataSet?.options) {
         const cmCols = xListeColCropMachine || [];
         const showCol = (idx) => cmCols?.[idx]?.[1] === 1;
@@ -110,10 +111,12 @@ export default function CropMachineTable() {
             const dailyMarket = marketPerUnitAfterTax * dailyHarvest;
             const dailyProfit = dailyMarket - dailyCost;
             const dailyTooltip = {
+                itemImage: cobj.img,
+                oilImage: it["Oil"].img,
                 cycles: dailyCycles,
-                cyclesRaw: dailyCyclesRaw,
                 growTime: convTime(fullPackHours),
                 seedStock: seedStock,
+                packSeeds: fullPackSeeds,
                 seedsPerBatch: fullPackSeeds,
                 seedsPerDay: seedsPerDay,
                 harvestPerBatch: fullHarvestPerPack,
@@ -128,8 +131,13 @@ export default function CropMachineTable() {
                 costPerDay: dailyCost,
                 marketPerDay: dailyMarket,
                 profitPerDay: dailyProfit,
+                profitMultiplier: dailyCost > 0 ? dailyMarket / dailyCost : null,
+                profitPercent: dailyCost > 0 ? ((Math.ceil((dailyMarket / dailyCost) * 100) - 100) || 0) : null,
+                restockCostEnabled: restockCountedInDaily,
+                taxPercent: Number(dataSet.options.tradeTax || 0),
             };
             const gainHTooltip = {
+                itemImage: cobj.img,
                 growTime: itime,
                 costPerPack: iTotalCost,
                 marketPerPack: icostm,

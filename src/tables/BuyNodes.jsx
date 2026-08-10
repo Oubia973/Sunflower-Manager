@@ -5,6 +5,7 @@ import CounterInput from "../counterinput.js";
 import DList from "../dlist.jsx";
 import { frmtNb, timeToDays } from "../fct.js";
 import { fetchJson } from "../services/apiClient.js";
+import { selectCurrentProjection } from "../utils/farmState.js";
 import {
   imgcrop,
   imgappleTree,
@@ -87,11 +88,11 @@ export default function BuyNodesTable() {
     actions: { handleUIChange },
   } = useAppCtx();
 
-  const buyNodesData = dataSetFarm?.buyNodesData || {};
+  const buyNodesData = selectCurrentProjection(dataSetFarm, "buyNodesData") || {};
   const buyNodesFrmData = buyNodesData?.frmData || {};
   const buyNodesObsidian = buyNodesData?.itables?.it?.Obsidian || dataSetFarm?.itables?.it?.Obsidian || {};
-  const nodeT1 = buyNodesFrmData?.nodes || dataSetFarm?.frmData?.nodes || {};
-  const nodeBought = buyNodesFrmData?.nodeBought || dataSetFarm?.frmData?.nodeBought || {};
+  const nodeT1 = buyNodesFrmData?.nodes || {};
+  const nodeBought = buyNodesFrmData?.nodeBought || {};
   const buyMap = buyNodesQty || {};
   const columns = Array.isArray(xListeColBuyNodes) ? xListeColBuyNodes : BUYNODES_COLUMNS_TEMPLATE;
   const isColOn = (idx) => columns?.[idx]?.[1] === 1;

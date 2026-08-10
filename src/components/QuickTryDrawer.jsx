@@ -12,6 +12,7 @@ import {
   writeTryitSnapshot,
 } from "../tryitStorage.js";
 import { getQuickTryKnownHashes } from "../utils/quickTryHashes.js";
+import { collectKnownProjectionHashes } from "../utils/farmState.js";
 
 const TABLE_LABELS = {
   all: "All",
@@ -119,7 +120,6 @@ export default function QuickTryDrawer({
   const [isResizing, setIsResizing] = useState(false);
   const latestStateRef = useRef(null);
   const applyTimerRef = useRef(null);
-  const pendingDeltaRef = useRef({});
   const requestIdRef = useRef(0);
   const abortRef = useRef(null);
   const dragRef = useRef(null);
@@ -212,7 +212,7 @@ export default function QuickTryDrawer({
       .filter((item) => getTryValue(tableName, item) !== getActiveValue(tableName, item)).length, 0);
   }, [dataSetFarm]);
 
-  const applyState = async (state, requestId, delta) => {
+  const applyState = async (state, requestId) => {
     const snapshot = buildCanonicalTryitSnapshot(state, tryitConfig) || {};
     if (!hasTryitPayloadContent(snapshot)) return;
     abortRef.current?.abort?.();
@@ -233,6 +233,7 @@ export default function QuickTryDrawer({
           include: [...new Set(Array.isArray(currentSections) ? currentSections : [])],
           page: selectedInv || "trynft",
           knownHashes: getQuickTryKnownHashes(knownHashes, currentSections),
+          knownProjectionHashes: collectKnownProjectionHashes(latestStateRef.current || state),
           knownTableHashes,
       };
       const sendTryRequest = (body) => fetchJson(API_URL, "/settry", {
@@ -253,24 +254,8 @@ export default function QuickTryDrawer({
           return sendTryRequest({ tryitarrays: snapshot, tryitMode: "snapshot" });
         }
       };
-      const revision = Math.floor(Number(latestStateRef.current?.tryitRevision ?? state?.tryitRevision) || 0);
-      let payload;
-      if (revision > 0 && hasTryitPayloadContent(delta)) {
-        try {
-          payload = await sendTryRequest({
-            tryitarrays: delta,
-            tryitMode: "delta",
-            tryitRevision: revision,
-          });
-        } catch (deltaError) {
-          if (deltaError?.status !== 409 || deltaError?.code !== "TRYSET_RESYNC_REQUIRED") throw deltaError;
-          payload = await sendSnapshot();
-        }
-      } else {
-        payload = await sendSnapshot();
-      }
+      const payload = await sendSnapshot();
       if (requestId !== requestIdRef.current) return;
-      pendingDeltaRef.current = {};
       const responseState = withTryTables(normalizeServerImagesDeep(unpackFarmPayloadTables(payload)));
       const latestState = latestStateRef.current || state;
       const merged = syncTryitStateAcrossFarmState(
@@ -284,23 +269,17 @@ export default function QuickTryDrawer({
     } catch (applyError) {
       if (requestId !== requestIdRef.current || applyError?.code === "REQUEST_CANCELLED") return;
       setStatus("error");
-      setError(applyError?.status === 429 ? "Wait a few seconds" : "Recalculation failed");
+      if (applyError?.status === 429) setError("Wait a few seconds");
+      else setError(`Recalculation failed${applyError?.status ? ` (${applyError.status})` : ""}`);
     }
   };
 
-  const queueApply = (nextState, delta) => {
+  const queueApply = (nextState) => {
     const requestId = ++requestIdRef.current;
     if (applyTimerRef.current) clearTimeout(applyTimerRef.current);
-    Object.entries(delta || {}).forEach(([tableName, tableDelta]) => {
-      pendingDeltaRef.current[tableName] = {
-        ...(pendingDeltaRef.current?.[tableName] || {}),
-        ...(tableDelta || {}),
-      };
-    });
     setStatus("pending");
     applyTimerRef.current = setTimeout(() => {
-      const batchedDelta = JSON.parse(JSON.stringify(pendingDeltaRef.current || {}));
-      applyState(nextState, requestId, batchedDelta);
+      applyState(nextState, requestId);
     }, APPLY_DELAY_MS);
   };
 
@@ -322,10 +301,7 @@ export default function QuickTryDrawer({
     if (snapshot) writeTryitSnapshot(snapshot, farmId);
     handleRefreshfTNFT(dataSet, synced);
     if (!TryChecked) setUIField("TryChecked", true);
-    const appliedValue = entry.tableName === "skill"
-      ? Number(table[entry.name]?.leveltry || 0)
-      : Number(table[entry.name]?.tryit || 0);
-    queueApply(synced, { [entry.tableName]: { [entry.name]: appliedValue } });
+    queueApply(synced);
   };
 
   if (!farmId || !validConfig) return null;

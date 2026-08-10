@@ -1,3 +1,5 @@
+import { isProjectionCurrent, selectCurrentProjection } from "../utils/farmState.js";
+
 /**
  * UI Handlers - Handle UI state changes from form inputs
  * Extracted from App.js handleUIChange, setUIField, handleHomeClic, handleSetHrvMax, handleInvBuyRefresh
@@ -59,8 +61,8 @@ export function createUIHandlers(
    */
   function handleSetHrvMax(TryChecked) {
     const it = dataSetFarm?.itables?.it
-      || dataSetFarm?.invData?.itables?.it
-      || dataSetFarm?.cookData?.itables?.it;
+      || selectCurrentProjection(dataSetFarm, "invData")?.itables?.it
+      || selectCurrentProjection(dataSetFarm, "cookData")?.itables?.it;
     if (!it) return;
     const next = {};
     for (const item in it) {
@@ -104,7 +106,11 @@ export function createUIHandlers(
         );
       }
       // Finally refresh prices from backend
-      await getPrices(false, true, ['inventory', 'boosts'], true, 'inv', true, 'BUY');
+      // Keep the Inv projection in the same response as the recalculated tables.
+      // Without it, the page briefly has newer inventory/boost tables alongside an
+      // older invData projection, which makes the page-level readiness check show
+      // its loading fallback before the follow-up navigation request completes.
+      await getPrices(false, true, ['inv', 'inventory', 'boosts'], true, 'inv', true, 'BUY');
       autoRefreshForceNormalFirstCycleRef.current = true;
       setAutoRefreshDurationMs(60 * 1000);
       setAutoRefreshNextAt(Date.now() + (60 * 1000));
@@ -147,15 +153,17 @@ export function createUIHandlers(
     if (name.includes(':')) {
       const [root, item] = name.split(':', 2);
       const tableContainers = [
-        { get: (p) => p?.itables, set: (p, tables) => ({ ...(p || {}), itables: tables }) },
-        { get: (p) => p?.invData?.itables, set: (p, tables) => ({ ...(p || {}), invData: { ...(p?.invData || {}), itables: tables } }) },
-        { get: (p) => p?.cookData?.itables, set: (p, tables) => ({ ...(p || {}), cookData: { ...(p?.cookData || {}), itables: tables } }) },
-        { get: (p) => p?.fishData?.itables, set: (p, tables) => ({ ...(p || {}), fishData: { ...(p?.fishData || {}), itables: tables } }) },
-        { get: (p) => p?.bountyData?.itables, set: (p, tables) => ({ ...(p || {}), bountyData: { ...(p?.bountyData || {}), itables: tables } }) },
-        { get: (p) => p?.craftData?.itables, set: (p, tables) => ({ ...(p || {}), craftData: { ...(p?.craftData || {}), itables: tables } }) },
-        { get: (p) => p?.flowerData?.itables, set: (p, tables) => ({ ...(p || {}), flowerData: { ...(p?.flowerData || {}), itables: tables } }) },
-        { get: (p) => p?.expandPageData?.itables, set: (p, tables) => ({ ...(p || {}), expandPageData: { ...(p?.expandPageData || {}), itables: tables } }) },
-      ];
+        { projectionKey: null, get: (p) => p?.itables, set: (p, tables) => ({ ...(p || {}), itables: tables }) },
+        { projectionKey: 'invData', get: (p) => p?.invData?.itables, set: (p, tables) => ({ ...(p || {}), invData: { ...(p?.invData || {}), itables: tables } }) },
+        { projectionKey: 'cookData', get: (p) => p?.cookData?.itables, set: (p, tables) => ({ ...(p || {}), cookData: { ...(p?.cookData || {}), itables: tables } }) },
+        { projectionKey: 'fishData', get: (p) => p?.fishData?.itables, set: (p, tables) => ({ ...(p || {}), fishData: { ...(p?.fishData || {}), itables: tables } }) },
+        { projectionKey: 'bountyData', get: (p) => p?.bountyData?.itables, set: (p, tables) => ({ ...(p || {}), bountyData: { ...(p?.bountyData || {}), itables: tables } }) },
+        { projectionKey: 'craftData', get: (p) => p?.craftData?.itables, set: (p, tables) => ({ ...(p || {}), craftData: { ...(p?.craftData || {}), itables: tables } }) },
+        { projectionKey: 'flowerData', get: (p) => p?.flowerData?.itables, set: (p, tables) => ({ ...(p || {}), flowerData: { ...(p?.flowerData || {}), itables: tables } }) },
+        { projectionKey: 'expandPageData', get: (p) => p?.expandPageData?.itables, set: (p, tables) => ({ ...(p || {}), expandPageData: { ...(p?.expandPageData || {}), itables: tables } }) },
+      ].filter((container) => (
+        !container.projectionKey || isProjectionCurrent(dataSetFarm || {}, dataSetFarm?.[container.projectionKey])
+      ));
       const baseState = dataSetFarm || {};
       const allTables = tableContainers.map((container) => container.get(baseState) || {});
       const nextState = { ...(baseState || {}) };

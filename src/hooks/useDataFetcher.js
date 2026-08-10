@@ -24,6 +24,7 @@ import {
   applyTradesDeltaToPayload,
   shouldDebugHashFlow,
   hasInventoryItemFields,
+  collectKnownProjectionHashes,
 } from '../utils/farmState.js';
 import { getBalanceValue } from '../utils/balance.js';
 import { computeRequiredSections } from '../utils/sections.js';
@@ -187,6 +188,7 @@ export function useDataFetcher(
       include: [...new Set(includeToRequest)],
       page: requestedPage,
       knownHashes,
+      knownProjectionHashes: collectKnownProjectionHashes(currentFarmState),
       knownTableHashes,
       ...(knownTradeHashes ? { knownTradeHashes } : {}),
       mode: requestMode,
@@ -284,13 +286,14 @@ export function useDataFetcher(
             farmId: String(currentFarmState?.frmid || dataSet?.options?.farmId || "").trim(),
           });
           mergedFarmData = syncTryitStateAcrossFarmState(mergedFarmData, tryitConfig, tryitSnapshot);
-          setFarmData(mergedFarmData.frmData || {});
+          const farmMeta = mergedFarmData?.farmMeta || mergedFarmData?.frmData || {};
+          setFarmData(farmMeta);
           dataSet.options.isAbo = mergedFarmData.isabo;
-          dataSet.isVip = mergedFarmData?.frmData?.vip;
+          dataSet.isVip = farmMeta?.vip;
           dataSet.aboExpiresAt = respData?.aboExpiresAt || mergedFarmData?.aboExpiresAt || 0;
           let refreshOptions = false;
-          if (dataSet?.options?.tradeTax !== mergedFarmData?.frmData?.tradeTax && dataSet?.options?.tradeTax > 0 && dataSet.options.autoTradeTax) {
-            dataSet.options.tradeTax = mergedFarmData?.frmData?.tradeTax;
+          if (dataSet?.options?.tradeTax !== farmMeta?.tradeTax && dataSet?.options?.tradeTax > 0 && dataSet.options.autoTradeTax) {
+            dataSet.options.tradeTax = farmMeta?.tradeTax;
             refreshOptions = true;
           }
           if (dataSet?.options?.autoCoinRatio) {
@@ -300,31 +303,15 @@ export function useDataFetcher(
               || 1000;
             refreshOptions = true;
           }
-          dataSet.dateVip = mergedFarmData?.frmData?.datevip;
-          dataSet.dailychest = mergedFarmData?.frmData?.dailychest;
-          dataSet.taxFreeSFL = frmtNb(mergedFarmData?.frmData?.taxFreeSFL);
+          dataSet.dateVip = farmMeta?.datevip;
+          dataSet.dailychest = farmMeta?.dailychest;
+          dataSet.taxFreeSFL = frmtNb(farmMeta?.taxFreeSFL);
           dataSet.bumpkin = mergedFarmData?.Bumpkin?.[0];
           setBumpkinData(mergedFarmData?.Bumpkin || []);
-          const frmData = mergedFarmData?.frmData || {};
-          const expandData = mergedFarmData?.expandData || {};
+          const frmData = farmMeta;
           const Fish = mergedFarmData?.Fish;
-          const taxFreeSFL = mergedFarmData?.taxFreeSFL;
           dataSet.balance = getBalanceValue(frmData?.balance, "sfl");
           dataSet.coins = getBalanceValue(frmData?.balance, "coins");
-          const balance = getBalanceValue(frmData?.balance, "sfl");
-          const withdrawreduc = (expandData?.type === "desert" || expandData?.type === "spring" || expandData?.type === "volcano") ? 2.5 : 0;
-          const withdrawtax = (balance < 10 ? 30 : balance < 100 ? 25 : balance < 1000 ? 20 : balance < 5000 ? 15 : 10) - withdrawreduc;
-          dataSet.withdrawtax = withdrawtax;
-          const withdrawSFLbeyondTaxFree = Number(taxFreeSFL) - Number(balance);
-          const withdrawsflFree = (withdrawSFLbeyondTaxFree < 0) ? Number(taxFreeSFL) : Number(balance);
-          const withdrawsflNotFree = (withdrawsflFree >= Number(balance)) ? 0 : (Number(balance) - withdrawsflFree);
-          const withdrawSflNotFreeTaxed = (withdrawsflNotFree > 0) ? (withdrawsflNotFree - (withdrawsflNotFree * (withdrawtax / 100))) : 0;
-          const sflwithdraw = frmtNb(withdrawsflFree + withdrawSflNotFreeTaxed);
-          dataSet.sflwithdraw = sflwithdraw;
-          const balanceUSD = frmtNb(Number(dataSet?.balance || 0) * Number(dataSet?.options?.usdSfl || 0));
-          dataSet.balanceUSD = balanceUSD;
-          const usdwithdraw = frmtNb(Number(dataSet?.sflwithdraw || 0) * Number(dataSet?.options?.usdSfl || 0));
-          dataSet.usdwithdraw = usdwithdraw;
           const nextGemsRatio = computeGemsRatio(
             dataSet?.options?.gemsPack || 7400,
             dataSet?.options?.usdSfl

@@ -232,6 +232,54 @@ export function mergeFarmStateDeep(prevFarm, nextFarm, tryitConfig = null) {
     if (nextVal === undefined || nextVal === null) return;
     merged[key] = mergeNode(prev[key], nextVal, [key]);
   });
+  const incomingTryRevision = Math.max(0, Math.floor(Number(next?.tryitRevision) || 0));
+  const projectionHashes = isPlainObject(next?.projectionHashes) ? next.projectionHashes : {};
+  if (incomingTryRevision > 0) {
+    Object.keys(next).forEach((key) => {
+      if (!key.endsWith("Data") || !isPlainObject(next[key]) || !isPlainObject(merged[key])) return;
+      merged[key] = {
+        ...merged[key],
+        _source: {
+          ...(isPlainObject(merged[key]?._source) ? merged[key]._source : {}),
+          tryitRevision: incomingTryRevision,
+        },
+      };
+    });
+    const unchangedSections = new Set(
+      Array.isArray(next?.unchangedSections) ? next.unchangedSections.map(String) : []
+    );
+    if (unchangedSections.size > 0) {
+      Object.keys(merged).forEach((key) => {
+        if (!key.endsWith("Data") || !isPlainObject(merged[key])) return;
+        const sourceSection = String(merged[key]?._source?.section || "");
+        if (!unchangedSections.has(sourceSection)) return;
+        merged[key] = {
+          ...merged[key],
+          _source: {
+            ...(isPlainObject(merged[key]?._source) ? merged[key]._source : {}),
+            tryitRevision: incomingTryRevision,
+          },
+        };
+      });
+    }
+  }
+  if (Object.keys(projectionHashes).length > 0) {
+    Object.keys(merged).forEach((key) => {
+      if (!key.endsWith("Data") || !isPlainObject(merged[key])) return;
+      const currentHash = String(projectionHashes[key] || "");
+      const contentHash = String(merged[key]?._source?.contentHash || "");
+      if (!currentHash || !contentHash) return;
+      const hashMatches = currentHash === contentHash;
+      merged[key] = {
+        ...merged[key],
+        _source: {
+          ...(isPlainObject(merged[key]?._source) ? merged[key]._source : {}),
+          stale: !hashMatches,
+          ...(hashMatches && incomingTryRevision > 0 ? { tryitRevision: incomingTryRevision } : {}),
+        },
+      };
+    });
+  }
   return merged;
 }
 
@@ -245,6 +293,7 @@ export function stripFarmMetadata(farmData, debugLabel = 'stripFarmMetadata') {
   const originalKeys = Object.keys(farmData);
   const {
     sectionHashes: _sh,
+    projectionHashes: _ph,
     tableHashes: _th,
     unchangedSections: _ush,
     requestedSections: _rqs,
@@ -253,7 +302,7 @@ export function stripFarmMetadata(farmData, debugLabel = 'stripFarmMetadata') {
     ...cleanFarmData
   } = farmData;
   const strippedKeys = originalKeys.filter(k =>
-    k === 'sectionHashes' || k === 'tableHashes' || k === 'unchangedSections' ||
+    k === 'sectionHashes' || k === 'projectionHashes' || k === 'tableHashes' || k === 'unchangedSections' ||
     k === 'requestedSections' || k === 'returnedSections' || k === 'priceData'
   );
   return cleanFarmData;

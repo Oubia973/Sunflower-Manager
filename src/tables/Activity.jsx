@@ -6,6 +6,7 @@ import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, flattenCompoit } from '../fct.js';
 import DList from "../dlist.jsx";
 import { fetchJson } from "../services/apiClient.js";
+import { buildActivityXpTooltipContract } from "../tooltip/activityTooltipContract.js";
 import {
     imgna,
     imgcoins,
@@ -796,13 +797,7 @@ function setActivityDay(activityData, dataSetFarm, ui, ctx) {
         const poppyGroupStyle = { borderLeft: '1px solid rgba(255,255,255,0.28)', borderRight: '1px solid rgba(255,255,255,0.28)' };
         const poppyLeftStyle = { borderLeft: '1px solid rgba(255,255,255,0.28)' };
         const poppyRightStyle = { borderRight: '1px solid rgba(255,255,255,0.28)' };
-        const buildMaxTooltip = (tot) => ([
-            `Daily chest: ${Number(tot?.tktMaxChest || 0)}`,
-            `Deliveries: ${Number(tot?.tktMaxDeliveries || 0)}`,
-            `Chores: ${Number(tot?.tktMaxChores || 0)}`,
-            `Bounties: ${Number(tot?.tktMaxBounties || 0)}`,
-            `Total: ${Number(tot?.tktMax || 0)}`,
-        ].join('\n'));
+        const getFoodImage = (dish) => dataSetFarm?.itables?.food?.[dish]?.img || imgna;
         const dateSeason = new Date(dateSeasonConst);
         const sfs = new Date() - dateSeason;
         const dfs = Math.floor(sfs / (1000 * 60 * 60 * 24));
@@ -833,7 +828,7 @@ function setActivityDay(activityData, dataSetFarm, ui, ctx) {
                 const sxdate = `${smonth}/${sday}/${syear}`;
                 const idate = sxdate
                 const itotxp = tot.XP;
-                const xpTooltip = { date: idate, totalXp: itotxp, items: tot.xpDetails || {} };
+                const xpTooltip = buildActivityXpTooltipContract(idate, itotxp, tot.xpDetails, getFoodImage);
                 const itktdchest = tot.tktchest;
                 //const itktcrop = tot.tktcrop;
                 //const itktwactv = isweeklyactday ? wactdone ? tktWeekly : 0 : 0;
@@ -855,7 +850,6 @@ function setActivityDay(activityData, dataSetFarm, ui, ctx) {
                 const ipoppycostp2p = tot.poppyCostP2P;
                 const ipoppytktcost = tot.poppyTktCost;
                 const ichoresdelivtkt = Number(ideliveriestkt) + Number(ichorestkt) + Number(ibountiestkt) + Number(itktdchest); //+ Number(itktwactv);
-                const maxTooltip = buildMaxTooltip(tot);
                 totXP += itotxp;
                 Object.entries(tot.xpDetails || {}).forEach(([dish, info]) => {
                     totXPDetails[dish] = totXPDetails[dish] || { qty: 0, xpUnit: Number(info?.xpUnit || 0), xpTotal: 0 };
@@ -973,11 +967,8 @@ function setActivityDay(activityData, dataSetFarm, ui, ctx) {
                 </tr>
                 <tr>
                     {xListeColActivity[0][1] === 1 ? <td className="tdcenter">TOTAL</td> : null}
-                    {xListeColActivity[1][1] === 1 ? <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip("XP", "activityxp", {
-                        date: "TOTAL",
-                        totalXp: totXP,
-                        items: totXPDetails
-                    }, e)}>{parseFloat(totXP).toFixed(1)}</td> : null}
+                    {xListeColActivity[1][1] === 1 ? <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip("XP", "activityxp",
+                        buildActivityXpTooltipContract("TOTAL", totXP, totXPDetails, getFoodImage), e)}>{parseFloat(totXP).toFixed(1)}</td> : null}
                     {xListeColActivity[2][1] === 1 ? <td className="tdcenter">{tottktdchest}</td> : null}
                     {/* {xListeColActivity[3][1] === 1 ? <td className="tdcenter">{tottktcrop}</td> : null} */}
                     {/* {xListeColActivity[5][1] === 1 ? <td className="tdcenter">{tottktwactv}</td> : null} */}

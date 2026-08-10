@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { selectCurrentProjection } from "./utils/farmState.js";
 import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { format, parseISO } from 'date-fns';
@@ -268,18 +269,20 @@ function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, sel
   const mergedGraphTables = useMemo(() => {
     const sources = [
       dataSetFarm,
-      dataSetFarm?.invData,
-      dataSetFarm?.cookData,
-      dataSetFarm?.fishData,
-      dataSetFarm?.bountyData,
-      dataSetFarm?.craftData,
-      dataSetFarm?.flowerData,
-      dataSetFarm?.expandPageData,
-      dataSetFarm?.animalData,
-      dataSetFarm?.petData,
-      dataSetFarm?.mapData,
-      dataSetFarm?.cropMachineData,
-      dataSetFarm?.buyNodesData,
+      ...[
+        "invData",
+        "cookData",
+        "fishData",
+        "bountyData",
+        "craftData",
+        "flowerData",
+        "expandPageData",
+        "animalData",
+        "petData",
+        "mapData",
+        "cropMachineData",
+        "buyNodesData",
+      ].map((key) => selectCurrentProjection(dataSetFarm, key)),
     ];
 
     const merged = { it: {}, petit: {} };
@@ -684,7 +687,12 @@ function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, sel
   }, [selectedCategory, hiddenLabels, selectedBoostNft, selectedBoostNftw, datasets]);
 
   const isLogarithmicScale = vals === 'price' && selectedCategory !== 'boost';
-  const currentSeason = String(dataSetFarm?.frmData?.curSeason || "spring").toLowerCase();
+  const currentSeason = String(
+    selectCurrentProjection(dataSetFarm, "invData")?.meta?.curSeason ||
+    selectCurrentProjection(dataSetFarm, "cookData")?.meta?.curSeason ||
+    selectCurrentProjection(dataSetFarm, "tryNftData")?.meta?.curSeason ||
+    "spring"
+  ).toLowerCase();
   const tooltipTitle = (context) => {
     const dateLabel = context[0].parsed.x;
     return format(dateLabel, 'yyyy-MM-dd HH:mm:ss');

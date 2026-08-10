@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getOrCreateDeviceId } from "../fct.js";
 import { imgna, imgexchng, imgconfirm } from "../constants/images.js";
 import { fetchJson } from "../services/apiClient.js";
+import { buildTradesTooltipContract } from "../tooltip/tradesTooltipContract.js";
 
 export default function HeaderTrades({
   API_URL,
@@ -73,14 +74,6 @@ export default function HeaderTrades({
 
   const buildEntriesFromTrades = useCallback((ftrades) => {
     if (!ftrades) return [];
-    const sourceFarm = farmDataRef.current || {};
-    const sourceItables = sourceFarm?.itables || {};
-    const sourceBoostables = sourceFarm?.boostables || {};
-    const it = sourceItables?.it || {};
-    const fish = sourceItables?.fish || {};
-    const flower = sourceItables?.flower || {};
-    const nft = sourceBoostables?.nft || {};
-    const nftw = sourceBoostables?.nftw || {};
     const entries = Object.values(ftrades).sort(
       (a, b) => Number(Boolean(b?.fulfilledAt)) - Number(Boolean(a?.fulfilledAt))
     );
@@ -89,7 +82,7 @@ export default function HeaderTrades({
       if (!name) return null;
       return {
         name,
-        img: it[name]?.img || fish[name]?.img || flower[name]?.img || nft[name]?.img || nftw[name]?.img || imgna,
+        img: imgna,
         fulfilledAt: entry?.fulfilledAt,
       };
     }).filter(Boolean);
@@ -237,10 +230,10 @@ export default function HeaderTrades({
   return (
     <div
       className="tabletrades"
-      onClick={(e) => onTooltip?.(e, {
-        ftrades: currentTradesRef.current,
-        ftradesHeader: currentTradesHeaderRef.current,
-      })}
+      onClick={(e) => onTooltip?.(e, buildTradesTooltipContract(
+        currentTradesRef.current,
+        currentTradesHeaderRef.current,
+      ))}
       style={{ margin: "0", padding: "0" }}
     >
       {ftradesData ? ftradesData : ""}

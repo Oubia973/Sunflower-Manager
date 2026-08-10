@@ -4,6 +4,7 @@ import { useAppCtx } from "../context/AppCtx";
 import { frmtNb, getOrCreateDeviceId } from "../fct.js";
 import { fetchJson } from "../services/apiClient.js";
 import DList from "../dlist.jsx";
+import { selectCurrentProjection } from "../utils/farmState.js";
 import {
   imgbuyit,
   imgExchng,
@@ -110,6 +111,8 @@ export default function ChapterTable() {
   const imgCancel = <img src={imgcancel} alt={""} className="itico" title={"Not done"} />;
 
   const orderstable = dataSetFarm?.orderstable || {};
+  const chapterPageData = selectCurrentProjection(dataSetFarm, "chapterData") || {};
+  const chapterMeta = chapterPageData?.meta || {};
   const tktName = dataSetFarm?.constants?.tktName || dataSet?.tktName || "Tickets";
   const imgtkt = dataSetFarm?.constants?.imgtkt || dataSet?.imgtkt || imgna;
   const imgTKT = <img src={imgtkt} alt="" className="itico" />;
@@ -120,8 +123,8 @@ export default function ChapterTable() {
   const seasonQuestStartRaw = dataSetFarm?.constants?.dateSeasonDailyStart || seasonStartRaw;
   const seasonEndRaw = dataSetFarm?.constants?.dateSeasonEnd || "";
   const seasonAuctionTicketWeekStartRaw = dataSetFarm?.constants?.dateSeasonAuctionTicketWeekStart || "";
-  const calendarDates = dataSetFarm?.frmData?.calendarDates || [];
-  const isDoubleDeliveryActive = dataSetFarm?.frmData?.seasonEvent === "doubledelivery";
+  const calendarDates = Array.isArray(chapterMeta?.calendarDates) ? chapterMeta.calendarDates : [];
+  const isDoubleDeliveryActive = chapterMeta?.seasonEvent === "doubledelivery";
   const vipChapterTickets = 290;
   const isTryMode = !!TryChecked;
   const chapterTicketBoost = CHAPTER_TICKET_BOOST_WEARABLES.reduce((sum, name) => {
@@ -257,9 +260,9 @@ export default function ChapterTable() {
       bountyOverride: chapterBountyOverride || {},
       choreSelection: chapterChoreSelection || {},
       poppyCategorySelection: chapterPoppyCategorySelection || {},
-      dailyChestDate: dataSetFarm?.homeData?.dailyChest?.collectedAt
+      dailyChestDate: selectCurrentProjection(dataSetFarm, "homeData")?.dailyChest?.collectedAt
         || dataSet?.dailychest?.chest
-        || dataSetFarm?.frmData?.dailychest?.chest
+        || chapterMeta?.dailyChestDate
         || "",
     },
   };
@@ -289,7 +292,11 @@ export default function ChapterTable() {
             source: {
               orderstable: dataSetFarm?.orderstable || {},
               constants: dataSetFarm?.constants || {},
-              frmData: dataSetFarm?.frmData || {},
+              frmData: {
+                calendarDates,
+                seasonEvent: chapterMeta?.seasonEvent || "",
+                dailychest: { chest: chapterRequest.options.dailyChestDate || "" },
+              },
             },
           },
         };
@@ -305,7 +312,11 @@ export default function ChapterTable() {
               source: {
                 orderstable: dataSetFarm?.orderstable || {},
                 constants: dataSetFarm?.constants || {},
-                frmData: dataSetFarm?.frmData || {},
+                frmData: {
+                  calendarDates,
+                  seasonEvent: chapterMeta?.seasonEvent || "",
+                  dailychest: { chest: chapterRequest.options.dailyChestDate || "" },
+                },
               },
             },
           });
