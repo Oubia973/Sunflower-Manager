@@ -22,7 +22,7 @@ export default function ChoreComponentsTooltipDetails({ contract, icons }) {
     </thead>
     <tbody>{rows.map((row) => <tr key={row.name}>
       <td style={{ padding: "2px 8px 2px 0" }}><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-        <img src={row.itemImage || icons?.fallback} alt="" title={row.name} style={{ width: 18, height: 18 }} /><span>{row.name}</span>
+        <img src={row.itemImage || icons?.fallback} alt="" title={row.name} style={{ width: 18, height: 18, ...(row.isAged ? { filter: "grayscale(100%) brightness(1)" } : {}) }} /><span>{row.name}</span>
       </span></td>
       <td style={{ textAlign: "center", paddingRight: 8 }}>{row.displayQuantity}</td>
       <td style={{ textAlign: "center" }}>{Number(row.stock) > 0 ? Math.ceil(row.stock) : ""}</td>

@@ -1519,14 +1519,14 @@ function App() {
                     <DList name="selectedExpandType" title="Island"
                       options={[
                         { value: "basic", label: "Basic" },
-                        { value: "spring", label: "Spring" },
-                        { value: "desert", label: "Desert" },
-                        { value: "volcano", label: "Volcano" },
-                        { value: "swamp", label: "Swamp" },
-                        { value: "spooky", label: "Spooky" },
-                        { value: "crystal", label: "Crystal" },
-                        { value: "galaxy", label: "Galaxy" },
-                        { value: "marble", label: "Marble" },
+                        { value: "spring", label: "Spring", iconSrc: "/icon/biome/spring.webp" },
+                        { value: "desert", label: "Desert", iconSrc: "/icon/biome/desert.webp" },
+                        { value: "volcano", label: "Volcano", iconSrc: "/icon/biome/volcano.webp" },
+                        { value: "swamp", label: "Swamp", iconSrc: "/icon/biome/swamp.webp" },
+                        { value: "spooky", label: "Spooky", iconSrc: "/icon/biome/spooky.webp" },
+                        { value: "crystal", label: "Crystal", iconSrc: "/icon/biome/crystal.webp" },
+                        { value: "galaxy", label: "Galaxy", iconSrc: "/icon/biome/galaxy.webp" },
+                        { value: "marble", label: "Marble", iconSrc: "/icon/biome/marble.webp" },
                       ]}
                       value={ui.selectedExpandType} onChange={handleUIChange} height={20} />
                     {ASCENSION_EXPAND_TYPES.has(ui.selectedExpandType) ? (

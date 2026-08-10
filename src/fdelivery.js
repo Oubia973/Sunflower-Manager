@@ -118,6 +118,25 @@ function ModalDlvr({
   const getItemBase = (name) => (
     it?.[name] || food?.[name] || pfood?.[name] || fish?.[name] || bounty?.[name] || crustacean?.[name] || craft?.[name] || petit?.[name] || flower?.[name] || tool?.[name] || mutant?.[name] || compost?.[name] || null
   );
+  const resolveDeliveryItem = (name) => {
+    const direct = getItemBase(name);
+    if (direct) return { entry: direct, stock: Number(direct?.instock || 0), isAged: false };
+    const agedPrefix = "Aged ";
+    if (!String(name).startsWith(agedPrefix)) return null;
+    const fishEntry = fish?.[String(name).slice(agedPrefix.length)];
+    const saltEntry = it?.Salt;
+    if (!fishEntry || !saltEntry) return null;
+    return { entry: fishEntry, salt: saltEntry, stock: Number(fishEntry?.Aged || 0), isAged: true };
+  };
+  const getResolvedUnitPrices = (resolved) => {
+    const entry = resolved?.entry || {};
+    const salt = resolved?.salt || {};
+    const saltQuantity = resolved?.isAged ? Number(entry?.salt || 0) : 0;
+    const production = (Number(entry?.[key("cost")] ?? entry?.cost ?? 0) + saltQuantity * Number(salt?.[key("cost")] ?? salt?.cost ?? 0)) / coinsRatio;
+    const marketKey = selectedCost === "shop" ? "costshop" : selectedCost === "nifty" ? "costp2pn" : selectedCost === "opensea" ? "costp2po" : "costp2pt";
+    const market = Number(entry?.[key(marketKey)] ?? entry?.[marketKey] ?? 0) + saltQuantity * Number(salt?.[key(marketKey)] ?? salt?.[marketKey] ?? 0);
+    return { production, market: market > 0 ? market : production };
+  };
   const parseOrderItems = (rawItems) => {
     const parsed = {};
     const add = (rawName, rawQty) => {
@@ -141,19 +160,6 @@ function ModalDlvr({
     }
     return parsed;
   };
-  const getOrderItemMarketUnit = (itemBase) => {
-    const prodUnit = Number(itemBase?.[key("cost")] ?? itemBase?.cost ?? 0) / coinsRatio;
-    const marketTrader = Number(itemBase?.[key("costp2pt")] ?? itemBase?.costp2pt ?? 0);
-    const marketNifty = Number(itemBase?.[key("costp2pn")] ?? itemBase?.costp2pn ?? 0);
-    const marketOpenSea = Number(itemBase?.[key("costp2po")] ?? itemBase?.costp2po ?? 0);
-    const marketShop = Number(itemBase?.costshop || 0) / coinsRatio;
-    let marketUnit = 0;
-    if (selectedCost === "shop") { marketUnit = marketShop; }
-    if (selectedCost === "trader") { marketUnit = marketTrader; }
-    if (selectedCost === "nifty") { marketUnit = marketNifty; }
-    if (selectedCost === "opensea") { marketUnit = marketOpenSea; }
-    return marketUnit > 0 ? marketUnit : prodUnit;
-  };
   const computeOrderItemsCosts = (itemsMap) => {
     let totalCost = 0;
     let totalMarket = 0;
@@ -168,15 +174,14 @@ function ModalDlvr({
         rows.push({ name: itemName, displayName: "Coins", img: imgcoins, quantity: qtyNum, cost: coinValue, market: coinValue });
         return;
       }
-      const itemBase = getItemBase(itemName);
-      if (!itemBase) { return; }
-      const unitCost = Number(itemBase?.[key("cost")] ?? itemBase?.cost ?? 0) / coinsRatio;
-      const unitMarket = getOrderItemMarketUnit(itemBase);
+      const resolved = resolveDeliveryItem(itemName);
+      if (!resolved) { return; }
+      const { production: unitCost, market: unitMarket } = getResolvedUnitPrices(resolved);
       const cost = unitCost * qtyNum;
       const market = unitMarket * qtyNum;
       totalCost += cost;
       totalMarket += market;
-      rows.push({ name: itemName, displayName: itemName, img: itemBase?.img || imgna, quantity: qtyNum, cost, market });
+      rows.push({ name: itemName, displayName: itemName, img: resolved.entry?.img || imgna, isAged: resolved.isAged, quantity: qtyNum, cost, market });
     });
     return { rows, totalCost, totalMarket };
   };
@@ -203,13 +208,13 @@ function ModalDlvr({
       <span style={{ display: "inline-flex", gap: 0, flexWrap: "wrap", justifyContent: "center" }}>
         {entries.map(([itemName, qty]) => {
           const low = String(itemName).toLowerCase();
-          const itemBase = getItemBase(itemName);
-          const itemImg = low === "coins" ? imgcoins : (itemBase?.img || imgna);
+          const resolved = resolveDeliveryItem(itemName);
+          const itemImg = low === "coins" ? imgcoins : (resolved?.entry?.img || imgna);
           const itemLabel = low === "coins" ? "Coins" : itemName;
             return (
             <span key={itemName} style={{ display: "inline-flex", alignItems: "center", gap: 1, whiteSpace: "nowrap" }}>
                 <span style={{ fontSize: "12px", lineHeight: 1 }}>{frmtNb(qty)}</span>
-                <img src={itemImg} alt="" title={itemLabel} style={{ width: "15px", height: "15px" }} />
+                <img src={itemImg} alt="" title={itemLabel} style={{ width: "15px", height: "15px", ...(resolved?.isAged ? { filter: "grayscale(100%) brightness(1)" } : {}) }} />
               </span>
             );
         })}
@@ -519,24 +524,13 @@ function ModalDlvr({
       actTotReward += item[1].completed && item[1].reward;
       const getItemImg = (name, qty) => {
         if (!name) return null;
-        if (it[name]) {
-          totCostChore += (it[name][key("cost")] / coinsRatio) * qty;
-          totMarketChore += (it[name]?.costp2pt || 0) * qty;
-          if(it[name]?.instock < tableData.totcomp[name]) {notInStock = true}
-          return it?.[name]?.img ?? imgna
-        }
-        if (food[name]) {
-          totCostChore += (food[name][key("cost")] / coinsRatio) * qty;
-          totMarketChore += (food[name]?.costp2pt || 0) * qty;
-          return food?.[name]?.img ?? imgna
-        }
-        if (fish[name]) {
-          totCostChore += (fish[name][key("cost")] / coinsRatio) * qty;
-          totMarketChore += (fish[name]?.costp2pt || 0) * qty;
-          if(fish[name]?.instock < tableData.totcomp[name]) {notInStock = true}
-          return fish?.[name]?.img ?? imgna
-        }
-        return imgna;
+        const resolved = resolveDeliveryItem(name);
+        if (!resolved) return { src: imgna, isAged: false };
+        const { production, market } = getResolvedUnitPrices(resolved);
+        totCostChore += production * qty;
+        totMarketChore += market * qty;
+        if (resolved.stock < tableData.totcomp[name]) { notInStock = true; }
+        return { src: resolved.entry?.img ?? imgna, isAged: resolved.isAged };
       };
       const choreTotCompSpan = (
         <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
@@ -544,7 +538,7 @@ function ModalDlvr({
             const img = getItemImg(name, qty);
             return (<span key={name}
               style={{ display: "inline-flex", gap: 4, alignItems: "center", flexWrap: "nowrap", whiteSpace: "nowrap", }}>
-              {img && (<img src={img} alt="" title={name} style={{ width: "15px", height: "15px" }} />)}
+              {img && (<img src={img.src} alt="" title={name} style={{ width: "15px", height: "15px", ...(img.isAged ? { filter: "grayscale(100%) brightness(1)" } : {}) }} />)}
               {/* <span style={{ fontSize: "10px" }}>x{qty}</span> */}
             </span>);
           })}

@@ -25,7 +25,7 @@ export default function DeliveryCostTooltipDetails({ contract, icons, dragHandle
           <tr key={row.name}>
             <td style={{ padding: "2px 8px 2px 0" }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <img src={row.img || icons?.fallback} alt="" title={row.name} style={{ width: 18, height: 18 }} />
+                <img src={row.img || icons?.fallback} alt="" title={row.name} style={{ width: 18, height: 18, ...(row.isAged ? { filter: "grayscale(100%) brightness(1)" } : {}) }} />
                 <span>{row.displayName || row.name}</span>
               </span>
             </td>
