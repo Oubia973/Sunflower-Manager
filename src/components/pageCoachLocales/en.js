@@ -361,7 +361,16 @@
     fish: [{ id: "fish-table", selector: ".table-container", title: "Fishing view", text: "Fishing compares yield, real cost, bait/chum and XP gains depending on your active setup or tryset." }],
     flower: [{ id: "flower-table", selector: ".flower-table", title: "Flower tracking", text: "This page helps track useful varieties, breeds and what is already stocked, harvested or still growing." }],
     bounty: [{ id: "dig-table", selector: ".table-container", title: "Dig profitability", text: "This page compares the value of finds with tool cost. The ratio helps show whether the day or today's patterns are worth the effort." }],
-    animal: [{ id: "animal-table", selector: ".animal-table, .table-container table", title: "Animal production", text: "Here you compare animal output by level, food cost and the real unit cost of each product." }],
+    animal: [
+      { id: "animal-table", selector: ".animal-table, .table-container table", title: "Animal production", text: "Here you compare animal output by level, food cost and the real unit cost of each product." },
+      { id: "animal-level-mode", selector: '[data-help-id="animal-level-mode"]', title: "Farm animals or all levels", text: "Farm uses the animals currently on your farm. All lvl simulates every level to compare their output." },
+      { id: "animal-cost-mode", selector: '[data-help-id="animal-cost-mode"]', title: "Cost allocation", text: "This setting chooses how one cycle's cost is split between the animal's two products." },
+      { id: "animal-petting-mode", selector: '[data-help-id="animal-petting-mode"]', title: "Petting count", text: "In All lvl, this selector simulates the bonus from zero, one or two pettings." },
+      { id: "animal-overview", selector: ".animal-summary-grid, .animal-level-selector", title: "Choose and compare animals", text: "This area summarizes your farm animals or lets you choose Chicken, Cow or Sheep in the level simulation." },
+      { id: "animal-detail", selector: ".animal-detail-panel", title: "Animal details", text: "This panel shows food consumed, products obtained, their value and profit when you produce or buy food." },
+      { id: "animal-tabs", selector: ".animal-readable-tabs", title: "Change view", text: "Level profitability groups results by level, Individuals shows each animal, and Unit costs compares each product cost with its market price." },
+      { id: "animal-results", selector: ".animal-level-table, .animal-individual-list, .animal-unit-list", title: "Read the results", text: "Each row links a complete cycle: food, production, value obtained, cost and profit." }
+    ],
     pet: [{ id: "pet-table", selector: ".table-container", title: "Pet view", text: "Depending on the displayed sub-table, you can track pets, shrines or fetch components with their cost and yield." }],
     craft: [{ id: "craft-table", selector: ".table-container", title: "Craft recipes", text: "This page quickly checks stock, required components and crafting cost compared with market value." }],
     cropmachine: [{ id: "cropmachine-table", selector: ".crop-machine-table", title: "Crop Machine simulation", text: "This page simulates Crop Machine batches: time, seeds used, oil consumed, total cost, profit and daily gain." }],

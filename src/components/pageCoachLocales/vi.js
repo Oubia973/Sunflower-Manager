@@ -727,4 +727,15 @@ const locale = {
   ]
 };
 
+locale.pageIntroSteps.animal = [
+  { id: "animal-table", selector: ".animal-table, .table-container table", title: "Sản xuất động vật", text: "Tại đây bạn so sánh sản lượng theo cấp, chi phí thức ăn và chi phí đơn vị thực tế của từng sản phẩm." },
+  { id: "animal-level-mode", selector: '[data-help-id="animal-level-mode"]', title: "Động vật trong farm hoặc mọi cấp", text: "Farm dùng các động vật hiện có trong nông trại. All lvl mô phỏng từng cấp để so sánh sản lượng." },
+  { id: "animal-cost-mode", selector: '[data-help-id="animal-cost-mode"]', title: "Phân bổ chi phí", text: "Thiết lập này quyết định cách chia chi phí của một chu kỳ giữa hai sản phẩm của động vật." },
+  { id: "animal-petting-mode", selector: '[data-help-id="animal-petting-mode"]', title: "Số lần petting", text: "Trong All lvl, bộ chọn này mô phỏng phần thưởng từ không, một hoặc hai lần petting." },
+  { id: "animal-overview", selector: ".animal-summary-grid, .animal-level-selector", title: "Chọn và so sánh động vật", text: "Khu vực này tóm tắt động vật trong farm hoặc cho phép chọn Chicken, Cow hay Sheep trong mô phỏng cấp độ." },
+  { id: "animal-detail", selector: ".animal-detail-panel", title: "Chi tiết động vật", text: "Bảng này hiển thị thức ăn đã dùng, sản phẩm nhận được, giá trị của chúng và lợi nhuận khi sản xuất hoặc mua thức ăn." },
+  { id: "animal-tabs", selector: ".animal-readable-tabs", title: "Đổi chế độ xem", text: "Level profitability nhóm kết quả theo cấp, Individuals hiển thị từng động vật và Unit costs so sánh chi phí sản phẩm với giá market." },
+  { id: "animal-results", selector: ".animal-level-table, .animal-individual-list, .animal-unit-list", title: "Đọc kết quả", text: "Mỗi dòng liên kết một chu kỳ hoàn chỉnh: thức ăn, sản lượng, giá trị nhận được, chi phí và lợi nhuận." }
+];
+
 export default locale;

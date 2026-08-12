@@ -5,7 +5,7 @@ const locale = {
     "languageLabel": "언어",
     "baseMode": "베이스",
     "currentPageMode": "현재 페이지",
-    "featuresMode": "기능",
+    "featuresMode": "특징",
     "step": "단계",
     "helpTitle": "돕다",
     "nextHint": "다음 단계로 이동합니다.",
@@ -192,12 +192,12 @@ const locale = {
     "fish": "이 열은 물고기의 어획량, 비용, 희귀성 및 수익을 비교하는 데 도움이 됩니다.",
     "flower": "이 열은 가족, 품종, 줄기 및 성장별로 꽃을 추적하는 데 도움이 됩니다.",
     "bounty": "이 열은 도구 비용 및 일일 패턴을 기준으로 굴착 가치를 판단하는 데 도움이 됩니다.",
-    "animal": "이 칼럼은 동물의 주기, 먹이, 제품 단가를 비교하는 데 도움이 됩니다.",
+    "animal": "이 칼럼은 동물의 주기와 먹이, 제품 단가를 비교하는 데 도움이 됩니다.",
     "pet": "이 열은 애완동물, 성소 또는 가져오기 구성 요소의 가치를 읽는 데 도움이 됩니다.",
     "craft": "이 열은 재고, 구성 요소 및 제작 비용을 확인하는 데 도움이 됩니다.",
     "cropmachine": "이 열은 비용, 이익 및 일일 예측에서 자르기 기계 배치를 시뮬레이션하는 데 도움이 됩니다.",
     "map": "이 영역은 섬에서 무엇이 자라고, 달리고 있거나, 활동을 기다리고 있는지 직접 시각화하는 데 도움이 됩니다.",
-    "expand": "이 열은 시간, 자원 및 비용의 확장을 계획하는 데 도움이 됩니다.",
+    "expand": "이 열은 시간, 자원, 비용의 확장을 계획하는 데 도움이 됩니다.",
     "buynodes": "이 열은 현재 가격과 다음 가격을 기준으로 노드 구매의 우선순위를 정하는 데 도움이 됩니다.",
     "factions": "이 영역은 세력 진행 상황, 주간 애완동물 및 요청 비용을 읽는 데 도움이 됩니다.",
     "market": "이 열은 농장과 연결된 실제 제안과 거래를 비교하는 데 도움이 됩니다.",
@@ -242,8 +242,8 @@ const locale = {
     "withdraw": "출금규정 적용 후 실제로 회수할 수 있는 금액입니다.",
     "dailymax": "이 개체의 최대 일일 예측입니다.",
     "dailymaxaverage": "개체가 최상의 조건에서 실행되는 경우 평균 최대 일일 예측입니다.",
-    "dailyflower": "??? ??? ?? farm ??? restock ??? ?? ??? ???? ?? ?? Flower ?????.",
     "daily": "이 개체의 일일 평균 예측입니다.",
+    "dailyflower": "일일 농장 시간과 옵션에 구성된 재입고 횟수에 따라 개체가 생성한 평균 일일 꽃 투영입니다.",
     "gainh": "이 개체의 평균 시간당 이득입니다.",
     "chng": "선택한 기간 동안 이 개체의 최근 값이 변경되었습니다.",
     "chngpercent": "선택한 기간 동안 개체의 최근 가격 변동입니다.",
@@ -270,13 +270,13 @@ const locale = {
       "time": "물체를 생산하는 데 필요한 성장 또는 주기 시간입니다.",
       "cost": "이 선택기는 비용을 읽는 방법을 변경합니다. / 단위 = 한 단위를 생산하는 데 드는 비용입니다. x 수량 = 수량에서 선택한 수량에 대한 총 비용. 계산됨 = 다른 곳에서 이미 계산된 부가 비용도 포함됩니다.",
       "buy": "개체를 생산된 것이 아니라 구입한 것으로 표시하는 확인란입니다. 이로 인해 연결된 레시피 및 비교에 사용되는 비용이 변경됩니다.",
-      "betty": "베티에게 물건을 팔아 얻는 가치. 보장된 가격과 시장 가치를 비교하는 데 유용합니다.",
+      "betty": "베티에게 물건을 팔아서 얻는 가치. 보장된 가격을 시장 가치와 비교하는 데 유용합니다.",
       "ratio": "소비하거나 헌신한 꽃당 획득한 코인 수입니다. 값이 높을수록 상점에서 코인으로의 전환이 더 유리하다는 의미입니다.",
       "market": "개체의 예상 시장 가치입니다.",
-      "profit": "시장 가치와 생산 비용 사이의 상대적 마진입니다. 이는 직접 물건을 생산하는 것이 여전히 경제적 우위를 갖고 있는지 여부를 보여줍니다.",
-      "withdraw": "인출 규정 및 세금 적용 후 인출 가능 금액입니다. 실제로 복구할 수 있는 것과 원시 가치를 분리하는 데 유용합니다.",
-      "diff": "두 가격 참조 사이의 차이. 이를 통해 시장이 다른 비교 값과 다른 경우를 빠르게 확인할 수 있습니다.",
-      "coef": "생산 비용과 판매 가격 사이의 계수. 이는 시장이 실제 비용과 얼마나 떨어져 있는지를 보여줍니다.",
+      "profit": "시장 가치와 생산 비용 간의 상대적 마진입니다. 이는 직접 물건을 생산하는 것이 여전히 경제적 우위를 갖고 있는지 여부를 보여줍니다.",
+      "withdraw": "인출 규정 및 세금 적용 후 인출 가능 금액입니다. 실제로 복구할 수 있는 가치와 원시 가치를 분리하는 데 유용합니다.",
+      "diff": "두 가격 참조 사이의 차이. 이를 통해 시장이 다른 비교 값과 다른 경우를 신속하게 확인할 수 있습니다.",
+      "coef": "생산 비용과 판매 가격 간의 계수. 이는 시장이 실제 비용과 얼마나 떨어져 있는지를 보여줍니다.",
       "chng": "선택한 기간 동안의 최근 가격 변동입니다. 빠르게 오르거나 떨어지는 물체를 찾는 데 도움이 됩니다.",
       "yield": "활성 설정 또는 tryset에 따른 노드의 원시 생성입니다.",
       "harvest": "이 개체에 대해 수확할 수 있는 평균 수량입니다.",
@@ -285,8 +285,8 @@ const locale = {
       "when": "정확한 가용성 시간을 표시하는 준비 열 모드입니다.",
       "remain": "남은 시간을 표시하는 준비 열 모드입니다.",
       "1restock": "단일 재입고에 대한 생산 예측입니다. 하루 전체를 살펴보지 않고도 한 번의 리필로 인한 최소 영향을 측정하는 데 유용합니다.",
-      "dailyflower": "??? ??? ?? farm ??? restock ??? ?? ??? ???? ?? ?? Flower ?????.",
       "daily": "일반적으로 시장 가치를 기준으로 개체에 의해 생성된 평균 일일 꽃 예측입니다.",
+      "dailyflower": "일일 농장 시간과 옵션에 구성된 재입고 횟수에 따라 개체가 생성한 평균 일일 꽃 투영입니다.",
       "gainh": "개체의 평균 시간당 이득입니다.",
       "dailymax": "물체가 최대 속도로 실행되는 경우 평균 최대 일일 예측입니다."
     },
@@ -296,8 +296,8 @@ const locale = {
       "cook": "현재 계산에 유지되는 요리 수입니다.",
       "quantity": "현재 모드에서 사용되는 요리 수입니다.",
       "xp": "레시피 또는 선택한 수량으로 얻은 총 XP입니다.",
-      "time": "레시피의 원시 조리 시간.",
-      "timecomp": "레시피의 실제 무게를 비교하기 위해 구성 요소에 필요한 시간을 포함하여 조리 시간을 연장했습니다.",
+      "time": "레시피의 원시 조리 시간입니다.",
+      "timecomp": "레시피의 실제 무게를 비교하기 위해 구성 요소에 필요한 시간을 포함하여 조리 시간이 연장되었습니다.",
       "xph": "요리 시간당 XP를 얻습니다.",
       "xphwithcomponentstime": "구성 요소 준비 시간을 포함한 시간당 XP입니다.",
       "xpflower": "꽃을 소비할 때마다 XP를 얻습니다.",
@@ -343,7 +343,7 @@ const locale = {
       "bib": "펫 장비의 효과.",
       "currentenergy": "요청으로 재충전되기 전에 현재 애완동물에서 사용할 수 있는 에너지입니다.",
       "requests": "애완동물을 재충전하는 데 사용되는 선택된 음식 요청입니다.",
-      "energy": "선택한 요청에 의해 제공되는 총 에너지입니다.",
+      "energy": "선택한 요청으로 제공되는 총 에너지입니다.",
       "cost": "선택한 요청의 꽃 비용입니다.",
       "prodmarket": "모든 구성 요소를 시장에서 구매할 때 선택한 요청의 비용입니다.",
       "energyflower": "애완동물에게 먹이를 주기 위해 소비한 꽃당 얻는 에너지의 양입니다. 값이 높을수록 요청이 더 효율적이라는 의미입니다.",
@@ -353,7 +353,7 @@ const locale = {
       "boost": "신사가 부여하는 효과입니다.",
       "component": "가져오기 또는 신사 구성 요소의 이름입니다.",
       "yield": "애완동물이 생산하는 양입니다.",
-      "fetchedby": "이 구성요소를 가져올 수 있는 애완동물은 무엇입니까?",
+      "fetchedby": "이 구성 요소를 가져올 수 있는 애완동물은 무엇입니까?",
       "usedinshrines": "이 구성 요소를 소비하는 신사."
     },
     "craft": {
@@ -393,7 +393,7 @@ const locale = {
       "nodesonfarm": "팜에 이미 번호가 있습니다.",
       "bought": "현재 요금제에서 이미 구매한 번호입니다.",
       "buy": "시뮬레이션에서 구매할 수량입니다.",
-      "nodesafter": "시뮬레이션 구매 후 총 개수입니다.",
+      "nodesafter": "시뮬레이션된 구매 후의 총 개수입니다.",
       "nextprice": "동일한 노드에서 계속할 경우 다음 구매 가격입니다.",
       "totalsunstone": "시뮬레이션의 총 Sunstone 비용입니다.",
       "totalobsidian": "시뮬레이션에서 목표로 삼았거나 필요한 총 흑요석.",
@@ -442,7 +442,7 @@ const locale = {
       "description": "퀘스트 또는 활동 설명.",
       "reward": "퀘스트나 활동을 통해 얻은 보상입니다.",
       "cost": "해당 기간 동안의 생산 비용.",
-      "market": "해당 기간 동안 관찰된 시장 가치.",
+      "market": "해당 기간 동안 관찰된 시장 가치입니다.",
       "delivery": "배송과 관련된 흐름 또는 화상.",
       "season": "읽기 창에 사용되는 계절 필터입니다."
     },
@@ -462,8 +462,8 @@ const locale = {
       "name": "정확한 꽃 이름.",
       "breed": "이 꽃과 관련된 품종이나 교배종입니다.",
       "time": "꽃이 자라는 시간.",
-      "quant": "현재 재고가 재고입니다.",
-      "hrvst": "이미 농장에서 수확한 수량입니다.",
+      "quant": "현재 재고가 있는 재고입니다.",
+      "hrvst": "농장에서 이미 수확한 수량입니다.",
       "grow": "현재 화단에서 자라는 수량입니다."
     },
     "bounty": {
@@ -494,7 +494,7 @@ const locale = {
         "id": "home-harvests",
         "selector": ".home-collapsible-wrap",
         "title": "수확 블록",
-        "text": "각 블록은 개체군을 그룹화합니다. 블록을 열어 자세한 개체와 총 비용, 시장 및 이익을 확인하세요."
+        "text": "각 블록은 객체 계열을 그룹화합니다. 블록을 열어 자세한 개체와 총 비용, 시장 및 이익을 확인하세요."
       }
     ],
     "inv": [
@@ -534,7 +534,7 @@ const locale = {
         "id": "dig-table",
         "selector": ".table-container",
         "title": "발굴 수익성",
-        "text": "이 페이지에서는 발견물의 가치를 도구 비용과 비교합니다. 비율은 그날의 패턴이나 오늘의 패턴이 노력할 가치가 있는지를 보여주는 데 도움이 됩니다."
+        "text": "이 페이지에서는 발견물의 가치를 도구 비용과 비교합니다. 비율은 그날의 패턴이나 오늘의 패턴이 노력할 가치가 있는지 여부를 보여주는 데 도움이 됩니다."
       }
     ],
     "animal": [
@@ -543,6 +543,48 @@ const locale = {
         "selector": ".animal-table, .table-container table",
         "title": "동물 생산",
         "text": "여기에서는 레벨별 동물 생산량, 식량 비용 및 각 제품의 실제 단가를 비교합니다."
+      },
+      {
+        "id": "animal-level-mode",
+        "selector": "[data-help-id=\"animal-level-mode\"]",
+        "title": "농장 동물 또는 모든 수준",
+        "text": "농장은 현재 농장에 있는 동물을 사용합니다. 모든 레벨은 모든 레벨을 시뮬레이션하여 출력을 비교합니다."
+      },
+      {
+        "id": "animal-cost-mode",
+        "selector": "[data-help-id=\"animal-cost-mode\"]",
+        "title": "비용 할당",
+        "text": "이 설정은 한 주기의 비용이 동물의 두 제품 간에 분할되는 방식을 선택합니다."
+      },
+      {
+        "id": "animal-petting-mode",
+        "selector": "[data-help-id=\"animal-petting-mode\"]",
+        "title": "애무 횟수",
+        "text": "모든 레벨에서 이 선택기는 0개, 1개 또는 2개의 페팅에서 보너스를 시뮬레이션합니다."
+      },
+      {
+        "id": "animal-overview",
+        "selector": ".animal-summary-grid, .animal-level-selector",
+        "title": "동물을 선택하고 비교하세요",
+        "text": "이 영역에서는 농장 동물을 요약하거나 레벨 시뮬레이션에서 닭, 소 또는 양을 선택할 수 있습니다."
+      },
+      {
+        "id": "animal-detail",
+        "selector": ".animal-detail-panel",
+        "title": "동물 세부정보",
+        "text": "이 패널에는 소비된 음식, 획득한 제품, 음식을 생산하거나 구매할 때의 가치와 이익이 표시됩니다."
+      },
+      {
+        "id": "animal-tabs",
+        "selector": ".animal-readable-tabs",
+        "title": "보기 변경",
+        "text": "레벨 수익성 그룹 결과를 레벨별로 그룹화하고 개인은 각 동물을 표시하며 단위 비용은 각 제품 비용을 시장 가격과 비교합니다."
+      },
+      {
+        "id": "animal-results",
+        "selector": ".animal-level-table, .animal-individual-list, .animal-unit-list",
+        "title": "결과 읽기",
+        "text": "각 행은 식량, 생산, 획득 가치, 비용 및 이익 등 완전한 주기를 연결합니다."
       }
     ],
     "pet": [
@@ -558,7 +600,7 @@ const locale = {
         "id": "craft-table",
         "selector": ".table-container",
         "title": "공예 레시피",
-        "text": "이 페이지에서는 재고, 필요한 구성품, 제작 비용을 시장 가치와 비교하여 빠르게 확인합니다."
+        "text": "이 페이지에서는 재고, 필요한 구성품, 제작 비용을 시장 가치와 비교하여 빠르게 확인할 수 있습니다."
       }
     ],
     "cropmachine": [
@@ -640,7 +682,7 @@ const locale = {
         "id": "auctions-list",
         "selector": ".table-container table",
         "title": "경매 목록",
-        "text": "개체를 클릭하면 세부 보기가 로드됩니다."
+        "text": "세부 보기를 로드하려면 개체를 클릭하세요."
       }
     ],
     "toplists": [
@@ -666,15 +708,6 @@ const locale = {
       }
     ]
   },
-  "featureSteps": [
-    { "id": "features-graph", "title": "가격과 공급량 추적", "text": "그래프에서 자원과 기간을 선택하고 가격 변화와 판매량을 함께 확인할 수 있습니다.", "image": "/pagecoach/features/graph.png", "imageAlt": "자원 가격 및 판매량 그래프." },
-    { "id": "features-trynft", "title": "부스트와 수집품 테스트", "text": "Tryset은 현재 농장과 테스트 구성을 비교하여 생산량, 수확량, 일일 수익에 미치는 영향을 보여 줍니다.", "image": "/pagecoach/features/trynft.png", "imageAlt": "생산량과 수집품을 보여 주는 Tryset 시뮬레이션." },
-    { "id": "features-chores", "title": "Chores와 bounties 계획", "text": "Deliveries Chores Bounties에서 진행 상황, 보상, 부족한 재료, 비용 및 남은 시간을 추적합니다.", "image": "/pagecoach/features/chores.png", "imageAlt": "진행 상황과 필요한 재료를 보여 주는 chores 목록." },
-    { "id": "features-cooktolvl", "title": "XP 진행 최적화", "text": "Cook은 목표 레벨까지 필요한 레시피를 계산하고 XP, 시간, 기름, 비용 및 시장 구매를 비교합니다.", "image": "/pagecoach/features/cooktolvl.png", "imageAlt": "목표 레벨 도달을 위한 Cook 표." },
-    { "id": "features-listings", "title": "리스팅과 floor 가격 비교", "text": "Listings에서 수량, 가격, floor, 차이 및 날짜를 확인하여 유용한 제안을 빠르게 찾을 수 있습니다.", "image": "/pagecoach/features/listings.png", "imageAlt": "Floor 가격과 비교된 리스팅." },
-    { "id": "features-trades", "title": "거래 분석 - VIP", "text": "기여 후 이용 가능한 VIP 기능: Activity에서 판매된 아이템, 평균 가격 및 그래프 기록을 확인할 수 있습니다.", "image": "/pagecoach/features/trades.png", "imageAlt": "VIP 거래 Activity 보기와 판매 그래프." },
-    { "id": "features-activitydelivery", "title": "Deliveries 비용 측정 - VIP", "text": "기여 후 이용 가능한 VIP 기능: Activity에서 일정 기간의 완료된 deliveries, 사용 자원 및 비용을 확인합니다.", "image": "/pagecoach/features/activitydelivery.png", "imageAlt": "VIP 일별 deliveries 활동 기록." }
-  ],
   "baseSteps": [
     {
       "id": "options",
@@ -723,6 +756,57 @@ const locale = {
       "selector": ".top-frame .coach-help-btn",
       "title": "8. 둘러보기 다시 재생",
       "text": "이 버튼은 원할 때마다 가이드 투어를 다시 시작합니다."
+    }
+  ],
+  "featureSteps": [
+    {
+      "id": "features-graph",
+      "title": "가격 및 공급 추적",
+      "text": "그래프는 리소스와 기간을 필터링한 다음 판매 수량과 함께 가격 변동을 보여줍니다.",
+      "image": "/pagecoach/features/graph.png",
+      "imageAlt": "자원 가격 및 거래량 그래프."
+    },
+    {
+      "id": "features-trynft",
+      "title": "테스트 부스트 및 수집품",
+      "text": "Tryset은 활성 농장을 테스트된 설정과 비교하여 수확량, 수확량 및 일일 수확량에 미치는 영향을 보여줍니다.",
+      "image": "/pagecoach/features/trynft.png",
+      "imageAlt": "산출량과 수집품을 사용한 Tryset 시뮬레이션."
+    },
+    {
+      "id": "features-chores",
+      "title": "집안일과 포상금을 계획하세요",
+      "text": "배달 집안일 현상금은 진행 상황, 보상, 누락된 구성 요소, 비용 및 남은 시간을 따릅니다.",
+      "image": "/pagecoach/features/chores.png",
+      "imageAlt": "진행 상황 및 필수 구성 요소가 포함된 집안일 목록입니다."
+    },
+    {
+      "id": "features-cooktolvl",
+      "title": "XP 진행 최적화",
+      "text": "Cook은 목표 수준에 맞는 레시피를 프로젝트하고 XP, 시간, 석유, 비용 및 시장 구매를 비교합니다.",
+      "image": "/pagecoach/features/cooktollvl.png",
+      "imageAlt": "목표 수준에 도달하기 위한 요리 테이블입니다."
+    },
+    {
+      "id": "features-listings",
+      "title": "목록을 바닥과 비교",
+      "text": "유용한 제안을 신속하게 노출할 수 있도록 수량, 가격, 하한, 차이 및 날짜를 ​​자세히 나열합니다.",
+      "image": "/pagecoach/features/listings.png",
+      "imageAlt": "최저 가격과 비교한 목록입니다."
+    },
+    {
+      "id": "features-trades",
+      "title": "거래 분석 - VIP",
+      "text": "기부 후 이용 가능한 VIP 기능: 활동 목록에는 판매된 품목, 평균 가격, 차트 내역이 표시되므로 실제 거래를 검토할 수 있습니다.",
+      "image": "/pagecoach/features/trades.png",
+      "imageAlt": "VIP 거래 활동 보기 및 판매 그래프."
+    },
+    {
+      "id": "features-activitydelivery",
+      "title": "배송비 측정 - VIP",
+      "text": "기여 후 사용 가능한 VIP 기능: 활동 보고서는 일정 기간 동안 완료된 배송, 소비된 리소스 및 비용을 보고합니다.",
+      "image": "/pagecoach/features/activitydelivery.png",
+      "imageAlt": "VIP 일일 배송 활동 내역입니다."
     }
   ]
 };

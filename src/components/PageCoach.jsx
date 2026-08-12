@@ -299,7 +299,25 @@ function buildPageSteps(currentPage, locale) {
     const firstTable = headers[0]?.closest("table");
     if (firstTable) headers = headers.filter((th) => th.closest("table") === firstTable);
   }
-  const introSteps = Array.isArray(locale.pageIntroSteps?.[pageKey]) ? locale.pageIntroSteps[pageKey] : [];
+  const configuredIntroSteps = Array.isArray(locale.pageIntroSteps?.[pageKey]) ? locale.pageIntroSteps[pageKey] : [];
+  // Animals has two different layouts. Keep only the steps belonging to the
+  // layout that is currently rendered so the coach never points to a missing zone.
+  const isModernAnimalLayout = pageKey === "animal" && !!document.querySelector(".animals-readable-page");
+  const englishAnimalSteps = Array.isArray(PAGE_COACH_LOCALES.en?.pageIntroSteps?.animal)
+    ? PAGE_COACH_LOCALES.en.pageIntroSteps.animal
+    : [];
+  const animalIntroSteps = configuredIntroSteps.some((introStep) => introStep?.id === "animal-overview")
+    ? configuredIntroSteps
+    : englishAnimalSteps;
+  const introSteps = pageKey === "animal"
+    ? animalIntroSteps.filter((introStep) => {
+      // The old table selector can match unrelated tables in the modern layout.
+      // Select the appropriate Animals tour before checking whether its target is visible.
+      if (isModernAnimalLayout && introStep?.id === "animal-table") return false;
+      if (!isModernAnimalLayout && introStep?.id !== "animal-table") return false;
+      return !introStep?.selector || !!getRect(introStep.selector);
+    })
+    : configuredIntroSteps;
   const orderedSteps = headers.length ? buildOrderedPageColumnSteps(headers, currentPage, locale, pageKey) : null;
   const columnSteps = orderedSteps && orderedSteps.length > 0 ? orderedSteps : headers.map((th, idx) => {
     const label = getHeaderLabel(th, idx, locale.ui);

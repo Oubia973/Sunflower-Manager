@@ -67,7 +67,14 @@ const locale = {
         ],
         "title": "Patterns",
         "text": "The Patterns block isolates the daily reward variant. Compare it with the standard block to choose the best return."
-      }
+      },
+      { "id": "animal-level-mode", "selector": "[data-help-id=\"animal-level-mode\"]", "title": "农场动物或全部等级", "text": "Farm 使用农场中现有的动物。All lvl 会模拟每个等级，以比较它们的产出。" },
+      { "id": "animal-cost-mode", "selector": "[data-help-id=\"animal-cost-mode\"]", "title": "成本分配", "text": "此设置决定如何将一个周期的成本分配到动物的两种产品。" },
+      { "id": "animal-petting-mode", "selector": "[data-help-id=\"animal-petting-mode\"]", "title": "抚摸次数", "text": "在 All lvl 中，此选项会模拟零次、一次或两次抚摸带来的加成。" },
+      { "id": "animal-overview", "selector": ".animal-summary-grid, .animal-level-selector", "title": "选择并比较动物", "text": "此区域汇总农场动物，或让您在等级模拟中选择 Chicken、Cow 或 Sheep。" },
+      { "id": "animal-detail", "selector": ".animal-detail-panel", "title": "动物详情", "text": "此面板显示消耗的食物、获得的产品、其价值，以及生产或购买食物时的利润。" },
+      { "id": "animal-tabs", "selector": ".animal-readable-tabs", "title": "切换视图", "text": "Level profitability 按等级汇总结果，Individuals 显示每只动物，Unit costs 将每种产品的成本与市场价格比较。" },
+      { "id": "animal-results", "selector": ".animal-level-table, .animal-individual-list, .animal-unit-list", "title": "查看结果", "text": "每一行对应一个完整周期：食物、产出、获得价值、成本和利润。" }
     ],
     "animal": [
       "LVL",
@@ -726,5 +733,16 @@ const locale = {
     }
   ]
 };
+
+locale.pageIntroSteps.animal = [
+  { id: "animal-table", selector: ".animal-table, .table-container table", title: "动物生产", text: "这里可按等级比较动物产出、食物成本和每种产品的实际单位成本。" },
+  { id: "animal-level-mode", selector: '[data-help-id="animal-level-mode"]', title: "农场动物或全部等级", text: "Farm 使用当前农场中的动物。All lvl 会模拟每个等级来比较产出。" },
+  { id: "animal-cost-mode", selector: '[data-help-id="animal-cost-mode"]', title: "成本分配", text: "此设置决定如何将一个周期的成本分配到动物的两种产品。" },
+  { id: "animal-petting-mode", selector: '[data-help-id="animal-petting-mode"]', title: "抚摸次数", text: "在 All lvl 中，此选项会模拟零次、一次或两次 petting 带来的加成。" },
+  { id: "animal-overview", selector: ".animal-summary-grid, .animal-level-selector", title: "选择并比较动物", text: "此区域汇总农场动物，或让您在等级模拟中选择 Chicken、Cow 或 Sheep。" },
+  { id: "animal-detail", selector: ".animal-detail-panel", title: "动物详情", text: "此面板显示消耗的食物、获得的产品及其价值，以及生产或购买食物时的利润。" },
+  { id: "animal-tabs", selector: ".animal-readable-tabs", title: "切换视图", text: "Level profitability 按等级汇总结果，Individuals 显示每只动物，Unit costs 将产品成本与市场价格比较。" },
+  { id: "animal-results", selector: ".animal-level-table, .animal-individual-list, .animal-unit-list", title: "查看结果", text: "每一行对应一个完整周期：食物、产出、获得价值、成本和利润。" }
+];
 
 export default locale;

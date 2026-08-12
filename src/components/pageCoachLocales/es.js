@@ -142,7 +142,16 @@
     fish: [{ id: "fish-table", selector: ".table-container", title: "Vista de pesca", text: "La pagina de pesca compara rendimiento, coste real, bait/chum y ganancias de XP segun tu setup activo o tryset." }],
     flower: [{ id: "flower-table", selector: ".flower-table", title: "Seguimiento de flores", text: "Esta pagina sirve para seguir variedades, breeds utiles y lo que ya esta en stock, recolectado o aun creciendo." }],
     bounty: [{ id: "dig-table", selector: ".table-container", title: "Rentabilidad del dig", text: "Esta pagina compara el valor de los hallazgos con el coste de las herramientas. El ratio ayuda a ver si el dia o los patterns valen la pena." }],
-    animal: [{ id: "animal-table", selector: ".animal-table, .table-container table", title: "Produccion animal", text: "Aqui comparas el rendimiento de los animales por nivel, el coste de su comida y el coste unitario real de sus productos." }],
+    animal: [
+      { id: "animal-table", selector: ".animal-table, .table-container table", title: "Produccion animal", text: "Aqui comparas el rendimiento de los animales por nivel, el coste de su comida y el coste unitario real de sus productos." },
+      { id: "animal-level-mode", selector: '[data-help-id="animal-level-mode"]', title: "Animales de la granja o todos los niveles", text: "Farm usa los animales presentes en tu granja. All lvl simula cada nivel para comparar su rendimiento." },
+      { id: "animal-cost-mode", selector: '[data-help-id="animal-cost-mode"]', title: "Reparto del coste", text: "Este ajuste decide como se reparte el coste de un ciclo entre los dos productos del animal." },
+      { id: "animal-petting-mode", selector: '[data-help-id="animal-petting-mode"]', title: "Numero de pettings", text: "En All lvl, este selector simula el bonus obtenido con cero, uno o dos pettings." },
+      { id: "animal-overview", selector: ".animal-summary-grid, .animal-level-selector", title: "Elegir y comparar animales", text: "Esta zona resume los animales de tu granja o permite elegir Chicken, Cow o Sheep en la simulacion por nivel." },
+      { id: "animal-detail", selector: ".animal-detail-panel", title: "Detalle del animal", text: "El panel muestra la comida consumida, los productos obtenidos, su valor y el beneficio al producir o comprar comida." },
+      { id: "animal-tabs", selector: ".animal-readable-tabs", title: "Cambiar de vista", text: "Level profitability agrupa los resultados por nivel, Individuals muestra cada animal y Unit costs compara el coste de cada producto con su precio de mercado." },
+      { id: "animal-results", selector: ".animal-level-table, .animal-individual-list, .animal-unit-list", title: "Leer los resultados", text: "Cada linea relaciona un ciclo completo: comida, produccion, valor obtenido, coste y beneficio." }
+    ],
     pet: [{ id: "pet-table", selector: ".table-container", title: "Vista de mascotas", text: "Segun el subcuadro mostrado, puedes seguir mascotas, shrines o componentes de fetch con su coste y rendimiento." }],
     craft: [{ id: "craft-table", selector: ".table-container", title: "Recetas de craft", text: "Esta pagina sirve para comprobar rapidamente el stock, los componentes necesarios y el coste de craft comparado con el valor del market." }],
     cropmachine: [{ id: "cropmachine-table", selector: ".crop-machine-table", title: "Simulacion Crop Machine", text: "Esta pagina simula lotes del Crop Machine: tiempo, semillas usadas, aceite consumido, coste total, beneficio y ganancia diaria." }],

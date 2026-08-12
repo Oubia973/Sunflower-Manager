@@ -727,4 +727,15 @@ const locale = {
   ]
 };
 
+locale.pageIntroSteps.animal = [
+  { id: "animal-table", selector: ".animal-table, .table-container table", title: "動物の生産", text: "ここでは動物をレベル別に比較し、餌のコストと各生産物の実際の単位コストを確認できます。" },
+  { id: "animal-level-mode", selector: '[data-help-id="animal-level-mode"]', title: "農場の動物または全レベル", text: "Farm は現在農場にいる動物を使います。All lvl は各レベルをシミュレーションして生産量を比較します。" },
+  { id: "animal-cost-mode", selector: '[data-help-id="animal-cost-mode"]', title: "コスト配分", text: "この設定は、1サイクルのコストを動物の2つの生産物に配分する方法を決めます。" },
+  { id: "animal-petting-mode", selector: '[data-help-id="animal-petting-mode"]', title: "Petting 回数", text: "All lvl では、この選択肢で petting 0回、1回、2回のボーナスをシミュレーションします。" },
+  { id: "animal-overview", selector: ".animal-summary-grid, .animal-level-selector", title: "動物を選んで比較", text: "このエリアは農場の動物をまとめるか、レベルシミュレーションで Chicken、Cow、Sheep を選択できます。" },
+  { id: "animal-detail", selector: ".animal-detail-panel", title: "動物の詳細", text: "このパネルでは、使用した餌、得られた生産物と価値、餌を生産または購入した場合の利益を確認できます。" },
+  { id: "animal-tabs", selector: ".animal-readable-tabs", title: "表示を変更", text: "Level profitability は結果をレベル別にまとめ、Individuals は各動物を表示し、Unit costs は生産物のコストと市場価格を比較します。" },
+  { id: "animal-results", selector: ".animal-level-table, .animal-individual-list, .animal-unit-list", title: "結果の読み方", text: "各行は、餌、生産量、得られた価値、コスト、利益からなる1つの完全なサイクルを示します。" }
+];
+
 export default locale;

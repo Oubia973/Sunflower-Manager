@@ -67,7 +67,14 @@ const locale = {
         ],
         "title": "Patterns",
         "text": "The Patterns block isolates the daily reward variant. Compare it with the standard block to choose the best return."
-      }
+      },
+      { "id": "animal-level-mode", "selector": "[data-help-id=\"animal-level-mode\"]", "title": "Hewan di peternakan atau semua level", "text": "Farm menggunakan hewan yang ada di peternakan Anda. All lvl mensimulasikan setiap level untuk membandingkan hasilnya." },
+      { "id": "animal-cost-mode", "selector": "[data-help-id=\"animal-cost-mode\"]", "title": "Pembagian biaya", "text": "Pengaturan ini menentukan cara biaya satu siklus dibagi antara dua produk hewan." },
+      { "id": "animal-petting-mode", "selector": "[data-help-id=\"animal-petting-mode\"]", "title": "Jumlah petting", "text": "Di All lvl, pemilih ini mensimulasikan bonus dari nol, satu, atau dua petting." },
+      { "id": "animal-overview", "selector": ".animal-summary-grid, .animal-level-selector", "title": "Pilih dan bandingkan hewan", "text": "Area ini merangkum hewan di peternakan Anda atau memungkinkan memilih Chicken, Cow, atau Sheep dalam simulasi level." },
+      { "id": "animal-detail", "selector": ".animal-detail-panel", "title": "Detail hewan", "text": "Panel ini menampilkan makanan yang digunakan, produk yang diperoleh, nilainya, dan keuntungan saat memproduksi atau membeli makanan." },
+      { "id": "animal-tabs", "selector": ".animal-readable-tabs", "title": "Ubah tampilan", "text": "Level profitability mengelompokkan hasil per level, Individuals menampilkan setiap hewan, dan Unit costs membandingkan biaya produk dengan harga market." },
+      { "id": "animal-results", "selector": ".animal-level-table, .animal-individual-list, .animal-unit-list", "title": "Membaca hasil", "text": "Setiap baris menghubungkan satu siklus lengkap: makanan, produksi, nilai yang diperoleh, biaya, dan keuntungan." }
     ],
     "animal": [
       "LVL",
@@ -726,5 +733,16 @@ const locale = {
     }
   ]
 };
+
+locale.pageIntroSteps.animal = [
+  { id: "animal-table", selector: ".animal-table, .table-container table", title: "Produksi hewan", text: "Di sini Anda membandingkan hasil hewan berdasarkan level, biaya makanan, dan biaya unit nyata setiap produk." },
+  { id: "animal-level-mode", selector: '[data-help-id="animal-level-mode"]', title: "Hewan farm atau semua level", text: "Farm menggunakan hewan yang ada di farm Anda. All lvl mensimulasikan setiap level untuk membandingkan hasilnya." },
+  { id: "animal-cost-mode", selector: '[data-help-id="animal-cost-mode"]', title: "Pembagian biaya", text: "Pengaturan ini menentukan cara biaya satu siklus dibagi antara dua produk hewan." },
+  { id: "animal-petting-mode", selector: '[data-help-id="animal-petting-mode"]', title: "Jumlah petting", text: "Di All lvl, pemilih ini mensimulasikan bonus dari nol, satu, atau dua petting." },
+  { id: "animal-overview", selector: ".animal-summary-grid, .animal-level-selector", title: "Pilih dan bandingkan hewan", text: "Area ini merangkum hewan di farm Anda atau memungkinkan memilih Chicken, Cow, atau Sheep dalam simulasi level." },
+  { id: "animal-detail", selector: ".animal-detail-panel", title: "Detail hewan", text: "Panel ini menampilkan makanan yang digunakan, produk yang diperoleh, nilainya, dan keuntungan saat memproduksi atau membeli makanan." },
+  { id: "animal-tabs", selector: ".animal-readable-tabs", title: "Ubah tampilan", text: "Level profitability mengelompokkan hasil per level, Individuals menampilkan setiap hewan, dan Unit costs membandingkan biaya produk dengan harga market." },
+  { id: "animal-results", selector: ".animal-level-table, .animal-individual-list, .animal-unit-list", title: "Membaca hasil", text: "Setiap baris menghubungkan satu siklus lengkap: makanan, produksi, nilai yang diperoleh, biaya, dan keuntungan." }
+];
 
 export default locale;

@@ -1514,10 +1514,11 @@ function App() {
                 ) : null}
                 {selectedInv === "animal" && (
                   <>
-                    <DList name="selectedAnimalLvl" options={[{ value: "farm", label: "Farm" }, { value: "all", label: "All lvl" }]}
+                    <DList name="selectedAnimalLvl" helpId="animal-level-mode" options={[{ value: "farm", label: "Farm" }, { value: "all", label: "All lvl" }]}
                       value={ui.selectedAnimalLvl} onChange={handleUIChange} height={20} />
                     <DList
                       name="animalCostAllocationMode"
+                      helpId="animal-cost-mode"
                       title="Calculations"
                       options={ANIMAL_COST_ALLOCATION_OPTIONS}
                       value={Number(dataSet.options?.animalCostAllocationMode ?? 0)}
@@ -1538,7 +1539,7 @@ function App() {
                       menuMinWidth={190}
                     />
                     {ui.selectedAnimalLvl === "all" && (
-                      <DList name="selectedAnimalPettings" title={<><img src="/icon/ui/expression_love.png" alt="" className="itico" /> Petting</>} options={[
+                      <DList name="selectedAnimalPettings" helpId="animal-petting-mode" title={<><img src="/icon/ui/expression_love.png" alt="" className="itico" /> Petting</>} options={[
                         { value: "0", label: "0", iconSrc: "/icon/ui/expression_love.png" },
                         { value: "1", label: "1", iconSrc: "/icon/ui/expression_love.png" },
                         { value: "2", label: "2", iconSrc: "/icon/ui/expression_love.png" },

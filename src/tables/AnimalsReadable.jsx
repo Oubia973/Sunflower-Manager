@@ -142,7 +142,7 @@ export default function AnimalsReadableTable() {
   const selectedAnimal = animalsView.find((animal) => animal.animalName === selectedAnimalName) || animalsView[0];
 
   return (
-    <main className="animals-readable-page">
+    <main className={`animals-readable-page ${showFarm ? "is-farm-view" : "is-all-levels-view"}`}>
       {!showFarm ? (
         <nav className="animal-level-selector" aria-label="Select animal">
           {animalsView.map((animal) => {
