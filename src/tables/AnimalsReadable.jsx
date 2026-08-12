@@ -18,7 +18,7 @@ export default function AnimalsReadableTable() {
   const [detailView, setDetailView] = useState("levels");
   const {
     data: { dataSet, dataSetFarm },
-    ui: { selectedAnimalLvl, TryChecked },
+    ui: { selectedAnimalLvl, selectedAnimalPettings, TryChecked },
     actions: { handleTooltip },
     img: { imgSFL, imgcow, imgsheep, imgchkn, imgna, imgprodit, imgbuyit },
   } = useAppCtx();
@@ -50,8 +50,10 @@ export default function AnimalsReadableTable() {
       prod1Market: 0, prod2Market: 0, feed: {}, active: 0, ignored: 0,
     };
 
-    const rows = Object.values(animalRows || {}).map((cobj, rowIndex) => {
-      const xpprogress = Number(cobj.xpProgress || 0);
+    const rows = Object.values(animalRows || {}).map((rawRow, rowIndex) => {
+      const pettingCount = showFarm ? 0 : Math.max(0, Math.min(2, Number(selectedAnimalPettings) || 0));
+      const cobj = pettingCount > 0 ? (rawRow?.pettingVariants?.[pettingCount] || rawRow) : rawRow;
+      const xpprogress = Number((TryChecked ? (cobj.xpProgresstry ?? cobj.xpProgress) : cobj.xpProgress) || 0);
       const xptolvl = Number(cobj.xpToLvl || 0);
       const lvl = cobj.lvl > 0 && xpprogress === xptolvl ? cobj.lvl - 1 : Number(cobj.lvl || 0);
       const ignoreAnimal = !!dataSet?.options?.ignoreAniLvl
@@ -66,8 +68,8 @@ export default function AnimalsReadableTable() {
       const prod2Cost = Number((!TryChecked ? cobj.costyield2 : cobj.costyield2try) || 0) / coinRatio;
       const prod1Market = Number(it[prod1name]?.costp2pt || 0) * tradeTaxMul;
       const prod2Market = Number(it[prod2name]?.costp2pt || 0) * tradeTaxMul;
-      const prod1BuyFood = prod1 > 0 ? foodMarketCost / prod1 : 0;
-      const prod2BuyFood = prod2 > 0 ? foodMarketCost / prod2 : 0;
+      const prod1BuyFood = Number((!TryChecked ? cobj.costyield1p2p : cobj.costyield1p2ptry) || 0);
+      const prod2BuyFood = Number((!TryChecked ? cobj.costyield2p2p : cobj.costyield2p2ptry) || 0);
       const revenue = (prod1Market * prod1) + (prod2Market * prod2);
       const honeyTreatActive = TryChecked ? !!cobj.honeyTreatActiveTry : !!cobj.honeyTreatActive;
       const saltLickActive = TryChecked ? !!cobj.saltLickActiveTry : !!cobj.saltLickActive;
@@ -140,6 +142,25 @@ export default function AnimalsReadableTable() {
 
   return (
     <main className="animals-readable-page">
+      {!showFarm ? (
+        <nav className="animal-level-selector" aria-label="Select animal">
+          {animalsView.map((animal) => {
+            const selected = selectedAnimal?.animalName === animal.animalName;
+            return (
+              <button
+                type="button"
+                className={selected ? "is-selected" : ""}
+                key={animal.animalName}
+                onClick={() => setSelectedAnimalName(animal.animalName)}
+                aria-pressed={selected}
+              >
+                <img src={animal.animalIcon} alt="" />
+                <span>{animal.animalName}</span>
+              </button>
+            );
+          })}
+        </nav>
+      ) : (
       <div className="animal-summary-grid">
         {animalsView.map((animal) => {
           const selected = selectedAnimal?.animalName === animal.animalName;
@@ -174,6 +195,7 @@ export default function AnimalsReadableTable() {
           );
         })}
       </div>
+      )}
 
       {selectedAnimal && (
         <section className="animal-detail-panel">
@@ -298,10 +320,12 @@ function UnitCostButton({ name, icon, produceIcon, buyIcon, cost, buyCost, marke
     <button type="button" className="animal-unit-cost-card" onClick={onClick} aria-label={`${name} unit costs`}>
       <span className="animal-unit-cost-product"><img src={icon} alt="" className="itico" title={name} /><small>Market {frmtNb(market)}</small></span>
       {scenarios.map((scenario) => {
-        const edge = scenario.cost > 0 ? market / scenario.cost : 0;
-        const margin = edge > 0 ? Math.ceil(edge * 100) - 100 : 0;
+        const hasFreeUnitCost = Number(scenario.cost || 0) <= 0;
+        const edge = hasFreeUnitCost ? Infinity : market / scenario.cost;
+        const margin = hasFreeUnitCost ? null : (edge > 0 ? Math.ceil(edge * 100) - 100 : 0);
         const color = ColorValue(edge);
-        return <span className="animal-unit-cost-scenario" key={scenario.key}><span>{scenario.icon}<strong>{frmtNb(scenario.cost)} /u</strong></span><em style={{ color }}>{margin >= 0 ? "+" : ""}{margin}%</em></span>;
+        const profitLabel = hasFreeUnitCost ? "∞" : `${margin >= 0 ? "+" : ""}${margin}%`;
+        return <span className="animal-unit-cost-scenario" key={scenario.key}><span>{scenario.icon}<strong>{frmtNb(scenario.cost)} /u</strong></span><em style={{ color }}>{profitLabel}</em></span>;
       })}
     </button>
   );

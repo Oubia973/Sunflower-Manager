@@ -239,10 +239,17 @@
   text-align:right;
 }
 .cd-title{
+  display: flex;
+  align-items: center;
+  gap: 2px;
   font-size: 10px;
   opacity: 0.8;
   margin-bottom: 2px;
   user-select: none;
+}
+.cd-title .itico{
+  width: 12px;
+  height: 12px;
 }
 
 .trynft-boost-dlist .cd-btn{

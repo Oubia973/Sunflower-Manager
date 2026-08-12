@@ -41,6 +41,7 @@ export const uiDefaults = {
   selectedQuantityCook: "farm",
   cookCategories: ["base", "honey", "cheese", "fish", "cake"],
   selectedAnimalLvl: "farm",
+  selectedAnimalPettings: "0",
   selectedAnimalView: "animals",
   selectedReady: "when",
   selectedDsfl: "trader",
@@ -170,6 +171,9 @@ export const uiDefaults = {
  */
 export function normalizeUI(raw) {
   const next = { ...(raw || {}) };
+  next.selectedAnimalPettings = ["0", "1", "2"].includes(String(next.selectedAnimalPettings))
+    ? String(next.selectedAnimalPettings)
+    : "0";
   // Keep the interface preference global. During the transition, migrate users
   // who had already selected the experimental Animals view to the compact UI.
   next.interfaceMode = next.interfaceMode === "compact"

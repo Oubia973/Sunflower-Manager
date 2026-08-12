@@ -33,6 +33,7 @@ const isNativeApp = Capacitor.isNativePlatform();
 
 // Extracted constants
 import { API_URL, LOAD_FARM_COOLDOWN_MS, LOAD_FARM_SPAM_WINDOW_MS, LOAD_FARM_SPAM_THRESHOLD, AUCTION_NOTIF_SYNC_DEBOUNCE_MS } from './constants/api.js';
+import { ANIMAL_COST_ALLOCATION_OPTIONS } from './constants/animalCostAllocation.js';
 
 // Extracted image constants
 import {
@@ -1512,8 +1513,39 @@ function App() {
                   <img src={imgsyncing} alt="Loading sections" className="itico header-loading-indicator" style={{ width: 14, height: 14, opacity: 0.9 }} />
                 ) : null}
                 {selectedInv === "animal" && (
-                  <DList name="selectedAnimalLvl" options={[{ value: "farm", label: "Farm" }, { value: "all", label: "All lvl" }]}
-                    value={ui.selectedAnimalLvl} onChange={handleUIChange} height={20} />
+                  <>
+                    <DList name="selectedAnimalLvl" options={[{ value: "farm", label: "Farm" }, { value: "all", label: "All lvl" }]}
+                      value={ui.selectedAnimalLvl} onChange={handleUIChange} height={20} />
+                    <DList
+                      name="animalCostAllocationMode"
+                      title="Calculations"
+                      options={ANIMAL_COST_ALLOCATION_OPTIONS}
+                      value={Number(dataSet.options?.animalCostAllocationMode ?? 0)}
+                      onChange={async (event) => {
+                        handleOptionChange(event);
+                        await getPrices(
+                          false,
+                          true,
+                          null,
+                          true,
+                          "animal",
+                          true,
+                          "ANIMAL_COST_MODE"
+                        );
+                      }}
+                      height={20}
+                      width={158}
+                      menuMinWidth={190}
+                    />
+                    {ui.selectedAnimalLvl === "all" && (
+                      <DList name="selectedAnimalPettings" title={<><img src="/icon/ui/expression_love.png" alt="" className="itico" /> Petting</>} options={[
+                        { value: "0", label: "0", iconSrc: "/icon/ui/expression_love.png" },
+                        { value: "1", label: "1", iconSrc: "/icon/ui/expression_love.png" },
+                        { value: "2", label: "2", iconSrc: "/icon/ui/expression_love.png" },
+                      ]}
+                        value={String(ui.selectedAnimalPettings ?? "0")} onChange={handleUIChange} height={20} />
+                    )}
+                  </>
                 )}
                 {selectedInv === "home" && (
                   <DList name="selectedHomeMode" options={[{ value: "current", label: "Current harvests" }, { value: "daily", label: "Daily harvests" }]}

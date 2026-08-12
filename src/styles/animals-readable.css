@@ -17,6 +17,11 @@
   font-size: 12px;
   box-sizing: border-box;
 }
+.animal-level-selector { position: sticky; top: 0; z-index: 8; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 4px 3px 7px; background: #0b0706; }
+.animal-level-selector button { display: inline-flex; align-items: center; gap: 4px; min-width: 86px; padding: 4px 8px; border: 1px solid var(--ar-line); border-radius: 999px; background: var(--ar-card); color: var(--ar-muted); cursor: pointer; font-size: 10px; font-weight: 800; }
+.animal-level-selector button:hover { border-color: rgba(235, 177, 102, .42); background: var(--ar-raised); }
+.animal-level-selector button.is-selected { border-color: rgba(235, 177, 102, .68); background: #302219; color: var(--ar-text); }
+.animal-level-selector img { width: 19px; height: 19px; object-fit: contain; }
 
 .animals-readable-page *, .animals-readable-page *::before, .animals-readable-page *::after { box-sizing: border-box; }
 .animals-readable-page h2, .animals-readable-page p { margin: 0; }

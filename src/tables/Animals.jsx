@@ -34,6 +34,7 @@ export default function AnimalTable() {
         data: { dataSet, dataSetFarm },
         ui: {
             selectedAnimalLvl,
+            selectedAnimalPettings,
             xListeColAnimals,
             TryChecked,
         },
@@ -60,7 +61,7 @@ export default function AnimalTable() {
     useEffect(() => {
         const raf = requestAnimationFrame(measureProdStickyWidth);
         return () => cancelAnimationFrame(raf);
-    }, [selectedAnimalLvl, xListeColAnimals, TryChecked, animalsData, animalsAllLvlData]);
+    }, [selectedAnimalLvl, selectedAnimalPettings, xListeColAnimals, TryChecked, animalsData, animalsAllLvlData]);
     if (!animalsData || !animalTables?.it || !animalTables?.mutant || !animalBoostables?.nft) {
         return <div>Loading animals data...</div>;
     }
@@ -87,7 +88,12 @@ export default function AnimalTable() {
         const AnimalsTable = selectedAnimalLvl === "farm" ? Animals : animalsAllLvl;
         for (let key in AnimalsTable) {
             const isFirstAnimalTable = table.length === 0;
-            const animalKeys = Object.values(AnimalsTable[key]);
+            const pettingCount = selectedAnimalLvl === "all"
+                ? Math.max(0, Math.min(2, Number(selectedAnimalPettings) || 0))
+                : 0;
+            const animalKeys = Object.values(AnimalsTable[key]).map((row) => (
+                pettingCount > 0 ? (row?.pettingVariants?.[pettingCount] || row) : row
+            ));
             let prod1Total = 0;
             let prod2Total = 0;
             let foodTotal = {};
@@ -117,7 +123,7 @@ export default function AnimalTable() {
             const animalImg = <img src={itemImg} alt={''} className="nftico" title={itemName} />;
             const tableContent = animalKeys.map((element, rowIndex) => {
                 const cobj = element;
-                const xpprogress = cobj.xpProgress || 0;
+                const xpprogress = (TryChecked ? (cobj.xpProgresstry ?? cobj.xpProgress) : cobj.xpProgress) || 0;
                 const xptolvl = cobj.xpToLvl || 0;
                 const xlvl = cobj.lvl > 0 ? (xpprogress === xptolvl) ? cobj.lvl - 1 : cobj.lvl : 0;
                 const ignoreAnimal = dataSet.options?.ignoreAniLvl && (cobj.lvl > dataSet.options.animalLvl[itemName]);
@@ -143,7 +149,7 @@ export default function AnimalTable() {
                 const prod2cost = frmtNb(prod2costRaw) || 0;
                 const prod2costp2pRaw = (it[prod2name].costp2pt || 0) * tradeTaxMul;
                 const prod2costp2p = frmtNb(prod2costp2pRaw) || 0;
-                const prod1costuwithfoodp2pRaw = prod1 > 0 ? (foodcostp2pRaw / prod1) : 0;
+                const prod1costuwithfoodp2pRaw = Number((!TryChecked ? cobj.costyield1p2p : cobj.costyield1p2ptry) || 0);
                 const prod1costuwithfoodp2p = frmtNb(prod1costuwithfoodp2pRaw);
                 const coefprod1p2p = frmtNb(prod1costp2pRaw / prod1costRaw);
                 const coefprod1p2pPercentTxt = (Math.ceil(coefprod1p2p * 100) - 100) === Infinity ? "ꝏ" : (Math.ceil(coefprod1p2p * 100) - 100);
@@ -151,7 +157,7 @@ export default function AnimalTable() {
                 const coefprod1costuwithfoodp2p = frmtNb(prod1costp2pRaw / prod1costuwithfoodp2pRaw);
                 const coefprod1costuwithfoodp2pPercentTxt = (Math.ceil(coefprod1costuwithfoodp2p * 100) - 100) === Infinity ? "ꝏ" : (Math.ceil(coefprod1costuwithfoodp2p * 100) - 100);
                 const coefprod1costuwithfoodp2pPercent = coefprod1costuwithfoodp2pPercentTxt || 0;
-                const prod2costuwithfoodp2pRaw = prod2 > 0 ? (foodcostp2pRaw / prod2) : 0;
+                const prod2costuwithfoodp2pRaw = Number((!TryChecked ? cobj.costyield2p2p : cobj.costyield2p2ptry) || 0);
                 const prod2costuwithfoodp2p = frmtNb(prod2costuwithfoodp2pRaw);
                 const coefprod2p2p = frmtNb(prod2costp2pRaw / prod2costRaw);
                 const coefprod2p2pPercentTxt = (Math.ceil(coefprod2p2p * 100) - 100) === Infinity ? "ꝏ" : (Math.ceil(coefprod2p2p * 100) - 100);

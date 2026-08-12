@@ -10,6 +10,7 @@ import {
     imgna, imgusdc, imgCoins, imgSFL, imgGem, imgoptions, imgcancel, imgrefresh, imgrdy,
     imgstoneRes, imgironOre, imggoldOre,
 } from './constants/images.js';
+import { ANIMAL_COST_ALLOCATION_OPTIONS } from './constants/animalCostAllocation.js';
 
 const imgusdcIcon = <img src={imgusdc} alt="USDC" style={{ width: "15px", height: "15px" }} />
 const turtleResourceIcons = {
@@ -43,12 +44,6 @@ const TURTLE_ALLOCATION_OPTIONS = [
     { value: 5, label: renderTurtlePriority(["iron", "stone", "gold"]), searchText: "iron stone gold" },
     { value: 6, label: renderTurtlePriority(["stone", "gold", "iron"]), searchText: "stone gold iron" },
     { value: 7, label: renderTurtlePriority(["stone", "iron", "gold"]), searchText: "stone iron gold" },
-];
-
-const ANIMAL_COST_ALLOCATION_OPTIONS = [
-    { value: 0, label: "By quantity", searchText: "quantity stable production cost" },
-    { value: 1, label: "By market value", searchText: "market value economic" },
-    { value: 2, label: "Full cost per product", searchText: "legacy historical full cost" },
 ];
 
 function formatUsdLabel(value) {
