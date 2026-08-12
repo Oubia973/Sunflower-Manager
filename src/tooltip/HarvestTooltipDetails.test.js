@@ -36,3 +36,25 @@ test("Harvest tooltip hides production details for a backend-marked free harvest
   expect(html).not.toContain("Your production cost");
   expect(html).toContain("Profit");
 });
+
+test("Animal harvest tooltip shows food quantities and keeps cost on the Total line", () => {
+  const html = renderToStaticMarkup(<HarvestTooltipDetails
+    contract={{ itemImage: "wool.png", nodeKind: "sheep", taxPercent: 5, harvest: { growing: {
+      quantity: 22, yieldPerNode: 2.2, spots: { primary: 10 }, productionCostFlower: 0.227,
+      marketAfterTaxFlower: 0.783, profitFlower: 0.556, profitMultiplier: 3.45, profitPercent: 245,
+      isFree: false, detail: { kind: "animal", level: null, costFlower: 0.227, foodItems: [
+        { name: "Barley", image: "barley.png", quantity: 28.86 },
+        { name: "Kale", image: "kale.png", quantity: 44.89 },
+      ] },
+    } } }}
+    itemName="Wool"
+    growing
+    isPurchased={false}
+    icons={{ fallback: "fallback.png", nodes: { sheep: "sheep.png" }, flower: <span>S</span>, market: <span>M</span> }}
+  />);
+  expect(html).toContain("Food:");
+  expect(html).toContain("x28.86");
+  expect(html).toContain("x44.89");
+  expect(html).not.toContain("cost 0.227");
+  expect(html).toContain("Total: 0.227");
+});

@@ -40,7 +40,6 @@ export default function HarvestTooltipDetails({ contract, itemName, growing, isP
   if (detail?.kind === "animal") {
     detailView = <div>Food: {detail.foodItems?.map((food) => <React.Fragment key={food.name}>
       <ResourceIcon src={food.image || (food.name === "Mix" ? icons?.mix : food.name === "Omnifeed" ? icons?.omni : null)} fallback={icons?.fallback} name={food.name} />x{frmtNb(food.quantity)} </React.Fragment>)}
-      cost {frmtNb(detail.costFlower)}{icons?.flower}
       {detail.level !== null ? <div>for lvl{frmtNb(detail.level)} animals</div> : null}
     </div>;
   }
