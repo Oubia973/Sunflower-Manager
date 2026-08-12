@@ -64,6 +64,7 @@ export function useStorage(dataSet, dataSetFarm, dataSetFarmRef, setdataSetFarm,
     if (!dataSet.options?.inputKeep) { dataSet.options.inputKeep = 3 }
     if (dataSet.options?.autoTradeTax === undefined) { dataSet.options.autoTradeTax = 1 }
     if (dataSet.options?.autoRefresh === undefined) { dataSet.options.autoRefresh = true }
+    if (dataSet.options?.averageDailyCycles === undefined) { dataSet.options.averageDailyCycles = true }
     if (!dataSet.options?.gemsRatio) { dataSet.options.gemsRatio = 0.07 }
     if (!dataSet.options?.gemsPack) { dataSet.options.gemsPack = 7400 }
     if (!dataSet.options?.coinsRatio) { dataSet.options.coinsRatio = 1000 }

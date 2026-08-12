@@ -68,6 +68,34 @@ describe("DailyProfitTooltipDetails", () => {
     expect(html).not.toContain("Production cost");
   });
 
+  test("shows harvests before and after resources burned by tools", () => {
+    const html = render({
+      cycles: 3,
+      inputFarmHours: 24,
+      harvestAverage: 10,
+      harvestDaily: 24,
+      productionCostFlower: 0,
+      marketFlower: 0,
+      profitFlower: 0,
+      profitMultiplier: null,
+      profitPercent: null,
+      tradeTaxPercent: 10,
+      resourceBurn: {
+        harvestBeforeTools: 30,
+        burnedByTools: 6,
+        harvestAfterTools: 24,
+      },
+    });
+
+    expect(html).toContain("Harvest before tools");
+    expect(html).toContain("Resources burned by tools");
+    expect(html).toContain("Harvest after tools");
+    expect(html).toContain("x30");
+    expect(html).toContain("x6");
+    expect(html).toContain("x24");
+    expect(html).not.toContain("Harvest total by day");
+  });
+
   test("explains the Obsidian weekly market limit", () => {
     const html = render({
       cycles: 1,

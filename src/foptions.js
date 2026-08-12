@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import DropdownCheckbox from './listcol.js';
 import DList from "./dlist.jsx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
@@ -11,6 +11,7 @@ import {
     imgstoneRes, imgironOre, imggoldOre,
 } from './constants/images.js';
 import { ANIMAL_COST_ALLOCATION_OPTIONS } from './constants/animalCostAllocation.js';
+import { buildToolBurnOptions, resolveToolBurnSelection } from './utils/toolBurnOptions.js';
 
 const imgusdcIcon = <img src={imgusdc} alt="USDC" style={{ width: "15px", height: "15px" }} />
 const turtleResourceIcons = {
@@ -64,8 +65,9 @@ function renderGemPackOption(pack) {
     };
 }
 
-function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
+function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, toolTable }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [activeSection, setActiveSection] = useState("general");
     const [justOpened, setJustOpened] = useState(true);
     const [notifTestBusy, setNotifTestBusy] = useState(false);
     const [tradeTax, setTradeTax] = useState(dataSet.tradeTax || "");
@@ -76,6 +78,14 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
         coinsRatio: String(dataSet.coinsRatio ?? 1000),
         animalLvl: { ...(dataSet.animalLvl || {}) },
     }));
+    const toolBurnOptions = useMemo(
+        () => buildToolBurnOptions(itemTable, toolTable),
+        [itemTable, toolTable]
+    );
+    const selectedToolBurns = useMemo(
+        () => resolveToolBurnSelection(dataSet.toolsBurnCraft, toolBurnOptions),
+        [dataSet.toolsBurnCraft, toolBurnOptions]
+    );
     //const [gemRatio, setGemRatio] = useState(dataSet.gemsRatio || "");
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const [dragging, setDragging] = useState(false);
@@ -95,7 +105,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
             'input, textarea, select, button, a, label, [role="button"], .MuiInputBase-root, .MuiButtonBase-root'
         );
     const handleMouseDown = (e) => {
-        if (isInteractive(e.target)) return;
+        if (!e.target.closest(".options-modal__header") || isInteractive(e.target)) return;
         const { x, y } = getClientPos(e);
         dragStartMouse.current = { x, y };
         dragStartOffset.current = dragOffset;
@@ -114,7 +124,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 dragFrameRef.current = 0;
                 if (!tooltipRef.current) return;
                 const { x: dx, y: dy } = dragLiveOffset.current;
-                tooltipRef.current.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                tooltipRef.current.style.transform = `translate(${dx}px, ${dy}px)`;
             });
         }
     };
@@ -310,44 +320,55 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     }, [dragging]);
     return (
         <div
-            className={`tooltip-wrapper ${isOpen ? "open" : ""}`}
+            className={`tooltip-wrapper options-modal-wrapper ${isOpen ? "open" : ""}`}
             onTouchEnd={handleMouseUp}>
-            <div className="tooltip"
+            <div className="tooltip options-modal"
                 ref={tooltipRef}
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleMouseDown}
                 style={{
                     position: "fixed",
-                    left: "50%",
-                    top: "50%",
-                    transform: `translate(calc(-50% + ${dragOffset.x}px), calc(-50% + ${dragOffset.y}px))`,
+                    left: "max(12px, calc(50% - 260px))",
+                    top: "max(14px, 13dvh)",
+                    transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`,
                     willChange: "transform",
                     touchAction: "none",
                     transition: dragging ? "none" : undefined,
                     cursor: dragging ? "grabbing" : "grab",
                 }}
             >
-                <button onClick={closeModal} className="button"><img src={imgcancel} alt="" className="resico" /></button>
-                <span style={{ fontWeight: "bold", fontSize: "16px" }}>Preferences</span>
+                <header className="options-modal__header">
+                    <div>
+                        <strong>Preferences</strong>
+                        <span>Customize calculations and alerts</span>
+                    </div>
+                    <button onClick={closeModal} className="button" aria-label="Close preferences"><img src={imgcancel} alt="" className="resico" /></button>
+                </header>
+                <nav className="options-modal__tabs" aria-label="Preference categories">
+                    {[
+                        ["general", "General"],
+                        ["economy", "Economy"],
+                        ["production", "Production"],
+                        ["animals", "Animals"],
+                        ["notifications", "Alerts"],
+                    ].map(([id, label]) => (
+                        <button
+                            key={id}
+                            type="button"
+                            className={activeSection === id ? "active" : ""}
+                            onClick={() => setActiveSection(id)}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </nav>
+                <div className="options-modal__content">
+                <section className={`options-section ${activeSection === "general" ? "active" : ""}`}>
+                    <h3>General</h3>
                 <div><input type="checkbox" onChange={onOptionChange} checked={dataSet.autoRefresh !== false}
                     name={"autoRefresh"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Auto refresh tables</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.checkPlacedEquiped || 0}
                     name={"checkPlacedEquiped"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Check boosts placed/equipped</div>
-                <div
-                    title="Auto uses the real turtle coverage while nodes and turtle selections are unchanged, then switches to a simulated priority."
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                >
-                    <span>Emerald Turtle</span>
-                    <DList
-                        name="turtleAllocationMode"
-                        options={TURTLE_ALLOCATION_OPTIONS}
-                        value={Number(dataSet.turtleAllocationMode ?? 0)}
-                        onChange={onOptionChange}
-                        width={126}
-                        menuMinWidth={154}
-                        maxListHeight={260}
-                    />
-                </div>
                 <div><input type="number"
                     onChange={(e) => setDraftOptions(prev => ({ ...prev, inputFarmTime: e.target.value }))}
                     onBlur={(e) => {
@@ -371,8 +392,11 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 </div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.restockCostDaily || 0}
                     name={"restockCostDaily"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Restock counted in daily</div>
-                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.averageDailyCycles || 0}
+                <div><input type="checkbox" onChange={onOptionChange} checked={dataSet.averageDailyCycles !== false}
                     name={"averageDailyCycles"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Daily cycles average when more than 24h</div>
+                </section>
+                <section className={`options-section ${activeSection === "economy" ? "active" : ""}`}>
+                    <h3>Economy</h3>
                 <div><input type="number"
                     onChange={(e) => setDraftOptions(prev => ({ ...prev, coinsRatio: e.target.value }))}
                     onBlur={(e) => {
@@ -450,6 +474,10 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoTradeTax}
                         name={"autoTradeTax"} style={{ width: "18px", height: "18px", marginRight: 6 }} />Auto refresh
                 </div>
+                </section>
+                <section className={`options-section ${activeSection === "animals" ? "active" : ""}`}>
+                    <h3>Animal levels</h3>
+                    <div className="options-animal-grid">
                 {dataSet.animalLvl && Object.entries(dataSet.animalLvl).map(([animal, lvl]) => (
                     <div key={animal}>
                         <input
@@ -485,6 +513,10 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                         <label style={{ marginRight: "8px" }}>{animal} lvl</label>
                     </div>
                 ))}
+                    </div>
+                </section>
+                <section className={`options-section ${activeSection === "notifications" ? "active" : ""}`}>
+                    <h3>Notifications</h3>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <input
                         type="checkbox"
@@ -534,10 +566,49 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                         />
                     </button>
                 </div>
+                </section>
+                <section className={`options-section ${activeSection === "production" ? "active" : ""}`}>
+                    <h3>Production</h3>
+                <div
+                    title="Auto uses the real turtle coverage while nodes and turtle selections are unchanged, then switches to a simulated priority."
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                >
+                    <span>Emerald Turtle priority</span>
+                    <DList
+                        name="turtleAllocationMode"
+                        options={TURTLE_ALLOCATION_OPTIONS}
+                        value={Number(dataSet.turtleAllocationMode ?? 0)}
+                        onChange={onOptionChange}
+                        width={126}
+                        menuMinWidth={154}
+                        maxListHeight={260}
+                    />
+                </div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.oilFood}
                     name={"oilFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />use Oil for foods</div>
-                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.toolsBurn}
-                    name={"toolsBurn"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ressources burned by tools in daily</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <label style={{ display: "inline-flex", alignItems: "center" }}>
+                        <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.toolsBurn}
+                            name={"toolsBurn"} style={{ width: "18px", height: "18px", marginRight: 12 }} />
+                        Ressources burned by tools in daily
+                    </label>
+                    <DList
+                        options={toolBurnOptions}
+                        value={selectedToolBurns}
+                        onChange={(selection) => onOptionChange(selection, "toolsBurnCraft")}
+                        multiple
+                        closeOnSelect={false}
+                        emitEvent={false}
+                        clearable={false}
+                        listIcon={imgoptions}
+                        iconOnly
+                        height={26}
+                        menuMinWidth={210}
+                    />
+                </div>
+                </section>
+                <section className={`options-section ${activeSection === "animals" ? "active" : ""}`}>
+                    <h3>Animal costs</h3>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.usePriceFood}
                     name={"usePriceFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Use cheaper food for animals</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -562,10 +633,11 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     name={"chumFishCost"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Chum cost in Fish cost</div> */}
                 {dataSet.isAbo ? (<>
                 </>) : null}
-                <div>
-                    <p></p>
-                    <div>if you liked this tool you can give me a coffee here : </div>
-                    <div>{paymentWalletAddress ? (
+                </section>
+                </div>
+                <footer className="options-modal__about">
+                    <span>Support Sunflower Manager</span>
+                    <span>{paymentWalletAddress ? (
                         <a
                             id="copy-link"
                             href="#"
@@ -575,11 +647,11 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                             }}
                             title={`Click to copy ${paymentToken} wallet`}
                         >
-                            {paymentWalletAddress}
+                            Copy donation address
                         </a>
                     ) : (
                         <span>Wallet unavailable</span>
-                    )}</div>
+                    )}</span>
                     {/* {paymentWalletAddress ? (
                         <div>
                             <a
@@ -592,10 +664,11 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                             </a>
                         </div>
                     ) : null} */}
-                    <div>and you can help my farm here :
+                    <span>or visit my farm
                         <a id="visit-link" href="https://sunflower-land.com/play/#/visit/1972" title="Clic to visit my farm" target="_blank" rel="noopener noreferrer">
-                            : Oubia</a></div>
-                </div>
+                            : Oubia</a>
+                    </span>
+                </footer>
             </div>
         </div>
     );

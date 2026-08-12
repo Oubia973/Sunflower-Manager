@@ -185,6 +185,152 @@
   touch-action: auto;
 }
 
+/* Preferences use their own compact layout so the generic tooltip rules do not
+   turn the dialog into a nearly full-screen sheet on small devices. */
+.tooltip.options-modal {
+  width: fit-content;
+  min-width: min(340px, calc(100vw - 28px));
+  max-width: min(520px, calc(100vw - 28px));
+  height: auto;
+  max-height: min(680px, 74dvh);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #171313 0%, #0d0b0b 100%);
+  cursor: default;
+  touch-action: auto;
+}
+
+.options-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px 7px;
+  flex: 0 0 auto;
+  cursor: grab;
+  touch-action: none;
+}
+
+.options-modal__header > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.options-modal__header strong { font-size: 17px; }
+.options-modal__header span { color: rgba(255, 255, 255, 0.58); font-size: 12px; }
+
+.options-modal__tabs {
+  display: flex;
+  gap: 6px;
+  padding: 0 12px 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.options-modal__tabs::-webkit-scrollbar { display: none; }
+
+.options-modal__tabs button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.options-modal__tabs button.active {
+  border-color: rgba(220, 112, 92, 0.65);
+  background: rgba(156, 58, 58, 0.34);
+  color: #fff;
+}
+
+.options-modal__content {
+  min-height: 100px;
+  padding: 1px 12px 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+.options-section { display: none; }
+.options-section.active { display: grid; gap: 6px; }
+.options-section h3 {
+  margin: 2px 0 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.options-section > div:not(.options-animal-grid) {
+  min-height: 26px;
+  padding: 4px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  box-sizing: border-box;
+}
+
+.options-animal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.options-animal-grid > div {
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.options-modal__about {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 6px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  flex: 0 0 auto;
+}
+
+.options-modal__about a { color: rgba(255, 194, 153, 0.9); }
+
+@media (max-width: 600px) {
+  .tooltip.options-modal {
+    min-width: min(320px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    max-height: 72dvh;
+    border-radius: 14px;
+  }
+
+  .options-modal__header { padding: 9px 10px 6px; }
+  .options-modal__tabs { padding-inline: 10px; }
+  .options-modal__content { padding: 1px 10px 7px; }
+}
+
+@media (max-width: 380px) {
+  .options-animal-grid { grid-template-columns: 1fr; }
+}
+
 .chatbot-modal {
   width: min(560px, calc(100vw - 24px));
   height: min(620px, calc(100vh - 24px));

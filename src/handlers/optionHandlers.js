@@ -29,6 +29,13 @@ export function createOptionHandlers(dataSet, setOptions, handleNotificationTogg
    * Handle option changes from form inputs
    */
   function handleOptionChange(eventOrValue, fieldName = null) {
+    if (Array.isArray(eventOrValue) && fieldName) {
+      const nextOptions = { ...(dataSet.options || {}), [fieldName]: eventOrValue };
+      dataSet.options = nextOptions;
+      setOptions(nextOptions);
+      return;
+    }
+
     let xvalue = 0;
     let name = '';
     

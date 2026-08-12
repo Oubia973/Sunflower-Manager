@@ -35,6 +35,16 @@ export default function DailyProfitTooltipDetails({
   const harvestSupplement = contract?.harvestSupplement && typeof contract.harvestSupplement === "object"
     ? contract.harvestSupplement
     : null;
+  const resourceBurn = contract?.resourceBurn && typeof contract.resourceBurn === "object"
+    ? contract.resourceBurn
+    : null;
+  const harvestSupplementDisplay = <>
+    {Number(harvestSupplement?.marketFlower) > 0 ? <> {'('}{frmtNb(harvestSupplement.marketFlower)}{icons?.flower}{')'}</> : null}
+    {Number(harvestSupplement?.woodQuantity) > 0 ? <>
+      {' '}<img src={harvestSupplement.woodImage || icons?.fallback} alt="Wood" style={{ width: "20px", height: "20px" }} />x{frmtNb(harvestSupplement.woodQuantity)}
+    </> : null}
+    {Number(harvestSupplement?.woodFlower) > 0 ? <> {'('}{frmtNb(harvestSupplement.woodFlower)}{icons?.flower}{')'}</> : null}
+  </>;
   const marketSaleLimit = contract?.marketSaleLimit && typeof contract.marketSaleLimit === "object"
     ? contract.marketSaleLimit
     : null;
@@ -70,14 +80,15 @@ export default function DailyProfitTooltipDetails({
       <div>{frmtNb(contract.cycles)} harvest/day with {frmtNb(contract.inputFarmHours)}h and {frmtNb(contract.restocks)} restock</div>
       {contract.harvestTimeDaily ? <div>Time to harvest by day: {contract.harvestTimeDaily}</div> : null}
       <div>Harvest average {itemIcon}x{frmtNb(contract.harvestAverage)} {nodeDisplay}</div>
-      <div>
-        Harvest total by day {itemIcon}x{frmtNb(contract.harvestDaily)}
-        {Number(harvestSupplement?.marketFlower) > 0 ? <> {'('}{frmtNb(harvestSupplement.marketFlower)}{icons?.flower}{')'}</> : null}
-        {Number(harvestSupplement?.woodQuantity) > 0 ? <>
-          {' '}<img src={harvestSupplement.woodImage || icons?.fallback} alt="Wood" style={{ width: "20px", height: "20px" }} />x{frmtNb(harvestSupplement.woodQuantity)}
-        </> : null}
-        {Number(harvestSupplement?.woodFlower) > 0 ? <> {'('}{frmtNb(harvestSupplement.woodFlower)}{icons?.flower}{')'}</> : null}
-      </div>
+      {resourceBurn ? (
+        <>
+          <div>Harvest before tools {itemIcon}x{frmtNb(resourceBurn.harvestBeforeTools)}</div>
+          <div>Resources burned by tools {itemIcon}x{frmtNb(resourceBurn.burnedByTools)}</div>
+          <div>Harvest after tools {itemIcon}x{frmtNb(resourceBurn.harvestAfterTools)}{harvestSupplementDisplay}</div>
+        </>
+      ) : (
+        <div>Harvest total by day {itemIcon}x{frmtNb(contract.harvestDaily)}{harvestSupplementDisplay}</div>
+      )}
       {animal ? (
         <div>
           {foodIcon}x{frmtNb(animal.quantity)} cost {frmtNb(animal.costCoins)}{icons?.coins}

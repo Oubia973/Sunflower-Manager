@@ -1752,7 +1752,9 @@ function App() {
             handleCloseOptions();
             const hasChanged = JSON.stringify(initialDataSet) !== JSON.stringify(dataSet);
             if (hasChanged) { handleButtonClick("optionChanged"); }
-          }} dataSet={dataSet.options} onOptionChange={handleOptionChange} API_URL={API_URL} />
+          }} dataSet={dataSet.options} onOptionChange={handleOptionChange} API_URL={API_URL}
+            itemTable={dataSetFarm?.itables?.it || selectCurrentProjection(dataSetFarm, "invData")?.itables?.it}
+            toolTable={dataSetFarm?.itables?.tool || selectCurrentProjection(dataSetFarm, "invData")?.itables?.tool} />
         )}
         {showChatbot && canUseChatbot && (
           <ModalChatbot onClose={() => setShowChatbot(false)} API_URL={API_URL}
