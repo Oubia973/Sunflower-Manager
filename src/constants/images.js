@@ -297,7 +297,7 @@ export const imgautumn = <img src={asset('./icon/ui/autumn.webp')} alt={''} clas
 
 export const IMAGE_CSS_VARS = {
   "--asset-button": `url("${publicAsset('/button.png')}")`,
-  "--asset-exchange": `url("${publicAsset('/exchange.png')}")`,
+  "--asset-exchange": `url("${publicAsset('/icon/ui/exchange.png')}")`,
   "--asset-nifty": `url("${publicAsset('/nifty.png')}")`,
   "--asset-opensea": `url("${publicAsset('/opensea.png')}")`,
   "--asset-itemdisc": `url("${publicAsset('/icon/ui/itemdisc_01.png')}")`,

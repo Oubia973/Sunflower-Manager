@@ -25,6 +25,7 @@ import {
  * Default UI state values.
  */
 export const uiDefaults = {
+  interfaceMode: "classic",
   selectedInv: "home",
   selectedHomeMode: "current",
   selectedHomePriceMode: "prod",
@@ -105,6 +106,7 @@ export const uiDefaults = {
   petFetchSelectionInitDone: false,
   petRequestSelection: {},
   petRequestSelectionInitDone: false,
+  petShrineSelection: {},
   cstPrices: {},
   buyNodesQty: {},
   buyNodesTimeFromStock: false,
@@ -168,6 +170,13 @@ export const uiDefaults = {
  */
 export function normalizeUI(raw) {
   const next = { ...(raw || {}) };
+  // Keep the interface preference global. During the transition, migrate users
+  // who had already selected the experimental Animals view to the compact UI.
+  next.interfaceMode = next.interfaceMode === "compact"
+    ? "compact"
+    : next.selectedAnimalView === "readable"
+      ? "compact"
+      : "classic";
   // Chapter selections are persisted in localStorage. Older cached UI states may
   // contain serialized values ("true"/"false", 1/0) which the calculator API
   // correctly rejects because its contract requires actual booleans.
@@ -187,6 +196,7 @@ export function normalizeUI(raw) {
   next.chapterBountySelection = normalizeChapterSelection(next.chapterBountySelection);
   next.chapterChoreSelection = normalizeChapterSelection(next.chapterChoreSelection);
   next.chapterPoppyCategorySelection = normalizeChapterSelection(next.chapterPoppyCategorySelection);
+  next.petShrineSelection = normalizeChapterSelection(next.petShrineSelection);
   const currency = String(next.selectedCurr || "").trim().toUpperCase();
   next.selectedCurr = (currency === "FLOWER" || currency === "SFL" || currency === "")
     ? "SFL"

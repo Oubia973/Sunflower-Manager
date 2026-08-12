@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb, ColorValue, PBar } from "../fct.js";
-import { imgmix, imgomni } from "../constants/images.js";
+import { imgmix, imgomni, imghoneyTreat, imgsaltLick } from "../constants/images.js";
 import { selectCurrentProjection } from "../utils/farmState.js";
 import createAnimalUnitCostContract from "../tooltip/animalUnitCostContract.js";
 
@@ -14,8 +14,8 @@ const ANIMAL_PRODUCTS = {
 const fmt = (value, digits = 2) => Number(value || 0).toFixed(digits);
 
 export default function AnimalsReadableTable() {
-  const [expandedAnimals, setExpandedAnimals] = useState({});
-  const [detailViews, setDetailViews] = useState({});
+  const [selectedAnimalName, setSelectedAnimalName] = useState("");
+  const [detailView, setDetailView] = useState("levels");
   const {
     data: { dataSet, dataSetFarm },
     ui: { selectedAnimalLvl, TryChecked },
@@ -69,6 +69,8 @@ export default function AnimalsReadableTable() {
       const prod1BuyFood = prod1 > 0 ? foodMarketCost / prod1 : 0;
       const prod2BuyFood = prod2 > 0 ? foodMarketCost / prod2 : 0;
       const revenue = (prod1Market * prod1) + (prod2Market * prod2);
+      const honeyTreatActive = TryChecked ? !!cobj.honeyTreatActiveTry : !!cobj.honeyTreatActive;
+      const saltLickActive = TryChecked ? !!cobj.saltLickActiveTry : !!cobj.saltLickActive;
 
       let rewardImg = null;
       if (cobj.reward) {
@@ -92,26 +94,24 @@ export default function AnimalsReadableTable() {
       return {
         key: `${animalName}-${cobj.id ?? rowIndex}`, lvl, rewardImg, ignoreAnimal,
         xpprogress, xptolvl, foodQty, foodName, foodIcon: getItemIcon(foodName),
+        honeyTreatActive, saltLickActive,
         foodCycleCost, foodMarketCost, prod1, prod2, prod1Cost, prod2Cost,
         prod1Market, prod2Market, prod1BuyFood, prod2BuyFood, revenue,
         prod1Edge: prod1Cost > 0 ? prod1Market / prod1Cost : 0,
         prod2Edge: prod2Cost > 0 ? prod2Market / prod2Cost : 0,
-        prod1BuyFoodEdge: prod1BuyFood > 0 ? prod1Market / prod1BuyFood : 0,
-        prod2BuyFoodEdge: prod2BuyFood > 0 ? prod2Market / prod2BuyFood : 0,
       };
     });
 
     const prodRevenue = totals.prod1Market + totals.prod2Market;
-    const ownFoodProfit = prodRevenue - totals.foodCost;
-    const marketFoodProfit = prodRevenue - totals.marketFoodCost;
-
     return {
       animalName,
       animalIcon: getAnimalIcon(animalName),
       prod1name, prod2name,
       prod1Icon: getItemIcon(prod1name),
       prod2Icon: getItemIcon(prod2name),
-      totals, rows, prodRevenue, ownFoodProfit, marketFoodProfit,
+      totals, rows, prodRevenue,
+      ownFoodProfit: prodRevenue - totals.foodCost,
+      marketFoodProfit: prodRevenue - totals.marketFoodCost,
       levelRows: buildLevelRows(rows),
     };
   }).sort((a, b) => b.marketFoodProfit - a.marketFoodProfit || a.animalName.localeCompare(b.animalName));
@@ -136,138 +136,108 @@ export default function AnimalsReadableTable() {
     }), e);
   };
 
+  const selectedAnimal = animalsView.find((animal) => animal.animalName === selectedAnimalName) || animalsView[0];
+
   return (
     <main className="animals-readable-page">
-      <header className="animals-readable-intro">
-        <div>
-          <span className="animals-readable-eyebrow">ANIMAL WORKSHOP</span>
-          <h1>{showFarm ? "What your animals earn each cycle" : "Compare every animal level"}</h1>
-          <p>{showFarm
-            ? "Each species is calculated separately, with both food strategies side by side."
-            : "These are simulations, not your current herd. Open an animal to compare levels."}</p>
-        </div>
-        <div className="animals-readable-context">
-          <span className={TryChecked ? "is-try" : "is-live"}>{TryChecked ? "TRY SET" : "ACTIVE SET"}</span>
-          <small>{showFarm ? "Your farm" : "All levels"}</small>
-        </div>
-      </header>
-
-      <div className="animals-readable-list">
+      <div className="animal-summary-grid">
         {animalsView.map((animal) => {
-          const expanded = !!expandedAnimals[animal.animalName];
-          const detailView = detailViews[animal.animalName] || "levels";
-          const preferredProfit = Math.max(animal.ownFoodProfit, animal.marketFoodProfit);
-          const preferredFood = animal.ownFoodProfit >= animal.marketFoodProfit ? "Grow food" : "Buy food";
-
+          const selected = selectedAnimal?.animalName === animal.animalName;
+          const saved = animal.totals.marketFoodCost - animal.totals.foodCost;
           return (
-            <article className={`animal-readable-card ${expanded ? "is-expanded" : ""}`} key={animal.animalName}>
-              <div className="animal-readable-card-top">
+            <article className={`animal-summary-card ${selected ? "is-selected" : ""}`} key={animal.animalName}>
+              <header className="animal-summary-head">
                 <div className="animal-readable-identity">
                   <div className="animal-readable-avatar"><img src={animal.animalIcon} alt="" /></div>
-                  <div>
-                    <h2>{animal.animalName}</h2>
-                    <p>{showFarm
-                      ? `${animal.totals.active} included${animal.totals.ignored ? ` · ${animal.totals.ignored} ignored` : ""}`
-                      : `${animal.rows.length} levels to compare`}</p>
-                  </div>
+                  <div><h2>{animal.animalName}</h2><p>{showFarm ? `${animal.totals.active} active${animal.totals.ignored ? ` · ${animal.totals.ignored} ignored` : ""}` : `${animal.rows.length} levels`}</p></div>
                 </div>
-                {showFarm && (
-                  <div className={`animal-readable-verdict ${profitTone(preferredProfit)}`}>
-                    <span>{verdict(preferredProfit)}</span>
-                    <strong>{signed(preferredProfit)} {imgSFL}</strong>
-                    <small>best net result · {preferredFood}</small>
-                  </div>
-                )}
+                <div className="animal-summary-mobile-profits"><span style={{ color: profitabilityColor(animal.prodRevenue, animal.totals.foodCost) }}>{signed(animal.ownFoodProfit)}</span><span style={{ color: profitabilityColor(animal.prodRevenue, animal.totals.marketFoodCost) }}>{signed(animal.marketFoodProfit)}</span></div>
+                <strong className="animal-summary-value">{fmt(animal.prodRevenue)} {imgSFL}</strong>
+              </header>
+
+              <div className="animal-summary-flow">
+                <div><small>FOOD</small><FeedList feed={animal.totals.feed} getItemIcon={getItemIcon} compact /></div>
+                <span aria-hidden="true">→</span>
+                <div><small>OUTPUT</small><div className="animal-readable-output-list"><ItemAmount value={animal.totals.prod1} icon={animal.prod1Icon} name={animal.prod1name} compact /><ItemAmount value={animal.totals.prod2} icon={animal.prod2Icon} name={animal.prod2name} compact /></div></div>
               </div>
 
-              {showFarm ? (
-                <div className="animal-readable-story">
-                  <StoryStep label="Food per cycle" className="is-feed">
-                    <FeedList feed={animal.totals.feed} getItemIcon={getItemIcon} />
-                    <small>total for this species</small>
-                  </StoryStep>
-                  <StoryStep label="Output per cycle" className="is-output">
-                    <div className="animal-readable-output-list">
-                      <ItemAmount value={animal.totals.prod1} icon={animal.prod1Icon} name={animal.prod1name} />
-                      <ItemAmount value={animal.totals.prod2} icon={animal.prod2Icon} name={animal.prod2name} />
-                    </div>
-                    <small>worth {fmt(animal.prodRevenue)} {imgSFL}</small>
-                  </StoryStep>
-                  <StoryStep label="Net after food" className="is-result">
-                    <ProfitChoice label="Grow the food" icon={imgprodit} cost={animal.totals.foodCost} profit={animal.ownFoodProfit} best={preferredFood === "Grow food"} />
-                    <ProfitChoice label="Buy the food" icon={imgbuyit} cost={animal.totals.marketFoodCost} profit={animal.marketFoodProfit} best={preferredFood === "Buy food"} />
-                  </StoryStep>
-                </div>
-              ) : (
-                <div className="animal-readable-simulator-prompt">
-                  <span>Levels {animal.levelRows[0]?.lvl ?? "–"}–{animal.levelRows[animal.levelRows.length - 1]?.lvl ?? "–"}</span>
-                  <p>Open the comparison to see food, output value and profit at each level.</p>
-                </div>
-              )}
+              <div className="animal-summary-scenarios">
+                <ScenarioRow label="Produce food" icon={imgprodit} cost={animal.totals.foodCost} profit={animal.ownFoodProfit} revenue={animal.prodRevenue} />
+                <ScenarioRow label="Buy food" icon={imgbuyit} cost={animal.totals.marketFoodCost} profit={animal.marketFoodProfit} revenue={animal.prodRevenue} />
+              </div>
 
-              <button
-                type="button"
-                className="animal-readable-expand-button"
-                onClick={() => setExpandedAnimals((previous) => ({ ...previous, [animal.animalName]: !expanded }))}
-                aria-expanded={expanded}
-              >
-                <span>{expanded ? "Hide breakdown" : showFarm ? "See levels and calculations" : "Compare levels"}</span>
-                <span aria-hidden="true">{expanded ? "↑" : "↓"}</span>
-              </button>
-
-              {expanded && (
-                <div className="animal-readable-breakdown">
-                  <div className="animal-readable-tabs" role="tablist" aria-label={`${animal.animalName} details`}>
-                    <button type="button" className={detailView === "levels" ? "is-active" : ""} onClick={() => setDetailViews((p) => ({ ...p, [animal.animalName]: "levels" }))}>Easy level comparison</button>
-                    <button type="button" className={detailView === "calculations" ? "is-active" : ""} onClick={() => setDetailViews((p) => ({ ...p, [animal.animalName]: "calculations" }))}>Unit calculations</button>
-                  </div>
-
-                  {detailView === "levels" ? (
-                    <div className="animal-readable-level-grid">
-                      {animal.levelRows.map((level) => (
-                        <section className="animal-readable-level-card" key={level.lvl}>
-                          <div className="animal-readable-level-head">
-                            <div><span>LEVEL</span><strong>{level.lvl}</strong></div>
-                            {showFarm && <em>{level.count} animal{level.count === 1 ? "" : "s"}</em>}
-                          </div>
-                          <div className="animal-readable-level-sentence">
-                            <span>Eat</span><FeedList feed={level.feed} getItemIcon={getItemIcon} compact />
-                            <b>→</b><span>products worth</span><strong>{fmt(level.revenue, 3)} {imgSFL}</strong>
-                          </div>
-                          <div className="animal-readable-level-results">
-                            <ProfitLine label="Grow food" icon={imgprodit} value={level.ownProfit} />
-                            <ProfitLine label="Buy food" icon={imgbuyit} value={level.marketProfit} />
-                          </div>
-                        </section>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="animal-readable-calculations">
-                      <p className="animal-readable-hint">Select a product cost to open the full calculation.</p>
-                      {animal.rows.map((row) => (
-                        <section className={`animal-readable-cycle-row ${row.ignoreAnimal ? "is-ignored" : ""}`} key={row.key}>
-                          <div className="animal-readable-cycle-level">
-                            <span>{row.rewardImg}<strong>Lv {row.lvl}</strong></span>
-                            {PBar(row.xpprogress, 0, row.xptolvl, 0, 74)}
-                          </div>
-                          <div className="animal-readable-cycle-facts">
-                            <span title="Food per cycle"><small>Food</small><strong>{fmt(row.foodQty)} <img src={row.foodIcon} alt="" className="itico" title={row.foodName} /></strong></span>
-                            <span title="Output per cycle"><small>Output</small><strong>{fmt(row.prod1)} <img src={animal.prod1Icon} alt="" className="itico" title={animal.prod1name} /> · {fmt(row.prod2)} <img src={animal.prod2Icon} alt="" className="itico" title={animal.prod2name} /></strong></span>
-                          </div>
-                          <div className="animal-readable-unit-buttons">
-                            <UnitCostButton name={animal.prod1name} icon={animal.prod1Icon} cost={row.prod1Cost} market={row.prod1Market} edge={row.prod1Edge} onClick={(e) => openTooltip(animal, row, animal.prod1name, e)} />
-                            <UnitCostButton name={animal.prod2name} icon={animal.prod2Icon} cost={row.prod2Cost} market={row.prod2Market} edge={row.prod2Edge} onClick={(e) => openTooltip(animal, row, animal.prod2name, e)} />
-                          </div>
-                        </section>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              <footer className="animal-summary-footer">
+                <span>Difference <strong>{signed(saved)} {imgSFL}</strong></span>
+                <button type="button" onClick={() => setSelectedAnimalName(animal.animalName)} aria-pressed={selected}>{selected ? "Selected" : "View details"}</button>
+              </footer>
             </article>
           );
         })}
       </div>
+
+      {selectedAnimal && (
+        <section className="animal-detail-panel">
+          <header className="animal-detail-header">
+            <div><img src={selectedAnimal.animalIcon} alt="" /><strong>{selectedAnimal.animalName}</strong><span>{showFarm ? "farm breakdown" : "level simulation"}</span></div>
+            <div className="animal-readable-tabs" role="tablist" aria-label={`${selectedAnimal.animalName} details`}>
+              <button type="button" className={detailView === "levels" ? "is-active" : ""} onClick={() => setDetailView("levels")}>Level profitability</button>
+              <button type="button" className={detailView === "animals" ? "is-active" : ""} onClick={() => setDetailView("animals")}>Individuals</button>
+              <button type="button" className={detailView === "costs" ? "is-active" : ""} onClick={() => setDetailView("costs")}>Unit costs</button>
+            </div>
+          </header>
+
+          {detailView === "levels" ? (
+            <div className="animal-level-table">
+              <div className="animal-level-table-head"><span>Level</span><span>Food / cycle</span><span>Output / cycle</span><span>Value</span><span>Produce food</span><span>Buy food</span></div>
+              {selectedAnimal.levelRows.map((level) => (
+                <div className="animal-level-row" key={level.lvl}>
+                  <div className="animal-level-id"><strong>Lv {level.lvl}</strong>{showFarm && <small>{level.count} animal{level.count === 1 ? "" : "s"}</small>}</div>
+                  <FeedList feed={level.feed} getItemIcon={getItemIcon} compact />
+                  <div className="animal-level-output"><ItemAmount value={level.prod1} icon={selectedAnimal.prod1Icon} name={selectedAnimal.prod1name} compact /><ItemAmount value={level.prod2} icon={selectedAnimal.prod2Icon} name={selectedAnimal.prod2name} compact /></div>
+                  <strong>{fmt(level.revenue, 3)} {imgSFL}</strong>
+                  <ProfitCell cost={level.foodCost} profit={level.ownProfit} revenue={level.revenue} />
+                  <ProfitCell cost={level.marketFoodCost} profit={level.marketProfit} revenue={level.revenue} />
+                </div>
+              ))}
+            </div>
+          ) : detailView === "animals" ? (
+            <div className="animal-individual-list">
+              <div className="animal-individual-head"><span>Animal</span><span>Food → output</span><span>Value</span><span>Produce food</span><span>Buy food</span></div>
+              {selectedAnimal.rows.map((row, index) => (
+                <section className={`animal-individual-row ${row.ignoreAnimal ? "is-ignored" : ""}`} key={row.key}>
+                  <div className="animal-unit-level"><span>{row.rewardImg}<strong>#{index + 1} · Lv {row.lvl}</strong></span>{PBar(row.xpprogress, 0, row.xptolvl, 0, 68)}</div>
+                  <div className="animal-individual-cycle">
+                    <strong>{fmt(row.foodQty)} <img src={row.foodIcon} alt="" className="itico" title={row.foodName} />{row.honeyTreatActive && <img src={imghoneyTreat} alt="" className="itico" title="Honey Treat (-25% food)" />}{row.saltLickActive && <img src={imgsaltLick} alt="" className="itico" title="Salt Lick (+5% production)" />}</strong>
+                    <span aria-hidden="true">→</span>
+                    <strong>{fmt(row.prod1)} <img src={selectedAnimal.prod1Icon} alt="" className="itico" /> + {fmt(row.prod2)} <img src={selectedAnimal.prod2Icon} alt="" className="itico" /></strong>
+                  </div>
+                  <strong className="animal-individual-value">{fmt(row.revenue, 3)} {imgSFL}</strong>
+                  <ProfitCell cost={row.foodCycleCost} profit={row.revenue - row.foodCycleCost} revenue={row.revenue} />
+                  <ProfitCell cost={row.foodMarketCost} profit={row.revenue - row.foodMarketCost} revenue={row.revenue} />
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div className="animal-unit-list">
+              <div className="animal-unit-head"><span>Animal</span><span>Cycle</span><span>Product costs vs market</span></div>
+              {selectedAnimal.rows.map((row) => (
+                <section className={`animal-unit-row ${row.ignoreAnimal ? "is-ignored" : ""}`} key={row.key}>
+                  <div className="animal-unit-level"><span>{row.rewardImg}<strong>Lv {row.lvl}</strong></span>{PBar(row.xpprogress, 0, row.xptolvl, 0, 70)}</div>
+                  <div className="animal-unit-cycle">
+                    <span><small>FOOD</small><strong>{fmt(row.foodQty)} <img src={row.foodIcon} alt="" className="itico" title={row.foodName} />{row.honeyTreatActive && <img src={imghoneyTreat} alt="" className="itico" title="Honey Treat (-25% food)" />}{row.saltLickActive && <img src={imgsaltLick} alt="" className="itico" title="Salt Lick (+5% production)" />}</strong></span>
+                    <span><small>OUTPUT</small><strong>{fmt(row.prod1)} <img src={selectedAnimal.prod1Icon} alt="" className="itico" /> · {fmt(row.prod2)} <img src={selectedAnimal.prod2Icon} alt="" className="itico" /></strong></span>
+                    <span><small>VALUE</small><strong>{fmt(row.revenue, 3)} {imgSFL}</strong></span>
+                  </div>
+                  <div className="animal-readable-unit-buttons">
+                    <UnitCostButton name={selectedAnimal.prod1name} icon={selectedAnimal.prod1Icon} cost={row.prod1Cost} market={row.prod1Market} edge={row.prod1Edge} onClick={(e) => openTooltip(selectedAnimal, row, selectedAnimal.prod1name, e)} />
+                    <UnitCostButton name={selectedAnimal.prod2name} icon={selectedAnimal.prod2Icon} cost={row.prod2Cost} market={row.prod2Market} edge={row.prod2Edge} onClick={(e) => openTooltip(selectedAnimal, row, selectedAnimal.prod2name, e)} />
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </main>
   );
 }
@@ -281,9 +251,11 @@ function buildLevelRows(rows) {
   const byLevel = {};
   rows.forEach((row) => {
     if (row.ignoreAnimal) return;
-    if (!byLevel[row.lvl]) byLevel[row.lvl] = { lvl: row.lvl, count: 0, feed: {}, revenue: 0, foodCost: 0, marketFoodCost: 0 };
+    if (!byLevel[row.lvl]) byLevel[row.lvl] = { lvl: row.lvl, count: 0, feed: {}, prod1: 0, prod2: 0, revenue: 0, foodCost: 0, marketFoodCost: 0 };
     const level = byLevel[row.lvl];
     level.count += 1;
+    level.prod1 += row.prod1;
+    level.prod2 += row.prod2;
     level.revenue += row.revenue;
     level.foodCost += row.foodCycleCost;
     level.marketFoodCost += row.foodMarketCost;
@@ -296,26 +268,24 @@ function buildLevelRows(rows) {
   }));
 }
 
-function StoryStep({ label, className, children }) {
-  return <section className={`animal-readable-story-step ${className}`}><header><span>{label}</span></header><div className="animal-readable-story-content">{children}</div></section>;
-}
-
 function FeedList({ feed, getItemIcon, compact = false }) {
   const entries = Object.entries(feed || {});
   if (!entries.length) return <span className="animal-readable-empty">No food</span>;
   return <div className={`animal-readable-feed-list ${compact ? "is-compact" : ""}`}>{entries.map(([name, amount]) => <span key={name}><strong>{fmt(amount)}</strong><img src={getItemIcon(name)} alt="" title={name} /><em>{name}</em></span>)}</div>;
 }
 
-function ItemAmount({ value, icon, name }) {
-  return <span><strong>{fmt(value)}</strong><img src={icon} alt="" title={name} /><em>{name}</em></span>;
+function ItemAmount({ value, icon, name, compact = false }) {
+  return <span className={compact ? "is-compact" : ""}><strong>{fmt(value)}</strong><img src={icon} alt="" title={name} /><em>{name}</em></span>;
 }
 
-function ProfitChoice({ label, icon, cost, profit, best }) {
-  return <div className={`animal-readable-profit-choice ${best ? "is-best" : ""}`}><div><span>{label}</span>{best && <em>BEST</em>}</div><small>food costs {fmt(cost)} {icon}</small><strong className={profitTone(profit)}>{signed(profit)}</strong></div>;
+function ScenarioRow({ label, icon, cost, profit, revenue }) {
+  const color = profitabilityColor(revenue, cost);
+  return <div className="animal-scenario-row"><span>{icon}<strong>{label}</strong></span><small>Cost {fmt(cost)}</small><strong style={{ color }}>{signed(profit)}</strong><em style={{ color }}>{roi(revenue, cost)}</em></div>;
 }
 
-function ProfitLine({ label, icon, value }) {
-  return <div><span>{icon}{label}</span><strong className={profitTone(value)}>{signed(value)}</strong></div>;
+function ProfitCell({ cost, profit, revenue, label = "" }) {
+  const color = profitabilityColor(revenue, cost);
+  return <div className="animal-profit-cell" style={{ "--profit-color": color }}>{label && <small>{label}</small>}<span>cost {fmt(cost)}</span><strong>{signed(profit)}</strong><em>{roi(revenue, cost)}</em></div>;
 }
 
 function UnitCostButton({ name, icon, cost, market, edge, onClick }) {
@@ -328,14 +298,15 @@ function signed(value) {
   return `${number > 0 ? "+" : ""}${fmt(number)}`;
 }
 
-function profitTone(value) {
-  if (Number(value) > 0.005) return "is-positive";
-  if (Number(value) < -0.005) return "is-negative";
-  return "is-neutral";
+function roi(revenue, cost) {
+  const costValue = Number(cost || 0);
+  if (costValue <= 0) return "∞ ROI";
+  const value = Math.ceil(((Number(revenue || 0) / costValue) - 1) * 100);
+  return `${value > 0 ? "+" : ""}${value}%`;
 }
 
-function verdict(value) {
-  if (Number(value) > 0.005) return "Profitable";
-  if (Number(value) < -0.005) return "Losing value";
-  return "Break-even";
+function profitabilityColor(revenue, cost) {
+  const costValue = Number(cost || 0);
+  const ratio = costValue > 0 ? Number(revenue || 0) / costValue : Infinity;
+  return ColorValue(ratio);
 }

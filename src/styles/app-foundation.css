@@ -291,6 +291,59 @@ input[disabled] {
   gap: 4px;
 }
 
+.interface-mode-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.interface-mode-switch-label {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 7px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.interface-mode-switch.is-classic .interface-mode-switch-label {
+  right: 5px;
+}
+
+.interface-mode-switch.is-compact .interface-mode-switch-label {
+  left: 5px;
+}
+
+.interface-mode-switch .MuiSwitch-root {
+  width: 34px;
+  height: 22px;
+  padding: 4px;
+}
+
+.interface-mode-switch .MuiSwitch-switchBase {
+  padding: 6px;
+}
+
+.interface-mode-switch .MuiSwitch-thumb {
+  width: 10px;
+  height: 10px;
+}
+
+.interface-mode-switch .MuiSwitch-switchBase.Mui-checked {
+  transform: translateX(12px);
+}
+
+.interface-mode-switch .MuiSwitch-track {
+  border-radius: 8px;
+  background-color: #747d87;
+}
+
 .coach-help-reminder {
   border-radius: 10px;
   border: 1px solid rgba(255, 190, 120, 0.75);

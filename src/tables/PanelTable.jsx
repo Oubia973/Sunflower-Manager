@@ -24,7 +24,7 @@ import AuctionsTable from "./Auctions";
 import LavaPitsTable from "./LavaPits";
 
 export default function PanelTable() {
-  const { ui: { selectedInv, selectedAnimalView } } = useAppCtx();
+  const { ui: { selectedInv, interfaceMode } } = useAppCtx();
 
   if (selectedInv === "home") return <HomeTable />;
   if (selectedInv === "inv") return <InvTable />;
@@ -33,7 +33,7 @@ export default function PanelTable() {
   if (selectedInv === "chapter") return <ChapterTable />;
   if (selectedInv === "flower") return <FlowerTable />;
   if (selectedInv === "bounty") return <DigTable />;
-  if (selectedInv === "animal") return selectedAnimalView === "readable" ? <AnimalsReadableTable /> : <AnimalsTable />;
+  if (selectedInv === "animal") return interfaceMode === "compact" ? <AnimalsReadableTable /> : <AnimalsTable />;
   if (selectedInv === "pet") return <PetsTable />;
   if (selectedInv === "craft") return <CraftTable />;
   if (selectedInv === "cropmachine") return <CropMachineTable />;

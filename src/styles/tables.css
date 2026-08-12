@@ -160,6 +160,29 @@
   border-bottom: 0px solid rgb(83, 51, 51);
 }
 
+.table.pet-shrines-table .pet-shrines-total-components {
+  min-width: 0;
+  white-space: normal;
+}
+
+.table.pet-shrines-table .pet-shrines-components {
+  width: 180px;
+  max-width: 180px;
+}
+
+.table.pet-shrines-table .pet-shrines-total-components > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3px 8px;
+}
+
+.table.pet-shrines-table .pet-shrines-total-components span {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
 tbody tr:nth-child(odd) {
   background-color: #1d1313dc;
 }

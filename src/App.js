@@ -1331,7 +1331,7 @@ function App() {
   return (
     <>
       <div
-        className="App"
+        className={`App interface-${ui.interfaceMode === "compact" ? "compact" : "classic"}`}
         onMouseOver={handleTooltipCellMouseOver}
         onMouseOut={handleTooltipCellMouseOut}
         onMouseLeave={clearHoveredTooltipCell}
@@ -1448,6 +1448,19 @@ function App() {
                     <button data-help-id="options" onClick={handleButtonOptionsClick} title="Options" className="button"><img src={imgoptions} alt="" className="itico" /></button>
                     {showHelpReminder ? <span className="coach-help-reminder">Help</span> : null}
                     <button data-help-id="page-coach" onClick={handleButtonHelpClick} title="Help" className={`button coach-help-btn ${showHelpReminder ? "is-reminded" : ""}`}><img src={imgna} alt="" className="itico" /></button>
+                    <label
+                      className={`interface-mode-switch ${ui.interfaceMode === "compact" ? "is-compact" : "is-classic"}`}
+                      title={ui.interfaceMode === "compact" ? "Use classic interface" : "Use modern interface"}
+                    >
+                      <span className="interface-mode-switch-label" aria-hidden="true">UI</span>
+                      <Switch
+                        checked={ui.interfaceMode === "compact"}
+                        onChange={(event) => setUIField("interfaceMode", event.target.checked ? "compact" : "classic")}
+                        color="primary"
+                        size="small"
+                        inputProps={{ "aria-label": "Use compact interface" }}
+                      />
+                    </label>
                   </div>
                 </div>
                 <div className="currency-pair">
@@ -1499,12 +1512,8 @@ function App() {
                   <img src={imgsyncing} alt="Loading sections" className="itico header-loading-indicator" style={{ width: 14, height: 14, opacity: 0.9 }} />
                 ) : null}
                 {selectedInv === "animal" && (
-                  <>
-                    <DList name="selectedAnimalLvl" options={[{ value: "farm", label: "Farm" }, { value: "all", label: "All lvl" }]}
-                      value={ui.selectedAnimalLvl} onChange={handleUIChange} height={20} />
-                    <DList name="selectedAnimalView" options={[{ value: "animals", label: "Animals" }, { value: "readable", label: "Readable" }]}
-                      value={ui.selectedAnimalView} onChange={handleUIChange} height={20} />
-                  </>
+                  <DList name="selectedAnimalLvl" options={[{ value: "farm", label: "Farm" }, { value: "all", label: "All lvl" }]}
+                    value={ui.selectedAnimalLvl} onChange={handleUIChange} height={20} />
                 )}
                 {selectedInv === "home" && (
                   <DList name="selectedHomeMode" options={[{ value: "current", label: "Current harvests" }, { value: "daily", label: "Daily harvests" }]}

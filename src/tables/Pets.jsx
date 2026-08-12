@@ -42,6 +42,7 @@ export default function PetsTable() {
       petFetchSelectionInitDone,
       petRequestSelection,
       petRequestSelectionInitDone,
+      petShrineSelection,
       TryChecked
     },
     actions: {
@@ -461,7 +462,7 @@ export default function PetsTable() {
   if (petView === "shrines") {
     const shrineCols = xListeColPetShrines || [];
     const shNames = Object.keys(shrine);
-    const rows = shNames.map(shName => {
+    const shrineRows = shNames.map(shName => {
       const shrineCostContract = shrineCosts?.[shName]?.[TryChecked ? "try" : "active"];
       let compTotal = Number(shrineCostContract?.costTree?.totalCost || 0);
       let compMTotal = Number(shrineCostContract?.costTree?.totalMarket || 0);
@@ -486,12 +487,41 @@ export default function PetsTable() {
           </span>
         );
       });
-      const simg = s?.img || imgna;
+      return { shName, simg: s?.img || imgna, compo, compIcons, compTotal, compMTotal, time, supply, boost };
+    });
+    const toggleShrineSelection = (shName) => {
+      setUIField("petShrineSelection", (current) => {
+        const next = { ...(current || {}) };
+        if (next[shName]) delete next[shName];
+        else next[shName] = true;
+        return next;
+      });
+    };
+    const selectedShrineRows = shrineRows.filter(({ shName }) => !!petShrineSelection?.[shName]);
+    const selectedComponents = {};
+    const selectedTotals = selectedShrineRows.reduce((totals, row) => {
+      Object.entries(row.compo).forEach(([component, quantity]) => {
+        selectedComponents[component] = (selectedComponents[component] || 0) + Number(quantity || 0);
+      });
+      totals.cost += row.compTotal;
+      totals.bought += row.compMTotal;
+      return totals;
+    }, { cost: 0, bought: 0 });
+    const selectedComponentIcons = Object.entries(selectedComponents).map(([component, quantity]) => {
+      const itemTable = it[component] ? it : petit[component] ? petit : {};
+      return (
+        <span key={component} title={`${component}x${quantity}`}>
+          <img src={itemTable?.[component]?.img || imgna} alt="" className="itico" />x{quantity}
+        </span>
+      );
+    });
+    const rows = shrineRows.map(({ shName, simg, compIcons, compTotal, compMTotal, time, supply, boost }) => {
       return (
         <tr key={shName}>
           <td className="tdcenter" id="iccolumn"><img src={simg} alt="" className="nftico" /></td>
           {isColVisible(shrineCols, 0) ? <td className="tditem">{shName}</td> : null}
-          {isColVisible(shrineCols, 1) ? <td className="tdcenter">{compIcons.length ? compIcons : <i>N/A</i>}</td> : null}
+          <td className="tdcenter"><input type="checkbox" checked={!!petShrineSelection?.[shName]} onChange={() => toggleShrineSelection(shName)} aria-label={`Select ${shName}`} /></td>
+          {isColVisible(shrineCols, 1) ? <td className="tdcenter pet-shrines-components">{compIcons.length ? compIcons : <i>N/A</i>}</td> : null}
           {isColVisible(shrineCols, 2) ? <td className="tditem">{time}</td> : null}
           {isColVisible(shrineCols, 3) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(shName, "shrinecost", 1, e)}>{compTotal > 0 ? frmtNb(compTotal) : ""}</td> : null}
           {isColVisible(shrineCols, 4) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(shName, "shrinecost", 1, e)}>{compMTotal > 0 ? frmtNb(compMTotal) : ""}</td> : null}
@@ -501,18 +531,30 @@ export default function PetsTable() {
       );
     });
     return (
-      <table className="table">
+      <table className="table pet-shrines-table">
         <thead>
           <tr>
             <th className="thcenter"></th>
             {isColVisible(shrineCols, 0) ? <th className="thcenter">Shrine</th> : null}
-            {isColVisible(shrineCols, 1) ? <th className="thcenter">Components</th> : null}
+            <th className="thcenter"></th>
+            {isColVisible(shrineCols, 1) ? <th className="thcenter pet-shrines-components">Components</th> : null}
             {isColVisible(shrineCols, 2) ? <th className="thcenter">Time</th> : null}
             {isColVisible(shrineCols, 3) ? <th className="thcenter">Cost {imgprodit}</th> : null}
             {isColVisible(shrineCols, 4) ? <th className="thcenter">Bought {imgbuyit}</th> : null}
             {isColVisible(shrineCols, 5) ? <th className="thcenter">Supply</th> : null}
             {isColVisible(shrineCols, 6) ? <th className="thcenter">Boost</th> : null}
           </tr>
+          {selectedShrineRows.length > 0 ? <tr>
+            <th className="thcenter"></th>
+            {isColVisible(shrineCols, 0) ? <th className="thcenter">Total</th> : null}
+            <th className="thcenter"></th>
+            {isColVisible(shrineCols, 1) ? <th className="thcenter pet-shrines-components pet-shrines-total-components"><div>{selectedComponentIcons}</div></th> : null}
+            {isColVisible(shrineCols, 2) ? <th className="thcenter"></th> : null}
+            {isColVisible(shrineCols, 3) ? <th className="thcenter">{selectedTotals.cost > 0 ? frmtNb(selectedTotals.cost) : ""}</th> : null}
+            {isColVisible(shrineCols, 4) ? <th className="thcenter">{selectedTotals.bought > 0 ? frmtNb(selectedTotals.bought) : ""}</th> : null}
+            {isColVisible(shrineCols, 5) ? <th className="thcenter"></th> : null}
+            {isColVisible(shrineCols, 6) ? <th className="thcenter"></th> : null}
+          </tr> : null}
         </thead>
         <tbody>{rows}</tbody>
       </table>
