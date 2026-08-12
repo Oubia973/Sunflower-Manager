@@ -67,4 +67,27 @@ describe("DailyProfitTooltipDetails", () => {
     expect(html).toContain("You buy this item for 0.25");
     expect(html).not.toContain("Production cost");
   });
+
+  test("explains the Obsidian weekly market limit", () => {
+    const html = render({
+      cycles: 1,
+      inputFarmHours: 24,
+      harvestAverage: 1,
+      harvestDaily: 2,
+      productionCostFlower: 0.7,
+      marketFlower: 0.2,
+      profitFlower: 0.15,
+      profitMultiplier: 4,
+      profitPercent: 300,
+      tradeTaxPercent: 10,
+      marketSaleLimit: {
+        quantityPerWeek: 1,
+        averageQuantityPerDay: 1 / 7,
+        allocatedCostFlower: 0.05,
+      },
+    });
+
+    expect(html).toContain("Market sale limit: 1 per week");
+    expect(html).toContain("cost 0.05");
+  });
 });

@@ -36,6 +36,7 @@ export default function AnimalsReadableTable() {
   const { it, mutant } = animalTables;
   const { nft } = animalBoostables;
   const showFarm = selectedAnimalLvl === "farm";
+  const visibleDetailView = !showFarm && detailView === "levels" ? "animals" : detailView;
   const tableData = showFarm ? animalsData : animalsAllLvlData;
   const tradeTaxMul = (100 - Number(dataSet?.options?.tradeTax || 0)) / 100;
   const coinRatio = Number(dataSet?.options?.coinsRatio || 1);
@@ -202,13 +203,13 @@ export default function AnimalsReadableTable() {
           <header className="animal-detail-header">
             <div><img src={selectedAnimal.animalIcon} alt="" /><strong>{selectedAnimal.animalName}</strong><span>{showFarm ? "farm breakdown" : "level simulation"}</span></div>
             <div className="animal-readable-tabs" role="tablist" aria-label={`${selectedAnimal.animalName} details`}>
-              <button type="button" className={detailView === "levels" ? "is-active" : ""} onClick={() => setDetailView("levels")}>Level profitability</button>
-              <button type="button" className={detailView === "animals" ? "is-active" : ""} onClick={() => setDetailView("animals")}>Individuals</button>
-              <button type="button" className={detailView === "costs" ? "is-active" : ""} onClick={() => setDetailView("costs")}>Unit costs</button>
+              {showFarm && <button type="button" className={visibleDetailView === "levels" ? "is-active" : ""} onClick={() => setDetailView("levels")}>Level profitability</button>}
+              <button type="button" className={visibleDetailView === "animals" ? "is-active" : ""} onClick={() => setDetailView("animals")}>Individuals</button>
+              <button type="button" className={visibleDetailView === "costs" ? "is-active" : ""} onClick={() => setDetailView("costs")}>Unit costs</button>
             </div>
           </header>
 
-          {detailView === "levels" ? (
+          {visibleDetailView === "levels" ? (
             <div className="animal-level-table">
               <div className="animal-level-table-head"><span>Level</span><span>Food / cycle</span><span>Output / cycle</span><span>Value</span><span>Produce food</span><span>Buy food</span></div>
               {selectedAnimal.levelRows.map((level) => (
@@ -222,7 +223,7 @@ export default function AnimalsReadableTable() {
                 </div>
               ))}
             </div>
-          ) : detailView === "animals" ? (
+          ) : visibleDetailView === "animals" ? (
             <div className="animal-individual-list">
               <div className="animal-individual-head"><span>Animal</span><span>Food → output</span><span>Value</span><span>Produce food</span><span>Buy food</span></div>
               {selectedAnimal.rows.map((row) => (

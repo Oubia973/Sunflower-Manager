@@ -35,6 +35,9 @@ export default function DailyProfitTooltipDetails({
   const harvestSupplement = contract?.harvestSupplement && typeof contract.harvestSupplement === "object"
     ? contract.harvestSupplement
     : null;
+  const marketSaleLimit = contract?.marketSaleLimit && typeof contract.marketSaleLimit === "object"
+    ? contract.marketSaleLimit
+    : null;
   const oilIcon = production?.oilQuantity > 0 ? (
     <img
       src={production.oilImage || icons?.fallback}
@@ -127,6 +130,12 @@ export default function DailyProfitTooltipDetails({
         <div>
           Restock: {Number(contract.restockGems) > 0 ? <>{frmtNb(contract.restockGems)}{icons?.gem} </> : null}
           {'('}{frmtNb(contract.restockFlower)}{icons?.flower}{')'}
+        </div>
+      ) : null}
+      {marketSaleLimit ? (
+        <div>
+          Market sale limit: {frmtNb(marketSaleLimit.quantityPerWeek)} per week
+          {' ('}{frmtNb(marketSaleLimit.averageQuantityPerDay)}/day average, cost {frmtNb(marketSaleLimit.allocatedCostFlower)}{icons?.flower}{')'}
         </div>
       ) : null}
       <div>Marketplace{icons?.market}-{frmtNb(contract.tradeTaxPercent)}% tax {frmtNb(contract.marketFlower)}{icons?.flower}</div>
