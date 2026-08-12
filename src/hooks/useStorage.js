@@ -77,6 +77,7 @@ export function useStorage(dataSet, dataSetFarm, dataSetFarmRef, setdataSetFarm,
     if (!dataSet.options?.oilFood) { dataSet.options.oilFood = 0 }
     if (dataSet.options?.chumFishCost === undefined) { dataSet.options.chumFishCost = 0 }
     if (dataSet.options?.turtleAllocationMode === undefined) { dataSet.options.turtleAllocationMode = 0 }
+    if (dataSet.options?.animalCostAllocationMode === undefined) { dataSet.options.animalCostAllocationMode = 0 }
     setOptions(dataSet.options);
   }, [dataSet, setOptions]);
 

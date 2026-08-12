@@ -45,6 +45,12 @@ const TURTLE_ALLOCATION_OPTIONS = [
     { value: 7, label: renderTurtlePriority(["stone", "iron", "gold"]), searchText: "stone iron gold" },
 ];
 
+const ANIMAL_COST_ALLOCATION_OPTIONS = [
+    { value: 0, label: "By quantity", searchText: "quantity stable production cost" },
+    { value: 1, label: "By market value", searchText: "market value economic" },
+    { value: 2, label: "Full cost per product", searchText: "legacy historical full cost" },
+];
+
 function formatUsdLabel(value) {
     const num = Number(value) || 0;
     return num.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
@@ -215,6 +221,16 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 console.log(`Error : ${error?.message || error}`);
             }
         }
+    };
+
+    const handleAnimalCostHelpClick = async (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+        await promptInfo(
+            "Animals can produce two resources from the same feeding cycle. This setting decides how that single cycle cost is assigned to them.\n\nBy quantity: every produced unit receives the same cost. It is stable and independent of market prices.\n\nBy market value: the cycle cost is split according to each output's net market value. Market prices only determine the split; they do not change the total production cost. If no usable market value exists, the calculation falls back to quantity.\n\nFull cost per product: keeps the historical calculation by assigning the entire feeding cost to each product. This double-counts the cycle when both products are considered together.\n\nThe selected unit costs are also used by downstream production calculations, such as Leather or Wool used for Oil Drills.",
+            "Animal production cost",
+            "Got it"
+        );
     };
     function handleChangeTradeTax(e) {
         setTradeTax(e.target.value);
@@ -529,6 +545,20 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     name={"toolsBurn"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ressources burned by tools in daily</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.usePriceFood}
                     name={"usePriceFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Use cheaper food for animals</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>Animal cost allocation</span>
+                    <DList
+                        name="animalCostAllocationMode"
+                        options={ANIMAL_COST_ALLOCATION_OPTIONS}
+                        value={Number(dataSet.animalCostAllocationMode ?? 0)}
+                        onChange={onOptionChange}
+                        width={158}
+                        menuMinWidth={190}
+                    />
+                    <button type="button" onClick={handleAnimalCostHelpClick} title="Animal production cost help" className="button small-btn">
+                        <img src={imgna} alt="?" className="itico" />
+                    </button>
+                </div>
                 {/* <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.mergeAniProd}
                     name={"mergeAniProd"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Set animals 2nd prod.cost to 0</div> */}
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.ignoreAniLvl}
