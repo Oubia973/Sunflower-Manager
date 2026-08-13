@@ -170,6 +170,10 @@ body {
   min-width: 0;
 }
 
+@media (max-width: 720px) {
+  .header-controls-animal > .animal-calculations-select { display: none; }
+}
+
 .container {
   display: flex;
   justify-content: space-between;

@@ -1532,6 +1532,7 @@ function App() {
                     <DList
                       name="animalCostAllocationMode"
                       helpId="animal-cost-mode"
+                      className="animal-calculations-select"
                       title="Calculations"
                       options={ANIMAL_COST_ALLOCATION_OPTIONS}
                       value={Number(dataSet.options?.animalCostAllocationMode ?? 0)}
