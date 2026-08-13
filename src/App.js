@@ -1450,7 +1450,7 @@ function App() {
                     {showHelpReminder ? <span className="coach-help-reminder">Help</span> : null}
                     <button data-help-id="page-coach" onClick={handleButtonHelpClick} title="Help" className={`button coach-help-btn ${showHelpReminder ? "is-reminded" : ""}`}><img src={imgna} alt="" className="itico" /></button>
                     <label
-                      className={`interface-mode-switch ${ui.interfaceMode === "compact" ? "is-compact" : "is-classic"}`}
+                      className={`interface-mode-switch mobile-interface-mode-switch ${ui.interfaceMode === "compact" ? "is-compact" : "is-classic"}`}
                       title={ui.interfaceMode === "compact" ? "Use classic interface" : "Use modern interface"}
                     >
                       <span className="interface-mode-switch-label" aria-hidden="true">UI</span>
@@ -1467,6 +1467,19 @@ function App() {
                 <div className="currency-pair">
                   <div className="currency"><img src={imgsfl} alt="" className="nodico" />{Number.isFinite(Number(priceData?.[2])) ? Number(priceData[2]).toFixed(3) : "--"}</div>
                   <div className="currency"><img src={imgmatic} alt="" className="curr-icon" />{Number.isFinite(Number(priceData?.[1])) ? Number(priceData[1]).toFixed(3) : "--"}</div>
+                  <label
+                    className={`interface-mode-switch currency-interface-mode-switch ${ui.interfaceMode === "compact" ? "is-compact" : "is-classic"}`}
+                    title={ui.interfaceMode === "compact" ? "Use classic interface" : "Use modern interface"}
+                  >
+                    <span className="interface-mode-switch-label" aria-hidden="true">UI</span>
+                    <Switch
+                      checked={ui.interfaceMode === "compact"}
+                      onChange={(event) => setUIField("interfaceMode", event.target.checked ? "compact" : "classic")}
+                      color="primary"
+                      size="small"
+                      inputProps={{ "aria-label": "Use compact interface" }}
+                    />
+                  </label>
                 </div>
               </div>
             ) : ("")}

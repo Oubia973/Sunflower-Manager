@@ -537,31 +537,20 @@ export default function CookTable() {
         ) : null;
         const bumpkinCook = bumpkinData?.[0] || {};
         const bfdtolvl = !TryChecked ? (bumpkinCook?.foodtolvl ?? 0) : (bumpkinCook?.foodtolvltry ?? 0);
-        const currentLevelLabel = bumpkinCook?.levelLabelWithCap || bumpkinCook?.levelLabel || `lvl ${bumpkinCook?.lvl ?? 0}`;
-        const projectedLevelLabel = !TryChecked
-            ? (bumpkinCook?.foodlevelLabel || `lvl ${bfdtolvl}`)
-            : (bumpkinCook?.foodlevelLabeltry || `lvl ${bfdtolvl}`);
-        const projectedTotalLevel = !TryChecked
-            ? Number(bumpkinCook?.foodtotallevel)
-            : Number(bumpkinCook?.foodtotalleveltry);
+        const currentLevelLabel = bumpkinCook?.levelLabel || `lvl ${bumpkinCook?.lvl ?? 0}`;
         const potentialLevelLabel = !TryChecked
             ? bumpkinCook?.foodpotentialLabel
             : bumpkinCook?.foodpotentialLabeltry;
-        const potentialTotalLevel = !TryChecked
-            ? Number(bumpkinCook?.foodpotentialtotallevel)
-            : Number(bumpkinCook?.foodpotentialtotalleveltry);
-        const readyToAscend = !TryChecked
-            ? Boolean(bumpkinCook?.foodreadytoascend)
-            : Boolean(bumpkinCook?.foodreadytoascendtry);
-        const hasBankedFutureLevel = (
-            potentialLevelLabel &&
-            Number.isFinite(projectedTotalLevel) &&
-            Number.isFinite(potentialTotalLevel) &&
-            potentialTotalLevel > projectedTotalLevel
-        );
-        const bfdpstlvlRaw = !TryChecked ? Number(bumpkinCook?.foodxppastlvl) : Number(bumpkinCook?.foodxppastlvltry);
+        const projectedLevelLabel = potentialLevelLabel || `lvl ${bfdtolvl}`;
+        const readyToAscend = false;
+        const hasBankedFutureLevel = false;
+        const bfdpstlvlRaw = !TryChecked
+            ? Number(bumpkinCook?.foodpotentialxppastlvl)
+            : Number(bumpkinCook?.foodpotentialxppastlvltry);
         const bfdpstlvl = Number.isFinite(bfdpstlvlRaw) ? Math.ceil(bfdpstlvlRaw) : 0;
-        const bxptonxtlvlRaw = !TryChecked ? Number(bumpkinCook?.xptonextlvl) : Number(bumpkinCook?.xptonextlvltry);
+        const bxptonxtlvlRaw = !TryChecked
+            ? Number(bumpkinCook?.foodpotentialxptonextlvl)
+            : Number(bumpkinCook?.foodpotentialxptonextlvltry);
         const bxptonxtlvl = Number.isFinite(bxptonxtlvlRaw) ? Math.ceil(bxptonxtlvlRaw) : 0;
         const stockProgressBadge = selectedQuantityCook === "farm" ? (
             <div

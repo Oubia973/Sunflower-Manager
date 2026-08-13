@@ -276,6 +276,14 @@ input[disabled] {
   align-items: flex-end;
 }
 
+.currency-interface-mode-switch {
+  align-self: center;
+}
+
+.interface-mode-switch.mobile-interface-mode-switch {
+  display: none;
+}
+
 .currency-actions {
   display: flex;
   align-items: center;
@@ -481,6 +489,15 @@ input[disabled] {
     top: 2px;
     right: 2px;
     pointer-events: auto;
+  }
+
+  /* On narrow screens, keep the UI mode in the same row as Help. */
+  .currency-interface-mode-switch {
+    display: none;
+  }
+
+  .interface-mode-switch.mobile-interface-mode-switch {
+    display: inline-flex;
   }
 
   .coach-help-reminder {
