@@ -118,6 +118,9 @@ export default function QuickTryDrawer({
   const [panelSize, setPanelSize] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  // Keep edits visible in this drawer without publishing an incomplete
+  // recalculation to the rest of the application.
+  const [pendingTryState, setPendingTryState] = useState(null);
   const latestStateRef = useRef(null);
   const applyTimerRef = useRef(null);
   const requestIdRef = useRef(0);
@@ -192,7 +195,7 @@ export default function QuickTryDrawer({
   }, [open]);
 
   const entries = useMemo(() => {
-    const boosts = withTryTables(dataSetFarm)?.boostables || {};
+    const boosts = withTryTables(pendingTryState || dataSetFarm)?.boostables || {};
     const normalizedQuery = query.trim().toLowerCase();
     return TABLE_ORDER.flatMap((tableName) => Object.entries(boosts?.[tableName] || {}).map(([name, item]) => ({
       tableName,
@@ -204,13 +207,13 @@ export default function QuickTryDrawer({
       .filter((entry) => tableFilter === "all" || entry.tableName === tableFilter)
       .filter((entry) => !changedOnly || entry.tryValue !== entry.activeValue)
       .filter((entry) => !normalizedQuery || `${entry.name} ${entry.item?.boost || ""}`.toLowerCase().includes(normalizedQuery));
-  }, [dataSetFarm, query, tableFilter, changedOnly]);
+  }, [dataSetFarm, pendingTryState, query, tableFilter, changedOnly]);
 
   const changedCount = useMemo(() => {
-    const boosts = withTryTables(dataSetFarm)?.boostables || {};
+    const boosts = withTryTables(pendingTryState || dataSetFarm)?.boostables || {};
     return TABLE_ORDER.reduce((count, tableName) => count + Object.values(boosts?.[tableName] || {})
       .filter((item) => getTryValue(tableName, item) !== getActiveValue(tableName, item)).length, 0);
-  }, [dataSetFarm]);
+  }, [dataSetFarm, pendingTryState]);
 
   const applyState = async (state, requestId) => {
     const snapshot = buildCanonicalTryitSnapshot(state, tryitConfig) || {};
@@ -264,6 +267,8 @@ export default function QuickTryDrawer({
         buildCanonicalTryitSnapshot(latestState, tryitConfig)
       );
       latestStateRef.current = merged;
+      setPendingTryState(null);
+      if (!TryChecked) setUIField("TryChecked", true);
       handleRefreshfTNFT(dataSet, merged, { persistTrySnapshot: false, markTryitSynced: true });
       setStatus("done");
     } catch (applyError) {
@@ -297,10 +302,9 @@ export default function QuickTryDrawer({
     }
     const synced = syncTryitStateAcrossFarmState(current, tryitConfig);
     latestStateRef.current = synced;
+    setPendingTryState(synced);
     const snapshot = buildCanonicalTryitSnapshot(synced, tryitConfig);
     if (snapshot) writeTryitSnapshot(snapshot, farmId);
-    handleRefreshfTNFT(dataSet, synced);
-    if (!TryChecked) setUIField("TryChecked", true);
     queueApply(synced);
   };
 
