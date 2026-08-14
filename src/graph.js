@@ -262,7 +262,7 @@ function parseGraphDate(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, selectedCategory = 'all', legendResetToken = 0, isLoading = false, quantityItemId = "" }) {
+function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, selectedCategory = 'all', legendResetToken = 0, isLoading = false, quantityItemId = "", showQuantity = true, onSoloItem }) {
   const chartRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -548,6 +548,7 @@ function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, sel
   }, [data, idName, selectedCategory, vals, boostKeys, boostPriceUnit, usdPerSfl, boostSupplyByName]);
 
   const quantityDataset = useMemo(() => {
+    if (!showQuantity) return null;
     if (selectedCategory === "boost") return null;
     const selectedId = Number(quantityItemId);
     const sourceData = Array.isArray(quantityData) && quantityData.length > 0 ? quantityData : data;
@@ -601,7 +602,7 @@ function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, sel
       grouped: false,
       data: quantityPoints,
     };
-  }, [data, quantityData, graphMeta, idName, quantityItemId, selectedCategory]);
+  }, [data, quantityData, graphMeta, idName, quantityItemId, selectedCategory, showQuantity]);
 
   const chartDatasets = useMemo(() => {
     if (!quantityDataset) return datasets;
@@ -886,7 +887,8 @@ function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, sel
     });
   };
 
-  const soloLegendItem = (label) => {
+  const soloLegendItem = (dataset) => {
+    const label = dataset.label;
     const allLabels = datasets.map((dataset) => dataset.label);
     const isAlreadySolo =
       soloLabel === label &&
@@ -901,6 +903,7 @@ function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, sel
 
     setSoloLabel(label);
     setHiddenLabels(new Set(allLabels.filter((itemLabel) => itemLabel !== label)));
+    onSoloItem?.(dataset.id);
   };
 
   return (
@@ -968,7 +971,7 @@ function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, sel
                   className="graph-legend-solo"
                   title="Only show this"
                   aria-label={`Solo ${dataset.label}`}
-                  onClick={() => soloLegendItem(dataset.label)}
+                  onClick={() => soloLegendItem(dataset)}
                 >
                   <img src={imglightning} alt="" className="graph-legend-solo-icon" />
                 </button>

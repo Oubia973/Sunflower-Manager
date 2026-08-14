@@ -149,6 +149,7 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
   const [graphMetaById, setGraphMetaById] = useState({});
   const [graphLoadingCount, setGraphLoadingCount] = useState(0);
   const [selectedQuantityItemId, setSelectedQuantityItemId] = useState("");
+  const [quantityDisplayMode, setQuantityDisplayMode] = useState("auto");
   const isGraphLoading = graphLoadingCount > 0;
   const visibleCategoryKeys = GRAPH_CATEGORY_KEYS.filter((category) => category !== "all");
   const quantityItemOptions = useMemo(
@@ -184,6 +185,12 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
   const handleChangeQuantityItem = (event) => {
     const selectedValue = String(event?.target?.value || "");
     setSelectedQuantityItemId(selectedValue);
+    setQuantityDisplayMode("on");
+  };
+  const handleSoloQuantityItem = (itemId) => {
+    if (quantityDisplayMode !== "auto") return;
+    const nextId = String(itemId ?? "");
+    if (nextId) setSelectedQuantityItemId(nextId);
   };
   async function ReqGraph(fetchMode = "shared") {
     try {
@@ -327,16 +334,36 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
           />
           <button type="button" className="graph-mode-btn graph-mode-btn-reset" onClick={() => setLegendResetToken((prev) => prev + 1)}>Reset</button>
           {graphtype === "Marketplace" && selectedCategory !== "boost" && quantityItemOptions.length > 0 ? (
-            <DList
-              name="quantityItem"
-              title="Quantity sold"
-              options={quantityItemOptions}
-              value={selectedQuantityItemId}
-              onChange={handleChangeQuantityItem}
-              searchable={true}
-              clearable={false}
-              height={22}
-            />
+            <div className="quantity-selector-group">
+              <DList
+                name="quantityItem"
+                title="Quantity sold"
+                options={quantityItemOptions}
+                value={selectedQuantityItemId}
+                onChange={handleChangeQuantityItem}
+                searchable={true}
+                clearable={false}
+                height={22}
+              />
+              <div className="quantity-display-control" role="group" aria-label="Quantity sold display mode">
+                {[
+                  { value: "off", label: "×", title: "Off — hide quantity sold" },
+                  { value: "on", label: "●", title: "On — show the manually selected item" },
+                  { value: "auto", label: "A", title: "Auto — follow the item selected with Only show this" },
+                ].map((mode) => (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    className={`quantity-display-btn ${quantityDisplayMode === mode.value ? "is-active" : ""}`}
+                    title={mode.title}
+                    aria-pressed={quantityDisplayMode === mode.value}
+                    onClick={() => setQuantityDisplayMode(mode.value)}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : null}
         </div>
         <div className="modalgraph-header-right">
@@ -377,6 +404,8 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
           legendResetToken={legendResetToken}
           isLoading={isGraphLoading}
           quantityItemId={selectedQuantityItemId}
+          showQuantity={quantityDisplayMode !== "off"}
+          onSoloItem={handleSoloQuantityItem}
         />
       </div>
     </div>

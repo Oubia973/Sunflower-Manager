@@ -165,9 +165,23 @@ export default function AnimalsReadableTable() {
       <div className="animal-summary-grid">
         {animalsView.map((animal) => {
           const selected = selectedAnimal?.animalName === animal.animalName;
-          const saved = animal.totals.marketFoodCost - animal.totals.foodCost;
+          const selectAnimal = () => setSelectedAnimalName(animal.animalName);
           return (
-            <article className={`animal-summary-card ${selected ? "is-selected" : ""}`} key={animal.animalName}>
+            <article
+              className={`animal-summary-card ${selected ? "is-selected" : ""}`}
+              key={animal.animalName}
+              role="button"
+              tabIndex={0}
+              aria-pressed={selected}
+              aria-label={`View ${animal.animalName} details`}
+              onClick={selectAnimal}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  selectAnimal();
+                }
+              }}
+            >
               <header className="animal-summary-head">
                 <div className="animal-readable-identity">
                   <div className="animal-readable-avatar"><img src={animal.animalIcon} alt="" /></div>
@@ -191,10 +205,6 @@ export default function AnimalsReadableTable() {
                 <ScenarioRow label="Buy food" icon={imgbuyit} cost={animal.totals.marketFoodCost} profit={animal.marketFoodProfit} revenue={animal.prodRevenue} />
               </div>
 
-              <footer className="animal-summary-footer">
-                <span>Difference <strong>{signed(saved)} {imgSFL}</strong></span>
-                <button type="button" onClick={() => setSelectedAnimalName(animal.animalName)} aria-pressed={selected}>{selected ? "Selected" : "View details"}</button>
-              </footer>
             </article>
           );
         })}
