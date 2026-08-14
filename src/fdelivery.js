@@ -59,6 +59,9 @@ function ModalDlvr({
     deliveryPageData?.tooltipData?.choreComponents,
     TryChecked
   );
+  const choreComponentRowsByName = Object.fromEntries(
+    (choreComponentsContract?.rows || []).map((row) => [row.name, row])
+  );
   const deliveryTables = deliveryPageData?.itables || dataSetFarm?.itables || EMPTY_DELIVERY_TABLES;
   const hasDeliveryTables = !!deliveryTables?.it || !!Object.keys(deliveryTables || {}).length;
   const {
@@ -66,6 +69,7 @@ function ModalDlvr({
     food = {},
     fish = {},
     pfood = {},
+    ferment = {},
     bounty = {},
     crustacean = {},
     craft = {},
@@ -116,7 +120,7 @@ function ModalDlvr({
     return yellow > 0 && (gained + yellow) >= requirement;
   };
   const getItemBase = (name) => (
-    it?.[name] || food?.[name] || pfood?.[name] || fish?.[name] || bounty?.[name] || crustacean?.[name] || craft?.[name] || petit?.[name] || flower?.[name] || tool?.[name] || mutant?.[name] || compost?.[name] || null
+    it?.[name] || food?.[name] || pfood?.[name] || ferment?.[name] || fish?.[name] || bounty?.[name] || crustacean?.[name] || craft?.[name] || petit?.[name] || flower?.[name] || tool?.[name] || mutant?.[name] || compost?.[name] || null
   );
   const resolveDeliveryItem = (name) => {
     const direct = getItemBase(name);
@@ -524,6 +528,13 @@ function ModalDlvr({
       actTotReward += item[1].completed && item[1].reward;
       const getItemImg = (name, qty) => {
         if (!name) return null;
+        const prepared = choreComponentRowsByName[name];
+        if (prepared) {
+          totCostChore += Number(prepared.unitCost || 0) * qty;
+          totMarketChore += Number(prepared.unitMarket || 0) * qty;
+          if (Number(prepared.stock || 0) < Number(tableData.totcomp?.[name] || 0)) { notInStock = true; }
+          return { src: prepared.itemImage || imgna, isAged: !!prepared.isAged };
+        }
         const resolved = resolveDeliveryItem(name);
         if (!resolved) return { src: imgna, isAged: false };
         const { production, market } = getResolvedUnitPrices(resolved);

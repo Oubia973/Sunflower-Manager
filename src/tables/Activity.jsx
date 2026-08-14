@@ -1551,7 +1551,7 @@ function setActivityQuest(activityData, dataSetFarm, ui, ctx) {
     }
 }
 function setActivityTot(activityData, xContext, dataSetFarm, dataSet, prevDayActivity = null) {
-    const { it, food, pfood, fish, flower, bounty, craft, tool, compost, petit, mutant, crustacean } = dataSetFarm.itables;
+    const { it, food, pfood, ferment, fish, flower, bounty, craft, tool, compost, petit, mutant, crustacean } = dataSetFarm.itables;
     const { nft, nftw } = dataSetFarm.boostables;
     const dateSeasonConst = dataSetFarm.constants.dateSeason;
     const dateSeasonDailyStartConst = dataSetFarm.constants.dateSeasonDailyStart || dateSeasonConst;
@@ -1819,7 +1819,7 @@ function setActivityTot(activityData, xContext, dataSetFarm, dataSet, prevDayAct
                         }, {})
                         : {};
                 const getItemBase = (name) => (
-                    it?.[name] || food?.[name] || pfood?.[name] || fish?.[name] || flower?.[name] || bounty?.[name] || craft?.[name] || tool?.[name] || compost?.[name] || petit?.[name] || mutant?.[name] || crustacean?.[name] || null
+                    it?.[name] || food?.[name] || pfood?.[name] || ferment?.[name] || fish?.[name] || flower?.[name] || bounty?.[name] || craft?.[name] || tool?.[name] || compost?.[name] || petit?.[name] || mutant?.[name] || crustacean?.[name] || null
                 );
                 if (OrderItem.completed && (xContext !== "day" || deliveryCompletedToday)) {
                     delivBurn[item] = [];
@@ -2067,7 +2067,7 @@ function setActivityTotQuest(activityData, dataSetFarm) {
         const lower = key.toLowerCase();
         if (lower === "coins" || lower === "coin") return imgcoins;
         if (lower === "sfl") return imgsfl;
-        const tables = ["it", "food", "pfood", "fish", "flower", "bounty", "craft", "tool", "compost", "petit", "mutant", "crustacean"];
+        const tables = ["it", "food", "pfood", "ferment", "fish", "flower", "bounty", "craft", "tool", "compost", "petit", "mutant", "crustacean"];
         for (const tableName of tables) {
             const table = itables?.[tableName];
             const hit = table?.[key];
