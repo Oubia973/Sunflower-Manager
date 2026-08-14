@@ -26,6 +26,8 @@ import SupplyTooltipDetails from './SupplyTooltipDetails.jsx';
 import BuildCraftTooltipDetails from './BuildCraftTooltipDetails.jsx';
 import CookCostTooltipDetails from './CookCostTooltipDetails.jsx';
 import BoostTooltipDetails from './BoostTooltipDetails.jsx';
+import RngRealizedTooltipDetails from './RngRealizedTooltipDetails.jsx';
+import RngItemSummaryTooltipDetails from './RngItemSummaryTooltipDetails.jsx';
 import {
     imgna,
     imgcoins as imgcoinsSrc,
@@ -713,6 +715,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         if (context === "boostdetails") {
             txt = <BoostTooltipDetails contract={value} fallbackImage={imgna} />;
         }
+        if (context === "rngrealized") {
+            txt = <RngRealizedTooltipDetails contract={value} fallbackImage={imgna} />;
+        }
+        if (context === "rngsummary") {
+            txt = <RngItemSummaryTooltipDetails contract={value} fallbackImage={imgna} />;
+        }
         if (context === "trynfthelp") {
             txt = (
                 <>
@@ -950,7 +958,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             onMouseUp={bdrag ? handleMouseUp : undefined}
             onTouchEnd={bdrag ? handleMouseUp : undefined}>
             <div ref={tooltipRef}
-                className={`tooltip ${!bdrag ? "scrollable" : ""} ${context === "trades" ? "tooltip-trades-mode" : ""} ${(context === "deliverycost" || context === "deliverybountycost") ? "tooltip-delivery-mode" : ""}`}
+                className={`tooltip ${!bdrag ? "scrollable" : ""} ${context === "trades" ? "tooltip-trades-mode" : ""} ${(context === "deliverycost" || context === "deliverybountycost") ? "tooltip-delivery-mode" : ""} ${(context === "rngrealized" || context === "rngsummary") ? "tooltip-rng-mode" : ""}`}
                 onMouseDown={(e) => {
                     e.stopPropagation();
                     if (!bdrag || isDeliveryTooltip) return;

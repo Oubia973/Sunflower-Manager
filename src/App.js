@@ -260,6 +260,7 @@ function App() {
     return {
       ...base,
       lavapits: Array.isArray(base?.lavapits) ? base.lavapits : ["core", "lavapits"],
+      rngprediction: Array.isArray(base?.rngprediction) ? base.rngprediction : ["core", "rngprediction"],
     };
   }, [sectionsMeta]);
   const sectionPayloadKeys = sectionsMeta?.sectionKeys || null;
@@ -723,7 +724,7 @@ function App() {
 
   useEffect(() => {
     if (!aboStatusKnown) return;
-    if (String(ui?.selectedInv || "home") !== "lavapits") return;
+    if (!["lavapits", "rngprediction"].includes(String(ui?.selectedInv || "home"))) return;
     if (isAboFarm) return;
     setUIField("selectedInv", "home");
   }, [aboStatusKnown, isAboFarm, ui?.selectedInv, setUIField]);
@@ -1228,6 +1229,7 @@ function App() {
     { value: "expand", label: "Expand", iconSrc: imghammer },
     { value: "buynodes", label: "Buy nodes", iconSrc: imgsunstoneRock1 },
     ...(isAboFarm ? [{ value: "lavapits", label: "Lavapits", iconSrc: imglavaPit }] : []),
+    ...(isAboFarm ? [{ value: "rngprediction", label: "RNG", iconSrc: imglightning }] : []),
     { value: "factions", label: "Factions", iconSrc: imgfactions },
     { value: "market", label: "Market", iconSrc: imgexchng },
     { value: "chapter", label: "Chapter", iconSrc: imgchapter },
