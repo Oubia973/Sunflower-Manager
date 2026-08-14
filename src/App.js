@@ -14,6 +14,7 @@ import { Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, UpdatedSince, getOrCreateDeviceId } from './fct.js';
 import { promptPass, promptInfo, promptConfirm, promptChoice, promptInput } from './promptW';
 import { fetchJson } from './services/apiClient.js';
+import { useAppVersionRefresh } from './hooks/useAppVersionRefresh.js';
 
 import { AppCtx } from "./context/AppCtx";
 import PanelTable from "./tables/PanelTable";
@@ -132,6 +133,8 @@ function normalizeExpandRange(type, rawFrom, rawTo) {
 }
 
 function App() {
+  useAppVersionRefresh();
+
   // ========== Core State ==========
   const [initialDataSet, setInitialDataSet] = useState(null);
   const [notifListInitial, setNotifListInitial] = useState(null);
