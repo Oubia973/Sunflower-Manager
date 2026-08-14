@@ -134,6 +134,78 @@ export function unpackFarmPayloadTables(farmPayload) {
   return unpacked;
 }
 
+export function applyFarmPayloadTableDeltas(currentFarm, responsePayload, knownTableHashes, tryitConfig = null) {
+  const payload = isPlainObject(responsePayload) ? responsePayload : {};
+  const deltaRoots = isPlainObject(payload._tableDeltas) ? payload._tableDeltas : null;
+  if (!deltaRoots) return { payload, appliedPaths: [], rejectedPaths: [] };
+  const current = isPlainObject(currentFarm) ? currentFarm : {};
+  const known = isPlainObject(knownTableHashes) ? knownTableHashes : {};
+  const nextPayload = { ...payload };
+  delete nextPayload._tableDeltas;
+  const replaceTables = new Set(Array.isArray(payload._replaceTables) ? payload._replaceTables : []);
+  const appliedPaths = [];
+  const rejectedPaths = [];
+  const preservedFieldsByPath = {};
+
+  if (isValidTryitConfig(tryitConfig)) {
+    Object.values(tryitConfig.itemTables || {}).forEach((tableCfg) => {
+      const field = String(tableCfg?.field || "").trim();
+      if (!field) return;
+      (Array.isArray(tableCfg?.sources) ? tableCfg.sources : []).forEach((path) => {
+        const normalizedPath = String(path || "").trim();
+        if (!normalizedPath) return;
+        if (!preservedFieldsByPath[normalizedPath]) preservedFieldsByPath[normalizedPath] = new Set();
+        preservedFieldsByPath[normalizedPath].add(field);
+      });
+    });
+  }
+
+  Object.entries(deltaRoots).forEach(([rootKey, rootDeltas]) => {
+    if (!isPlainObject(rootDeltas)) return;
+    Object.entries(rootDeltas).forEach(([subKey, delta]) => {
+      const tablePath = `${rootKey}.${subKey}`;
+      const baseTable = current?.[rootKey]?.[subKey];
+      const baseHash = String(delta?.baseHash || "");
+      const nextHash = String(delta?.nextHash || "");
+      const upserts = isPlainObject(delta?.upserts) ? delta.upserts : null;
+      const deletes = Array.isArray(delta?.deletes) ? delta.deletes : null;
+      const valid = (
+        isPlainObject(baseTable)
+        && baseHash
+        && nextHash
+        && String(known?.[tablePath] || "") === baseHash
+        && upserts
+        && deletes
+        && deletes.every((rowKey) => typeof rowKey === "string")
+      );
+      if (!valid) {
+        rejectedPaths.push(tablePath);
+        return;
+      }
+
+      const nextTable = { ...baseTable };
+      deletes.forEach((rowKey) => delete nextTable[rowKey]);
+      const preservedFields = preservedFieldsByPath[tablePath] || new Set();
+      Object.entries(upserts).forEach(([rowKey, rawRow]) => {
+        const row = isPlainObject(rawRow) ? { ...rawRow } : rawRow;
+        if (isPlainObject(row) && isPlainObject(baseTable[rowKey])) {
+          preservedFields.forEach((field) => {
+            if (!Object.prototype.hasOwnProperty.call(row, field) && Object.prototype.hasOwnProperty.call(baseTable[rowKey], field)) {
+              row[field] = baseTable[rowKey][field];
+            }
+          });
+        }
+        nextTable[rowKey] = row;
+      });
+      nextPayload[rootKey] = { ...(nextPayload[rootKey] || {}), [subKey]: nextTable };
+      replaceTables.add(tablePath);
+      appliedPaths.push(tablePath);
+    });
+  });
+  nextPayload._replaceTables = [...replaceTables];
+  return { payload: nextPayload, appliedPaths, rejectedPaths };
+}
+
 export function mergeFarmStateDeep(prevFarm, nextFarm, tryitConfig = null) {
   const prev = prevFarm || {};
   const next = nextFarm || {};

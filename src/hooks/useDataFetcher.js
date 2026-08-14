@@ -6,6 +6,7 @@
 import { useRef, useCallback } from 'react';
 import {
   unpackFarmPayloadTables,
+  applyFarmPayloadTableDeltas,
   mergeFarmStateDeep,
   formatUpdated,
   frmtNb,
@@ -190,6 +191,7 @@ export function useDataFetcher(
       knownHashes,
       knownProjectionHashes: collectKnownProjectionHashes(currentFarmState),
       knownTableHashes,
+      capabilities: { tableEntryDeltas: 1 },
       ...(knownTradeHashes ? { knownTradeHashes } : {}),
       mode: requestMode,
       forceRecalc: !!forceRecalc,
@@ -246,7 +248,26 @@ export function useDataFetcher(
           setReqState('');
           return dataSetFarmRef.current || null;
         }
-        const rawRespData = unpackFarmPayloadTables(responseData.allData);
+        const unpackedRespData = unpackFarmPayloadTables(responseData.allData);
+        const deltaResult = applyFarmPayloadTableDeltas(
+          currentFarmState,
+          unpackedRespData,
+          farmTableHashesRef.current || {},
+          tryitConfig
+        );
+        if (deltaResult.rejectedPaths.length > 0 && deltaResult.payload?.sectionHashes) {
+          deltaResult.payload.sectionHashes = { ...deltaResult.payload.sectionHashes };
+        }
+        deltaResult.rejectedPaths.forEach((tablePath) => {
+          if (farmTableHashesRef.current) delete farmTableHashesRef.current[tablePath];
+          Object.entries(sectionTablePaths || {}).forEach(([section, paths]) => {
+            if (!Array.isArray(paths) || !paths.includes(tablePath)) return;
+            if (farmSectionHashesRef.current) delete farmSectionHashesRef.current[section];
+            delete deltaResult.payload.sectionHashes?.[section];
+          });
+          console.warn(`[table-delta] rejected ${tablePath}; next request will fetch the full table`);
+        });
+        const rawRespData = deltaResult.payload;
         const normalizedRawRespData = normalizeServerImagesDeep(rawRespData || {});
         if (normalizedRawRespData?.constants?.imgtkt) {
           normalizedRawRespData.constants.imgtkt = versionImageUrl(normalizedRawRespData.constants.imgtkt);
