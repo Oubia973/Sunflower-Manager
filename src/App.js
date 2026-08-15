@@ -724,7 +724,7 @@ function App() {
 
   useEffect(() => {
     if (!aboStatusKnown) return;
-    if (!["lavapits", "rngprediction"].includes(String(ui?.selectedInv || "home"))) return;
+    if (!["lavapits", "rngprediction", "supply"].includes(String(ui?.selectedInv || "home"))) return;
     if (isAboFarm) return;
     setUIField("selectedInv", "home");
   }, [aboStatusKnown, isAboFarm, ui?.selectedInv, setUIField]);
@@ -1230,6 +1230,7 @@ function App() {
     { value: "buynodes", label: "Buy nodes", iconSrc: imgsunstoneRock1 },
     ...(isAboFarm ? [{ value: "lavapits", label: "Lavapits", iconSrc: imglavaPit }] : []),
     ...(isAboFarm ? [{ value: "rngprediction", label: "RNG", iconSrc: imglightning }] : []),
+    ...(isAboFarm ? [{ value: "supply", label: "Supply", iconSrc: imgfloatingIsland }] : []),
     { value: "factions", label: "Factions", iconSrc: imgfactions },
     { value: "market", label: "Market", iconSrc: imgexchng },
     { value: "chapter", label: "Chapter", iconSrc: imgchapter },

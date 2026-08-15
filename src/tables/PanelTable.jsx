@@ -23,6 +23,7 @@ import BuyNodesTable from "./BuyNodes";
 import AuctionsTable from "./Auctions";
 import LavaPitsTable from "./LavaPits";
 import RngPredictionTable from "./RngPrediction";
+import SupplyTable from "./Supply";
 
 export default function PanelTable() {
   const { ui: { selectedInv, interfaceMode } } = useAppCtx();
@@ -47,6 +48,7 @@ export default function PanelTable() {
   if (selectedInv === "buynodes") return <BuyNodesTable />;
   if (selectedInv === "lavapits") return <LavaPitsTable />;
   if (selectedInv === "rngprediction") return <RngPredictionTable />;
+  if (selectedInv === "supply") return <SupplyTable />;
   if (selectedInv === "auctions") return <AuctionsTable />;
 
   return null;
