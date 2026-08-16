@@ -141,6 +141,11 @@ export const imggoldOre = asset('./icon/res/gold_ore.png');
 export const imgcrimstone = asset('./icon/res/crimstone.png');
 export const imgcompost = asset('./icon/res/compost.png');
 export const imgappleTree = asset('./icon/res/apple_tree.png');
+export const imgbannanaTreeReady = asset('./icon/res/banana_tree_ready.png');
+export const imgcrystalBiome = asset('./icon/biome/crystal.webp');
+export const imgascensionMonument = asset('./icon/nft/ascension_monument.webp');
+export const imgascensionCrystal = asset('./icon/res/ascension_crystal.webp');
+export const imglifetime = asset('./icon/banner/lifetime.png');
 export const imgbeehive = asset('./icon/res/beehive.webp');
 export const imgflowerbed = asset('./icon/flower/flower_bed_modal.png');
 // Farm animals and pets

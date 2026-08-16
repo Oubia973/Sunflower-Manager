@@ -137,6 +137,7 @@ const mondayMidnightLinePlugin = {
     const xScale = chart?.scales?.x;
     const chartArea = chart?.chartArea;
     if (!xScale || !chartArea) return;
+    if (xScale.type !== "time") return;
 
     const minMs = Number(xScale.min);
     const maxMs = Number(xScale.max);
