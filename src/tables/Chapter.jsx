@@ -238,6 +238,11 @@ export default function ChapterTable() {
   const chapterRequestSeqRef = useRef(0);
   const chapterAbortRef = useRef(null);
   const farmId = Number(dataSetFarm?.frmid || dataSet?.options?.farmId || 0);
+  const validChapterChoreSelection = Object.fromEntries(
+    Object.entries(chapterChoreSelection || {})
+      .filter(([key, value]) => key && key.length <= 160 && typeof value === "boolean")
+      .slice(0, 150)
+  );
   const chapterRequest = {
     farmId,
     deviceId: getOrCreateDeviceId(),
@@ -258,7 +263,7 @@ export default function ChapterTable() {
       bountySelection: chapterBountySelection || {},
       bountyCostOverride: chapterBountyCostOverride || {},
       bountyOverride: chapterBountyOverride || {},
-      choreSelection: chapterChoreSelection || {},
+      choreSelection: validChapterChoreSelection,
       poppyCategorySelection: chapterPoppyCategorySelection || {},
       dailyChestDate: selectCurrentProjection(dataSetFarm, "homeData")?.dailyChest?.collectedAt
         || dataSet?.dailychest?.chest
@@ -676,9 +681,10 @@ export default function ChapterTable() {
                     type="checkbox"
                     checked={isChecked}
                     onChange={(e) => {
+                      const checked = e.currentTarget.checked;
                       setUIField("chapterNpcSelection", (prev) => ({
                         ...(prev || {}),
-                        [row.key]: !!e.target.checked,
+                        [row.key]: checked,
                       }));
                     }}
                     style={{ width: "16px", height: "16px" }}
@@ -772,9 +778,10 @@ export default function ChapterTable() {
                     type="checkbox"
                     checked={isChecked}
                     onChange={(e) => {
+                      const checked = e.currentTarget.checked;
                       setUIField("chapterChoreSelection", (prev) => ({
                         ...(prev || {}),
-                        [row.choreKey]: !!e.target.checked,
+                        [row.choreKey]: checked,
                       }));
                     }}
                     style={{ width: "16px", height: "16px" }}
@@ -806,9 +813,10 @@ export default function ChapterTable() {
                     type="checkbox"
                     checked={!!row.selected}
                     onChange={(e) => {
+                      const checked = e.currentTarget.checked;
                       setUIField("chapterBountySelection", (prev) => ({
                         ...(prev || {}),
-                        [row.key]: !!e.target.checked,
+                        [row.key]: checked,
                       }));
                     }}
                     style={{ width: "16px", height: "16px" }}
@@ -889,9 +897,10 @@ export default function ChapterTable() {
                     type="checkbox"
                     checked={isChecked}
                     onChange={(e) => {
+                      const checked = e.currentTarget.checked;
                       setUIField("chapterPoppyCategorySelection", (prev) => ({
                         ...(prev || {}),
-                        [row.key]: !!e.target.checked,
+                        [row.key]: checked,
                       }));
                     }}
                     style={{ width: "16px", height: "16px" }}
