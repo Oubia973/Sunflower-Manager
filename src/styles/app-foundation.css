@@ -7,12 +7,19 @@
 html,
 body,
 #root {
+  height: 100%;
   min-height: 100%;
 }
 
 html,
 body {
   box-sizing: border-box;
+}
+
+/* Pages use their dedicated content containers for scrolling. Keeping the
+   document fixed avoids a second vertical scrollbar beside those containers. */
+body {
+  overflow: hidden;
 }
 
 .App {
@@ -22,17 +29,27 @@ body {
   box-sizing: border-box;
 }
 
-.App::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Shared scrollbar theme: every current and future scroll container uses the
+   same appearance. Components may still deliberately hide their scrollbar. */
+* {
+  scrollbar-color: #7a7a7a #1d1d1d !important;
 }
 
-.App::-webkit-scrollbar-thumb {
-  background-color: #7a7a7a;
+*::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
 }
 
-.App::-webkit-scrollbar-track {
-  background-color: #1d1d1d;
+*::-webkit-scrollbar-thumb {
+  background-color: #7a7a7a !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background-color: #1d1d1d !important;
+  border-radius: 0 !important;
 }
 
 .App-header {

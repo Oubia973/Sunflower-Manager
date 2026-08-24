@@ -1,19 +1,17 @@
 import React from "react";
 import { frmtNb } from "../fct.js";
 import { imgcoins } from "../constants/images.js";
+import {
+    flattenCompositionQuantities,
+    isCompositionObject,
+    normalizeCompositionNode,
+} from "../utils/compositionTree.js";
 
-const isObj = (val) => !!val && typeof val === "object" && !Array.isArray(val);
+const isObj = isCompositionObject;
 
 const normalizeCompoNode = (rawNode) => {
-    if (typeof rawNode === "number") {
-        return { qty: Number(rawNode) || 0, compoit: {} };
-    }
-    if (!isObj(rawNode)) {
-        return { qty: 0, compoit: {} };
-    }
-    const qty = Number(rawNode.qty ?? rawNode.quant ?? rawNode.q ?? 0) || 0;
-    const compoit = isObj(rawNode.compoit) ? rawNode.compoit : {};
-    return { qty, compoit };
+    const node = normalizeCompositionNode(rawNode);
+    return { qty: node.qty, compoit: node.children };
 };
 
 const isTreeCompo = (compoMap) => {
@@ -39,15 +37,9 @@ const cloneScaledTree = (tree, factor = 1) => {
 };
 
 const flattenCompoTree = (tree, out = {}, multiplier = 1) => {
-    if (!isObj(tree)) return out;
-    Object.entries(tree).forEach(([name, rawNode]) => {
-        const node = normalizeCompoNode(rawNode);
-        const qty = node.qty * multiplier;
-        if (Object.keys(node.compoit).length > 0) {
-            flattenCompoTree(node.compoit, out, qty);
-        } else {
-            out[name] = (out[name] || 0) + qty;
-        }
+    const flattened = flattenCompositionQuantities(tree, multiplier);
+    Object.entries(flattened).forEach(([name, quantity]) => {
+        out[name] = (out[name] || 0) + quantity;
     });
     return out;
 };

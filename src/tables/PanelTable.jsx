@@ -13,10 +13,12 @@ import AnimalsReadableTable from "./AnimalsReadable";
 import PetsTable from "./Pets";
 import CraftTable from "./Craft";
 import CropMachineTable from "./CropMachine";
+import CropMachineReadableTable from "./CropMachineReadable";
 import MapTable from "./Map";
 import ExpandTable from "./Expand";
 import ActivityTable from "./Activity";
-import MarketTable from "./Market";
+// MarketTable is temporarily disabled; retain the import for restoration.
+// import MarketTable from "./Market";
 import FactionsTable from "./Factions";
 import TopListsTable from "./TopListsLazy";
 import BuyNodesTable from "./BuyNodes";
@@ -38,11 +40,12 @@ export default function PanelTable() {
   if (selectedInv === "animal") return interfaceMode === "compact" ? <AnimalsReadableTable /> : <AnimalsTable />;
   if (selectedInv === "pet") return <PetsTable />;
   if (selectedInv === "craft") return <CraftTable />;
-  if (selectedInv === "cropmachine") return <CropMachineTable />;
+  if (selectedInv === "cropmachine") return interfaceMode === "compact" ? <CropMachineReadableTable /> : <CropMachineTable />;
   if (selectedInv === "map") return <MapTable />;
   if (selectedInv === "expand") return <ExpandTable />;
   if (selectedInv === "activity") return <ActivityTable />;
-  if (selectedInv === "market") return <MarketTable />;
+  // Market is temporarily disabled; retain the route for restoration.
+  // if (selectedInv === "market") return <MarketTable />;
   if (selectedInv === "factions") return <FactionsTable />;
   if (selectedInv === "toplists") return <TopListsTable />;
   if (selectedInv === "buynodes") return <BuyNodesTable />;

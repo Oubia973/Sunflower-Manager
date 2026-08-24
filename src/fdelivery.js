@@ -41,6 +41,7 @@ function ModalDlvr({
     data: { dataSet, dataSetFarm },
     ui: {
       TryChecked,
+      interfaceMode,
     },
     actions: {
       handleUIChange,
@@ -912,6 +913,9 @@ function ModalDlvr({
           context={tooltipData.context}
           value={tooltipData.value}
           dataSet={dataSet}
+          dataSetFarm={dataSetFarm}
+          forTry={TryChecked}
+          interfaceMode={interfaceMode}
         />
       )}
     </div>

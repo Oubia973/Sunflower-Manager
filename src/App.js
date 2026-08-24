@@ -8,7 +8,7 @@ import ModalChatbot from './chatbot.jsx';
 import ModalAdmin from './fadmin.jsx';
 import PageCoach from './components/PageCoach.jsx';
 import Cadre from './animodal.js';
-import Tooltip from "./tooltip/Tooltip.jsx";
+import Tooltip from "./tooltip.js";
 import DList from "./dlist.jsx";
 import { Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, UpdatedSince, getOrCreateDeviceId } from './fct.js';
@@ -244,10 +244,10 @@ function App() {
     const nextRevision = Math.max(0, Math.floor(Number(dataSetFarm?.tryitRevision) || 0));
     const previousRevision = tooltipTryRevisionRef.current;
     tooltipTryRevisionRef.current = nextRevision;
-    if (previousRevision > 0 && nextRevision > 0 && previousRevision !== nextRevision) {
+    if (ui.interfaceMode !== "compact" && previousRevision > 0 && nextRevision > 0 && previousRevision !== nextRevision) {
       setTooltipData(null);
     }
-  }, [dataSetFarm?.tryitRevision]);
+  }, [dataSetFarm?.tryitRevision, ui.interfaceMode]);
 
   const isAboFarm = !!(dataSetFarm?.isabo ?? dataSet?.options?.isAbo);
   const aboStatusKnown = (dataSetFarm?.isabo !== undefined) || (dataSet?.options?.isAbo !== undefined);
@@ -728,6 +728,11 @@ function App() {
     if (isAboFarm) return;
     setUIField("selectedInv", "home");
   }, [aboStatusKnown, isAboFarm, ui?.selectedInv, setUIField]);
+
+  useEffect(() => {
+    // Redirect sessions that had the parked page selected before this release.
+    if (ui?.selectedInv === "market") setUIField("selectedInv", "home");
+  }, [ui?.selectedInv, setUIField]);
 
   useEffect(() => {
     const fixedAscensionByIsland = {
@@ -1232,7 +1237,8 @@ function App() {
     ...(isAboFarm ? [{ value: "rngprediction", label: "RNG", iconSrc: imglightning }] : []),
     ...(isAboFarm ? [{ value: "supply", label: "Supply", iconSrc: imgfloatingIsland }] : []),
     { value: "factions", label: "Factions", iconSrc: imgfactions },
-    { value: "market", label: "Market", iconSrc: imgexchng },
+    // Market is temporarily disabled; keep this entry for an easy restoration.
+    // { value: "market", label: "Market", iconSrc: imgexchng },
     { value: "chapter", label: "Chapter", iconSrc: imgchapter },
     { value: "auctions", label: "Auctions", iconSrc: imgcalendar },
     ...(dataSet.options.isAbo ? [{ value: "activity", label: "Activity", iconSrc: imgstopwatch }] : []),
@@ -1818,7 +1824,8 @@ function App() {
         {tooltipData && (
           <Tooltip onClose={() => setTooltipData(null)} clickPosition={tooltipData}
             item={tooltipData.item} context={tooltipData.context} value={tooltipData.value}
-            dataSet={dataSet} dataSetFarm={dataSetFarm} bdrag={tooltipData.bdrag} forTry={TryChecked} />
+            dataSet={dataSet} dataSetFarm={dataSetFarm} bdrag={tooltipData.bdrag} forTry={TryChecked}
+            interfaceMode={ui.interfaceMode} />
         )}
       </div>
     </>

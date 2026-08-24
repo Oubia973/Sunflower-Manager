@@ -7,7 +7,7 @@ import { frmtNb, ColorValue, mergeFarmStateDeep, getOrCreateDeviceId, unpackFarm
 import Help from './fhelp.js';
 import TryProfileShareBar from "./components/TryProfileShareBar.jsx";
 import TryProfileSummaryModal from "./components/TryProfileSummaryModal.jsx";
-import Tooltip from "./tooltip/Tooltip.jsx";
+import Tooltip from "./tooltip.js";
 import { getScopeTablesFromPayload } from "./tryProfileShare.js";
 import { fetchJson } from "./services/apiClient.js";
 import { buildSupplyTooltipContract } from "./tooltip/supplyTooltipContract.js";
@@ -285,6 +285,7 @@ function ModalTNFT({ onClose }) {
     data: { dataSet, dataSetFarm, priceData },
     ui: {
       TryChecked,
+      interfaceMode,
       selectedTrySeason,
       tryProfileShareScope,
     },
@@ -2035,6 +2036,7 @@ function ModalTNFT({ onClose }) {
           dataSet={dataSet}
           dataSetFarm={dataSetLocal}
           forTry={TryChecked}
+          interfaceMode={interfaceMode}
         />
       )}
       {showHelp && (

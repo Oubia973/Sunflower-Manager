@@ -1,1 +1,1 @@
-export { default } from "./tooltip/Tooltip.jsx";
+export { default } from "./tooltip/TooltipRouter.jsx";

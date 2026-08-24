@@ -29,6 +29,11 @@ import BoostTooltipDetails from './BoostTooltipDetails.jsx';
 import RngRealizedTooltipDetails from './RngRealizedTooltipDetails.jsx';
 import RngItemSummaryTooltipDetails from './RngItemSummaryTooltipDetails.jsx';
 import {
+    resolveDailyProfitContract,
+    resolveMarketComparisonContract,
+    resolveProductionCostContract,
+} from './resolvers/inventoryTooltipResolvers.js';
+import {
     imgna,
     imgcoins as imgcoinsSrc,
     imggem as imggemSrc,
@@ -140,10 +145,6 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         expandPageData?.tooltipData,
         tryNftPageData?.tooltipData,
     ].filter(isObj);
-    const dailyProfitTooltips = Object.assign(
-        {},
-        ...tooltipDataBlocks.map((block) => isObj(block?.dailyProfit) ? block.dailyProfit : {})
-    );
     const crustaceanCostTooltips = Object.assign(
         {},
         ...tooltipDataBlocks.map((block) => isObj(block?.crustaceanCosts) ? block.crustaceanCosts : {})
@@ -160,25 +161,6 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         {},
         ...tooltipDataBlocks.map((block) => isObj(block?.fishCosts) ? block.fishCosts : {})
     );
-    const marketComparisonBlocks = tooltipDataBlocks
-        .map((block) => block?.marketComparisons)
-        .filter(isObj);
-    const marketComparisonItems = Object.assign(
-        {},
-        ...marketComparisonBlocks.map((block) => isObj(block?.items) ? block.items : {})
-    );
-    const marketComparisonMeta = marketComparisonBlocks.find((block) => isObj(block?._meta))?._meta || {};
-    const productionCostBlocks = tooltipDataBlocks.map((block) => block?.productionCosts).filter(isObj);
-    const productionCostTooltips = Object.assign(
-        {},
-        ...productionCostBlocks.map((block) => isObj(block?.items) ? block.items : {})
-    );
-    const productionCostMeta = productionCostBlocks.find((block) => isObj(block?._meta))?._meta || {};
-    const getProductionCostContract = (itemName) => {
-        const entry = productionCostTooltips?.[itemName];
-        const mode = entry?.[ForTry ? "try" : "active"];
-        return mode ? { ...entry.shared, ...mode, taxPercent: productionCostMeta.taxPercent } : null;
-    };
     const getFeedCostContract = (foodName) => tooltipDataBlocks
         .map((block) => block?.feedCosts?.[ForTry ? "try" : "active"]?.[foodName])
         .find(isObj) || null;
@@ -506,7 +488,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     try {
         {
             if (context === "costp") {
-                const productionContract = getProductionCostContract(item);
+                const productionContract = resolveProductionCostContract(dataSetFarm, item, ForTry);
                 txt = productionContract ? (
                     <ProductionCostTooltipDetails
                         contract={productionContract}
@@ -536,7 +518,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 );
             }
             if (context === "harvest") {
-                const harvestContract = getProductionCostContract(item);
+                const harvestContract = resolveProductionCostContract(dataSetFarm, item, ForTry);
                 txt = harvestContract ? (
                     <HarvestTooltipDetails
                         contract={harvestContract}
@@ -571,9 +553,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 );
             }
             if (context === "dailysfl") {
-                const dailyEntry = dailyProfitTooltips?.[item];
-                const dailyMode = dailyEntry?.[ForTry ? "try" : "active"];
-                const backendDaily = dailyMode ? { ...(dailyEntry?.shared || {}), ...dailyMode } : null;
+                const backendDaily = resolveDailyProfitContract(dataSetFarm, item, ForTry);
                 txt = isObj(backendDaily) ? (
                     <DailyProfitTooltipDetails
                         contract={backendDaily}
@@ -815,16 +795,17 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             );
         }
         if (context === "market") {
-            const marketEntry = marketComparisonItems?.[item];
-            const marketMode = marketEntry?.[ForTry ? "try" : "active"];
-            const marketContract = marketMode ? { ...marketEntry.shared, ...marketMode } : null;
+            const marketContract = resolveMarketComparisonContract(dataSetFarm, item, ForTry, {
+                quantity: value?.itemQuant,
+                includeProductionCost: value?.CostChecked,
+            });
             txt = marketContract ? (
                 <MarketComparisonTooltipDetails
                     contract={marketContract}
-                    taxPercent={marketComparisonMeta.taxPercent}
+                    taxPercent={marketContract.taxPercent}
                     itemName={item}
-                    quantity={Number(value?.itemQuant || 1)}
-                    includeProductionCost={!!value?.CostChecked}
+                    quantity={marketContract.quantity}
+                    includeProductionCost={marketContract.includeProductionCost}
                     icons={{ fallback: imgna, market: imgmp, flower: imgsfl }}
                 />
             ) : (
