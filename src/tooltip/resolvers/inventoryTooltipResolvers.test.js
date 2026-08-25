@@ -39,6 +39,13 @@ test("normalizes cooking and direct item compositions to the same contract", () 
     .toMatchObject({ items: [{ itemName: "Paella", itemImage: "paella.png", quantity: 3 }] });
   expect(resolveCompositionTooltipContract({}, "costitem", "Rod", { costTree: { nodes: {} }, quantity: 2 }, false))
     .toMatchObject({ items: [{ itemName: "Rod", quantity: 2 }] });
+  expect(resolveCompositionTooltipContract({}, "costitem", "Crab Chum", { items: [
+    { itemName: "Grape", quantity: 5 },
+    { itemName: "Red Wiggler", quantity: 3 },
+  ] }, false)).toMatchObject({ items: [
+    { itemName: "Grape", quantity: 5 },
+    { itemName: "Red Wiggler", quantity: 3 },
+  ] });
 });
 
 test("builds a shared image catalog for composition renderers", () => {

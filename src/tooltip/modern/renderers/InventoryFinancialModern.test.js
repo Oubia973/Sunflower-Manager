@@ -18,6 +18,7 @@ test("renders the prepared market contract without recalculating unit data", () 
 test("presents nested production costs as an expandable composition", () => {
   const html = renderToStaticMarkup(<InventoryFinancialModern context="costp" contract={{
     profitFlower: 1, profitMultiplier: 2, profitPercent: 100,
+    item: "Wood", itemImage: "wood-item.png", nodeKind: "wood",
     harvestAveragePerNode: 1, productionCostFlower: 0.2,
     marketAfterTaxFlower: 1.2, taxPercent: 10,
     detail: { kind: "tool", toolName: "Axe", toolImage: "axe.png", costTree: { nodes: { Wood: { qty: 3, compoit: { Stone: { qty: 2 } } } } } },
@@ -25,6 +26,9 @@ test("presents nested production costs as an expandable composition", () => {
   expect(html).toContain("Wood");
   expect(html).toContain("Expand all");
   expect(html).toContain("Final resources");
+  expect(html).toContain("Average per node");
+  expect(html).toContain("wood-item.png");
+  expect(html).toContain("/ ");
 });
 
 test("keeps the animal food composition and its totals", () => {
@@ -83,7 +87,7 @@ test("keeps tool harvest quantity, cost, and components", () => {
 
 test("explains a fruit tree cost as a lifecycle instead of merging harvests and cost", () => {
   const html = renderToStaticMarkup(<InventoryFinancialModern context="costp" contract={{
-    nodeKind: "fruit", taxPercent: 10, harvestAveragePerNode: 4,
+    item: "Apple", itemImage: "apple.png", nodeKind: "fruit", taxPercent: 10, harvestAveragePerNode: 4,
     productionCostFlower: 0.11, marketAfterTaxFlower: 0.9,
     profitFlower: 0.79, profitMultiplier: 8.18, profitPercent: 718,
     detail: { kind: "fruit", seedCostCoins: 400, harvestCount: 5,
@@ -93,6 +97,7 @@ test("explains a fruit tree cost as a lifecycle instead of merging harvests and 
   expect(html).toContain("Production over tree lifetime");
   expect(html).toContain("Harvests per tree");
   expect(html).toContain("Yield per harvest/node");
+  expect(html).toContain("apple.png");
   expect(html).toContain("Allocated production cost");
   expect(html).not.toContain("Harvests per seed");
 });

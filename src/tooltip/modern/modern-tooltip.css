@@ -479,6 +479,15 @@
 .composition-tree__qty,
 .composition-tree__total span { text-align: right; }
 
+.composition-tree__head-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.composition-tree__head-icon { flex: 0 0 auto; }
+
 .composition-tree.is-compact .composition-tree__head span:last-child { text-align: right; }
 
 .composition-tree__body {

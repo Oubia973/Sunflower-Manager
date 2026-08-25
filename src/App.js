@@ -1825,6 +1825,11 @@ function App() {
           <Tooltip onClose={() => setTooltipData(null)} clickPosition={tooltipData}
             item={tooltipData.item} context={tooltipData.context} value={tooltipData.value}
             dataSet={dataSet} dataSetFarm={dataSetFarm} bdrag={tooltipData.bdrag} forTry={TryChecked}
+            cropMachineUi={{
+              selectedSeeds: ui.selectedSeedsCM,
+              customSeeds: ui.customSeedCM,
+              selectedCrops: ui.toCM,
+            }}
             interfaceMode={ui.interfaceMode} />
         )}
       </div>

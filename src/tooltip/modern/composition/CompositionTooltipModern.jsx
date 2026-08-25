@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { frmtNb } from "../../../fct.js";
-import { imgautumn, imgspring, imgsummer, imgwinter } from "../../../constants/images.js";
+import { imgautumn, imgExchng, imgprodit, imgsfl, imgspring, imgsummer, imgwinter } from "../../../constants/images.js";
 import CompositionTree from "./CompositionTree.jsx";
 
 const SEASON_ICONS = {
@@ -10,6 +10,13 @@ const SEASON_ICONS = {
   winter: imgwinter.props?.src,
 };
 
+function SmallIcon({ icon, title }) {
+  if (React.isValidElement(icon)) {
+    return React.cloneElement(icon, { className: "modern-tooltip__token", style: undefined });
+  }
+  return <img className="modern-tooltip__token" src={icon} alt={title || ""} title={title || ""} />;
+}
+
 function CompositionItem({ item, initialSeason, catalog, showTitle }) {
   const seasonal = item.seasonalCostTree && typeof item.seasonalCostTree === "object" ? item.seasonalCostTree : null;
   const seasons = seasonal ? Object.keys(seasonal) : [];
@@ -18,7 +25,15 @@ function CompositionItem({ item, initialSeason, catalog, showTitle }) {
   const costTree = season ? seasonal?.[season] : item.costTree;
   const hasQuantity = Number(item.quantity) > 1;
   const hasYield = Number(item.yield) > 0 && Number(item.yield) !== 1;
-  if (!costTree) return <div className="modern-tooltip__empty">Composition unavailable for {item.itemName}.</div>;
+  if (!costTree) return <section className="composition-tooltip__item">
+    <div className="composition-tooltip__title">
+      {item.itemImage ? <img src={item.itemImage} alt="" /> : null}
+      <strong>{item.itemName}</strong>
+      {hasQuantity ? <span>×{frmtNb(item.quantity)}</span> : null}
+    </div>
+    <div className="modern-tooltip__row"><span>Prod. <SmallIcon icon={imgprodit} /></span><strong>{frmtNb(item.totalCost)} <SmallIcon icon={imgsfl} title="Flower" /></strong></div>
+    <div className="modern-tooltip__row"><span>Market <SmallIcon icon={imgExchng} /></span><strong>{frmtNb(item.totalMarket)} <SmallIcon icon={imgsfl} title="Flower" /></strong></div>
+  </section>;
 
   return <section className="composition-tooltip__item">
     {showTitle || hasYield ? <div className="composition-tooltip__title">

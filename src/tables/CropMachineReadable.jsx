@@ -81,7 +81,7 @@ export default function CropMachineReadableTable() {
   const {
     data: { dataSet, dataSetFarm },
     ui: { customSeedCM, toCM, selectedSeedsCM, xListeColCropMachine, TryChecked },
-    actions: { handleUIChange, handleTooltip },
+    actions: { handleUIChange, handleOptionChange, handleTooltip },
   } = useAppCtx();
   const source = selectCurrentProjection(dataSetFarm, "cropMachineData") || dataSetFarm;
   const it = source?.itables?.it;
@@ -99,10 +99,11 @@ export default function CropMachineReadableTable() {
   const unavailableRows = rows.filter((row) => !row.available);
   const showCol = (index) => xListeColCropMachine?.[index]?.[1] !== 0;
   const showNames = showCol(1);
-  const showDaily = !!options.isAbo && showCol(12);
-  const summaryColumns = [2, 3, 10, 11, ...(showDaily ? [12] : [])].filter(showCol);
+  const showDaily = showCol(12);
+  const summaryColumns = [2, 3, 6, 9, 10, 11, ...(showDaily ? [12] : [])].filter(showCol);
   const detailColumns = [4, 5, 6, 7, 8, 9].filter(showCol);
   const tableColumnCount = 1 + summaryColumns.length;
+  const narrowTableColumnCount = 1 + [2, 3, 10, 11, ...(showDaily ? [12] : [])].filter(showCol).length;
   const toggleRow = (name) => setExpandedRows((current) => {
     const next = new Set(current);
     if (next.has(name)) next.delete(name); else next.add(name);
@@ -147,6 +148,8 @@ export default function CropMachineReadableTable() {
               <th className="cm-crop-column"><HeaderIcon icon={imgcrops} label={showNames ? "Crop" : ""} /></th>
               {showCol(2) ? <th><HeaderIcon icon={imgstopwatch} label="Time" /></th> : null}
               {showCol(3) ? <th><HeaderIcon icon={imgcrops} label="Seeds" /></th> : null}
+              {showCol(6) ? <th className="cm-wide-column"><HeaderIcon icon={it.Oil?.img} label="Oil" /></th> : null}
+              {showCol(9) ? <th className="cm-wide-column"><HeaderIcon icon={imgexchng} label="Market" /></th> : null}
               {showCol(10) ? <th><HeaderIcon icon={imgsfl} label="Profit" /></th> : null}
               {showCol(11) ? <th><HeaderIcon icon={imgcropslightning} label="Per hour" /></th> : null}
               {showDaily ? <th><HeaderIcon icon={imgsfl} label="Per day" /></th> : null}
@@ -157,13 +160,29 @@ export default function CropMachineReadableTable() {
               <th className="cm-crop-column"><span>{showNames ? "Selected total" : "Total"}</span><small>{selected.length}</small></th>
               {showCol(2) ? <td>{convTime(totals.time)}</td> : null}
               {showCol(3) ? <td aria-label="No seeds total" /> : null}
+              {showCol(6) ? <td className="cm-wide-column">{frmtNb(totals.oil)}</td> : null}
+              {showCol(9) ? <td className="cm-wide-column">{frmtNb(totals.market)}</td> : null}
               {showCol(10) ? <td className="cm-main-profit" style={{ color: ColorValue(totals.profit, 0, 10) }}>{signed(totals.profit)}</td> : null}
               {showCol(11) ? <td className="cm-main-profit" style={{ color: ColorValue(totalHourly, 0, 10) }}>{signed(totalHourly)}</td> : null}
-              {showDaily ? <td aria-label="No daily profit total" /> : null}
+              {showDaily ? <td>
+                <label className="cm-daily-restock-toggle" title="Count restock costs in the daily profit calculation">
+                  <input
+                    type="checkbox"
+                    name="restockCostDaily"
+                    checked={!!options.restockCostDaily}
+                    onChange={handleOptionChange}
+                    aria-label="Count restock costs in daily profit"
+                  />
+                  <span>Restock<small>Cost</small></span>
+                </label>
+              </td> : null}
             </tr>
             {availableRows.map((row) => <CropRow key={row.name} row={row} seedMode={seedMode} customSeed={customSeedCM?.[row.name] ?? row.stock}
               oilImage={it.Oil?.img} showDaily={showDaily} showCol={showCol} showNames={showNames} detailColumns={detailColumns} expanded={expandedRows.has(row.name)} onToggle={() => toggleRow(row.name)} onChange={handleUIChange} onTooltip={handleTooltip} />)}
-            {unavailableCount > 0 ? <tr className="cm-future-row"><td colSpan={tableColumnCount}><button type="button" onClick={() => setShowUnavailable((value) => !value)} aria-expanded={showUnavailable}>{showUnavailable ? "− Hide" : "+ Show"} {unavailableCount} future crops</button></td></tr> : null}
+            {unavailableCount > 0 ? <>
+              <tr className="cm-future-row cm-narrow-future-row"><td colSpan={narrowTableColumnCount}><button type="button" onClick={() => setShowUnavailable((value) => !value)} aria-expanded={showUnavailable}>{showUnavailable ? "− Hide" : "+ Show"} {unavailableCount} future crops</button></td></tr>
+              <tr className="cm-future-row cm-wide-future-row"><td colSpan={tableColumnCount}><button type="button" onClick={() => setShowUnavailable((value) => !value)} aria-expanded={showUnavailable}>{showUnavailable ? "− Hide" : "+ Show"} {unavailableCount} future crops</button></td></tr>
+            </> : null}
             {showUnavailable ? unavailableRows.map((row) => <CropRow key={row.name} row={row} seedMode={seedMode} customSeed={customSeedCM?.[row.name] ?? row.stock}
               oilImage={it.Oil?.img} showDaily={showDaily} showCol={showCol} showNames={showNames} detailColumns={detailColumns} expanded={expandedRows.has(row.name)} onToggle={() => toggleRow(row.name)} onChange={handleUIChange} onTooltip={handleTooltip} />) : null}
           </tbody>
@@ -175,6 +194,8 @@ export default function CropMachineReadableTable() {
 
 function CropRow({ row, seedMode, customSeed, oilImage, showDaily, showCol, showNames, detailColumns, expanded, onToggle, onChange, onTooltip }) {
   const canExpand = detailColumns.length > 0;
+  const narrowColumnCount = 1 + [2, 3, 10, 11, ...(showDaily ? [12] : [])].filter(showCol).length;
+  const wideColumnCount = 1 + [2, 3, 6, 9, 10, 11, ...(showDaily ? [12] : [])].filter(showCol).length;
   const handleRowClick = (event) => {
     if (!canExpand || event.target.closest("button, input, label, a, select, textarea")) return;
     onToggle();
@@ -200,18 +221,16 @@ function CropRow({ row, seedMode, customSeed, oilImage, showDaily, showCol, show
         </th>
         {showCol(2) ? <td>{row.time}</td> : null}
         {showCol(3) ? <td>{seedMode === "custom" && row.available ? <input className="cm-custom-seeds" name={`customSeedCM.${row.name}`} inputMode="numeric" pattern="[0-9]*" value={customSeed} onChange={onChange} aria-label={`${row.name} seeds`} /> : frmtNb(row.seeds)}</td> : null}
+        {showCol(6) ? <td className="cm-wide-column">{frmtNb(row.oil)}</td> : null}
+        {showCol(9) ? <td className="cm-wide-column">{frmtNb(row.market)}</td> : null}
         {showCol(10) ? <td className="cm-main-profit" style={{ color: ColorValue(row.profit, 0, 10) }}>{signed(row.profit)}</td> : null}
         {showCol(11) ? <td><button className="cm-main-value" type="button" style={{ color: ColorValue(row.gainPerHour, 0, 10) }} onClick={(event) => onTooltip(row.name, "cmgainh", row.gainTooltip, event)}>{signed(row.gainPerHour)}</button></td> : null}
         {showDaily ? <td><button className="cm-main-value" type="button" style={{ color: ColorValue(row.dailyProfit, 0, 10) }} onClick={(event) => onTooltip(row.name, "cmdailysfl", row.dailyTooltip, event)}>{signed(row.dailyProfit)}</button></td> : null}
       </tr>
-      {expanded ? <tr className="cm-detail-row"><td colSpan={1 + [2, 3, 10, 11, ...(showDaily ? [12] : [])].filter(showCol).length}><div className="cm-detail-grid">
-        {showCol(4) ? <Detail label="Harvest" value={frmtNb(row.harvest)} /> : null}
-        {showCol(5) ? <Detail label="Seed cost" value={frmtNb(row.seedCost)} /> : null}
-        {showCol(6) ? <Detail icon={oilImage} label="Oil" value={frmtNb(row.oil)} /> : null}
-        {showCol(7) ? <Detail label="Oil cost" value={frmtNb(row.oilCost)} /> : null}
-        {showCol(8) ? <Detail label="Total cost" value={frmtNb(row.cost)} strong /> : null}
-        {showCol(9) ? <Detail icon={imgexchng} label="Market" value={frmtNb(row.market)} /> : null}
-      </div></td></tr> : null}
+      {expanded ? <tr className="cm-detail-row">
+        <td className="cm-narrow-detail-cell" colSpan={narrowColumnCount}><CropDetails row={row} oilImage={oilImage} showCol={showCol} /></td>
+        <td className="cm-wide-detail-cell" colSpan={wideColumnCount}><CropDetails row={row} oilImage={oilImage} showCol={showCol} /></td>
+      </tr> : null}
     </>
   );
 }
@@ -220,6 +239,32 @@ function HeaderIcon({ icon, label }) {
   return <span className="cm-header-icon"><img src={icon} alt="" />{label ? <span>{label}</span> : null}</span>;
 }
 
-function Detail({ icon, label, value, strong }) {
-  return <div><small>{label}</small><strong className={strong ? "is-strong" : ""}>{icon ? <img src={icon} alt="" /> : null}{value}</strong></div>;
+function CropDetails({ row, oilImage, showCol }) {
+  return <div className="cm-detail-grid">
+    {showCol(4) || showCol(5) ? <DetailPair items={[
+      showCol(4) ? { label: "Harvest", value: row.harvest } : null,
+      showCol(5) ? { label: "Seed cost", value: row.seedCost } : null,
+    ]} /> : null}
+    {showCol(6) || showCol(7) ? <DetailPair items={[
+      showCol(6) ? { label: "Oil", value: row.oil, icon: oilImage, className: "cm-narrow-detail" } : null,
+      showCol(7) ? { label: "Oil cost", value: row.oilCost } : null,
+    ]} /> : null}
+    {showCol(8) || showCol(9) ? <DetailPair items={[
+      showCol(8) ? { label: "Total cost", value: row.cost, strong: true } : null,
+      showCol(9) ? { label: "Market", value: row.market, icon: imgexchng, className: "cm-narrow-detail" } : null,
+    ]} /> : null}
+  </div>;
+}
+
+function DetailPair({ items }) {
+  return <div className="cm-detail-pair">
+    {items.filter(Boolean).map((item) => <span className={item.className || ""} key={item.label}>
+      <small>{item.label}</small>
+      <strong className={item.strong ? "is-strong" : ""}>{item.icon ? <img src={item.icon} alt="" /> : null}{frmtNb(item.value)}</strong>
+    </span>)}
+  </div>;
+}
+
+function Detail({ icon, label, value, strong, className = "" }) {
+  return <div className={className}><small>{label}</small><strong className={strong ? "is-strong" : ""}>{icon ? <img src={icon} alt="" /> : null}{value}</strong></div>;
 }

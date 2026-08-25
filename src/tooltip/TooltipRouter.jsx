@@ -1,6 +1,8 @@
 import React from "react";
 import LegacyTooltip from "./Tooltip.jsx";
 import ModernTooltip from "./modern/ModernTooltip.jsx";
+import { buildCropMachineRows } from "../tables/CropMachineReadable.jsx";
+import { selectCurrentProjection } from "../utils/farmState.js";
 import {
   buildCompositionCatalog,
   resolveDailyProfitContract,
@@ -24,6 +26,8 @@ export const MODERN_TOOLTIP_CONTEXTS = new Set([
   "craftcompo",
   "shrinecost",
   "crustaceancost",
+  "cmgainh",
+  "cmdailysfl",
 ]);
 
 export function shouldUseModernTooltip(interfaceMode, context, contract) {
@@ -32,10 +36,32 @@ export function shouldUseModernTooltip(interfaceMode, context, contract) {
     && !!contract;
 }
 
+export function resolveCropMachineTooltipContract(dataSet, dataSetFarm, item, context, forTry, cropMachineUi) {
+  if (!["cmgainh", "cmdailysfl"].includes(context)) return null;
+  const source = selectCurrentProjection(dataSetFarm, "cropMachineData") || dataSetFarm;
+  const it = source?.itables?.it;
+  const machine = source?.CropMachine;
+  const options = dataSet?.options;
+  if (!it || !machine || !options || !item) return null;
+  const row = buildCropMachineRows({
+    it,
+    machine,
+    options,
+    tryMode: forTry,
+    seedMode: cropMachineUi?.selectedSeeds || "stock",
+    customSeeds: cropMachineUi?.customSeeds,
+    selectedCrops: cropMachineUi?.selectedCrops,
+  }).find((candidate) => candidate.name === item);
+  if (!row) return null;
+  return context === "cmgainh" ? row.gainTooltip : row.dailyTooltip;
+}
+
 export default function TooltipRouter(props) {
-  const { dataSetFarm, forTry, interfaceMode } = props;
+  const { dataSet, dataSetFarm, forTry, interfaceMode } = props;
   let contract = null;
-  if (props.context === "dailysfl") {
+  if (["cmgainh", "cmdailysfl"].includes(props.context)) {
+    contract = resolveCropMachineTooltipContract(dataSet, dataSetFarm, props.item, props.context, forTry, props.cropMachineUi);
+  } else if (props.context === "dailysfl") {
     contract = resolveDailyProfitContract(dataSetFarm, props.item, forTry);
   } else if (props.context === "costp" || props.context === "harvest") {
     contract = resolveProductionCostContract(dataSetFarm, props.item, forTry);

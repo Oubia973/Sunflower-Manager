@@ -3,10 +3,9 @@ import { ColorValue, frmtNb } from "../fct.js";
 
 const ResourceIcon = ({ src, fallback, name, size = 20 }) => <img src={src || fallback} alt={name || ""} title={name || ""} style={{ width: size, height: size }} />;
 
-export default function HarvestTooltipDetails({ contract, itemName, growing, isPurchased, icons }) {
+export default function HarvestTooltipDetails({ contract, itemName, growing, icons }) {
   if (!contract || typeof contract !== "object") return null;
   const itemIcon = <ResourceIcon src={contract.itemImage} fallback={icons?.fallback} name={itemName} size={22} />;
-  if (isPurchased) return <><div>{itemIcon} {itemName}</div><div>You buy this item for {frmtNb(contract.purchaseFlower)}{icons?.flower}</div></>;
   const scenario = contract.harvest?.[growing ? "growing" : "average"];
   if (!scenario) return null;
   const detail = scenario.detail;

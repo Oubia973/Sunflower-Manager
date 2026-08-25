@@ -17,6 +17,9 @@ test("Production cost tooltip renders a prepared Active/Try contract", () => {
     setCompoTable={() => ({})}
   />);
   expect(html).toContain("Sunflower cost");
+  expect(html).toContain("Average per node: 2<img");
+  expect(html).toContain("sunflower.png");
+  expect(html).toContain("crop.png");
   expect(html).toContain("Seed cost");
   expect(html).toContain("0.12");
   expect(html).toContain("0.27");

@@ -1,4 +1,32 @@
 import { mergeFarmStateDeep } from "../fct.js";
+
+test("projection contracts can replace a finite return with null", () => {
+  const previous = {
+    invData: {
+      tooltipData: {
+        dailyProfit: {
+          Wood: { try: { profitMultiplier: -2, profitPercent: -300 } },
+        },
+      },
+    },
+    farmMeta: { optionalValue: 12 },
+  };
+
+  const merged = mergeFarmStateDeep(previous, {
+    invData: {
+      tooltipData: {
+        dailyProfit: {
+          Wood: { try: { profitMultiplier: null, profitPercent: null } },
+        },
+      },
+    },
+    farmMeta: { optionalValue: null },
+  });
+
+  expect(merged.invData.tooltipData.dailyProfit.Wood.try.profitMultiplier).toBeNull();
+  expect(merged.invData.tooltipData.dailyProfit.Wood.try.profitPercent).toBeNull();
+  expect(merged.farmMeta.optionalValue).toBe(12);
+});
 import { collectKnownProjectionHashes, hasSectionData, isProjectionCurrent, selectCurrentProjection } from "./farmState.js";
 
 test("collects only usable local projection hashes", () => {

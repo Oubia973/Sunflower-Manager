@@ -220,7 +220,25 @@ export function mergeFarmStateDeep(prevFarm, nextFarm, tryitConfig = null) {
       (path[0] === "itables" || path[0] === "boostables") &&
       replaceTables.has(`${path[0]}.${path[1]}`)
     ) {
-      return nextNode !== undefined ? nextNode : prevNode;
+      if (path[0] !== "itables" || !isPlainObject(nextNode)) {
+        return nextNode !== undefined ? nextNode : prevNode;
+      }
+      const tablePath = `${path[0]}.${path[1]}`;
+      const preservedFields = CLIENT_ONLY_TABLE_FIELDS[tablePath];
+      if (!preservedFields || !isPlainObject(prevNode)) return nextNode;
+      const replacement = { ...nextNode };
+      Object.entries(replacement).forEach(([itemName, nextItem]) => {
+        const prevItem = prevNode[itemName];
+        if (!isPlainObject(nextItem) || !isPlainObject(prevItem)) return;
+        const mergedItem = { ...nextItem };
+        preservedFields.forEach((field) => {
+          if (Object.prototype.hasOwnProperty.call(prevItem, field)) {
+            mergedItem[field] = prevItem[field];
+          }
+        });
+        replacement[itemName] = mergedItem;
+      });
+      return replacement;
     }
     if (!isPlainObject(prevNode) || !isPlainObject(nextNode)) {
       return nextNode !== undefined ? nextNode : prevNode;
@@ -229,7 +247,13 @@ export function mergeFarmStateDeep(prevFarm, nextFarm, tryitConfig = null) {
     Object.keys(nextNode).forEach((key) => {
       const nextVal = nextNode[key];
       const prevVal = prevNode[key];
-      // Skip null/undefined values from server to preserve existing data
+      // Page projections are complete contracts, where null is meaningful
+      // (for example a null profitMultiplier represents an infinite return).
+      // Root farm payloads remain partial, so null keeps the previous value there.
+      if (nextVal === null && String(path[0] || "").endsWith("Data")) {
+        output[key] = null;
+        return;
+      }
       if (nextVal === null || nextVal === undefined) {
         return;
       }
@@ -248,15 +272,11 @@ export function mergeFarmStateDeep(prevFarm, nextFarm, tryitConfig = null) {
         const nextItem = nextNode[itemName];
         if (!isPlainObject(item) || !isPlainObject(nextItem)) return;
         const prevItem = prevNode?.[itemName];
-        // Always preserve client-only fields from prev state (these are sent via tryitarrays, not from server)
+        // Client-only fields are frontend-owned. A server response may echo
+        // them for calculations, but it must never replace an existing value.
         preservedFields.forEach((field) => {
-          if (Object.prototype.hasOwnProperty.call(nextItem, field)) {
-            item[field] = nextItem[field];
-            return;
-          }
           if (isPlainObject(prevItem) && Object.prototype.hasOwnProperty.call(prevItem, field)) {
             item[field] = prevItem[field];
-            nextItem[field] = prevItem[field];
           }
         });
         // After preserving client-only fields, apply animal-specific logic

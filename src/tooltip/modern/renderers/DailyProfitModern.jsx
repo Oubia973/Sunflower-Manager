@@ -88,8 +88,6 @@ export default function DailyProfitModern({ contract }) {
   const supplement = contract.harvestSupplement;
   const saleLimit = contract.marketSaleLimit;
 
-  if (contract.isPurchased) return <Section title="Purchase"><Row label="Marketplace cost"><Flower value={contract.purchaseFlower} /></Row></Section>;
-
   return <>
     <div className={`modern-tooltip__summary ${positive ? "is-positive" : "is-negative"}`}>
       <span>Estimated daily profit</span>

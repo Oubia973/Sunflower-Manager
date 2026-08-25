@@ -64,15 +64,6 @@ export default function DailyProfitTooltipDetails({
     </React.Fragment>)}</>
     : icons?.node;
 
-  if (contract.isPurchased) {
-    return (
-      <>
-        <div>{itemIcon} {itemName}</div>
-        <div>You buy this item for {frmtNb(contract.purchaseFlower)}{icons?.flower}</div>
-      </>
-    );
-  }
-
   return (
     <>
       <div>{itemIcon} {itemName} daily</div>

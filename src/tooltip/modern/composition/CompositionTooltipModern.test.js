@@ -38,3 +38,17 @@ test("shows crustacean yield and tool information", () => {
   expect(html).toContain("Creates ×6");
   expect(html).toContain("pot.png");
 });
+
+test("shows market fallbacks for every chum without composition data", () => {
+  const html = renderToStaticMarkup(<CompositionTooltipModern contract={{ items: [
+    { itemName: "Grape", itemImage: "grape.png", quantity: 5, totalCost: 0.2, totalMarket: 0.5 },
+    { itemName: "Red Wiggler", itemImage: "worm.png", quantity: 3, totalCost: 0.3, totalMarket: 0.9 },
+  ] }} />);
+  expect(html).toContain("Grape");
+  expect(html).toContain("Red Wiggler");
+  expect(html).toContain("Prod.");
+  expect(html).toContain("Market");
+  expect(html).toContain("0.5");
+  expect(html).toContain("0.9");
+  expect(html).not.toContain("Composition unavailable");
+});

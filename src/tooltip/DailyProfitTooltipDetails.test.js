@@ -58,14 +58,28 @@ describe("DailyProfitTooltipDetails", () => {
     expect(html).toContain("cow.png");
   });
 
-  test("renders Buy as the backend-selected sourcing mode", () => {
+  test("keeps the normal details when Buy is the backend-selected sourcing mode", () => {
     const html = render({
       isPurchased: true,
       purchaseFlower: 0.25,
+      growTime: "08:00:00",
+      cycles: 3,
+      inputFarmHours: 24,
+      restocks: 1,
+      harvestAverage: 2,
+      harvestDaily: 6,
+      productionCostFlower: 0.6,
+      marketFlower: 2.4,
+      profitFlower: 1.8,
+      profitMultiplier: 4,
+      profitPercent: 300,
+      tradeTaxPercent: 10,
     });
 
-    expect(html).toContain("You buy this item for 0.25");
-    expect(html).not.toContain("Production cost");
+    expect(html).toContain("Milk daily");
+    expect(html).toContain("Grow time: 08:00:00");
+    expect(html).toContain("Production cost");
+    expect(html).not.toContain("You buy this item");
   });
 
   test("shows harvests before and after resources burned by tools", () => {

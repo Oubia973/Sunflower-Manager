@@ -13,6 +13,8 @@ test("renders top-level composition rows collapsed with cost columns", () => {
   expect(html).toContain("×2");
   expect(html).toContain("Expand all");
   expect(html).toContain("Final resources");
+  expect(html).toContain("Self production");
+  expect(html).toContain("Marketplace");
   expect(html).not.toContain("wood.png");
 });
 

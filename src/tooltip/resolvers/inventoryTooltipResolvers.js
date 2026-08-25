@@ -89,6 +89,10 @@ export function resolveCompositionTooltipContract(dataSetFarm, context, item, va
       || "spring"
   ).toLowerCase();
 
+  if (context === "costitem" && isObject(value) && Array.isArray(value.items)) {
+    return { ...value, initialSeason: value.initialSeason || initialSeason };
+  }
+
   if (context === "costitem" && isObject(value)) {
     return { items: [{ ...value, itemName: value.itemName || item, quantity: Number(value.quantity) || 1 }], initialSeason };
   }

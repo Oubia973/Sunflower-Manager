@@ -169,20 +169,19 @@ function FruitSetup({ detail, contract }) {
   </Section>;
 }
 
-function FruitLifecycle({ detail, yieldPerNode, productionCostFlower, harvestQuantity }) {
+function FruitLifecycle({ detail, yieldPerNode, productionCostFlower, harvestQuantity, itemImage, itemName }) {
   return <Section title={detail.greenhouse ? "Production" : "Production over tree lifetime"}>
     {!detail.greenhouse ? <Row label="Harvests per tree">{frmtNb(detail.harvestCount)}</Row> : null}
-    {yieldPerNode !== undefined ? <Row label="Yield per harvest/node">{frmtNb(yieldPerNode)}</Row> : null}
+    {yieldPerNode !== undefined ? <Row label="Yield per harvest/node">{frmtNb(yieldPerNode)} <Icon src={itemImage} label={itemName || "Item"} small /></Row> : null}
     {harvestQuantity !== undefined ? <Row label="This harvest">{frmtNb(harvestQuantity)}</Row> : null}
     <Row label="Allocated production cost"><Flower value={productionCostFlower} /></Row>
   </Section>;
 }
 
 function ProductionCost({ contract, compositionCatalog }) {
-  if (contract.isPurchased) return <div className="modern-tooltip__notice"><strong>Purchased item</strong><span>You buy this item for <Flower value={contract.purchaseFlower} />.</span></div>;
   if (contract.detail?.kind === "fruit") return <>
     <FruitSetup detail={contract.detail} contract={contract} />
-    <FruitLifecycle detail={contract.detail} yieldPerNode={contract.harvestAveragePerNode} productionCostFlower={contract.productionCostFlower} />
+    <FruitLifecycle detail={contract.detail} yieldPerNode={contract.harvestAveragePerNode} productionCostFlower={contract.productionCostFlower} itemImage={contract.itemImage} itemName={contract.item} />
     <Section title="Marketplace"><Row label={`Sale after ${frmtNb(contract.taxPercent)}% tax`}><Flower value={contract.marketAfterTaxFlower} /></Row></Section>
     <ProfitSummary profit={contract.profitFlower} multiplier={contract.profitMultiplier} percent={contract.profitPercent} />
   </>;
@@ -190,7 +189,7 @@ function ProductionCost({ contract, compositionCatalog }) {
     <ProfitSummary profit={contract.profitFlower} multiplier={contract.profitMultiplier} percent={contract.profitPercent} />
     <Section title="Production">
       <CostInputs detail={contract.detail} contract={contract} compositionCatalog={compositionCatalog} />
-      <Row label="Average per node">{frmtNb(contract.harvestAveragePerNode)} <Icon src={NODE_ICONS[contract.nodeKind]} label={contract.nodeKind || "Node"} small /></Row>
+      <Row label="Average per node">{frmtNb(contract.harvestAveragePerNode)} <Icon src={contract.itemImage} label={contract.item || "Item"} small /> / <Icon src={NODE_ICONS[contract.nodeKind]} label={contract.nodeKind || "Node"} small /></Row>
       <Row label="Total production cost"><Flower value={contract.productionCostFlower} /></Row>
       {contract.detail?.kind === "animal" ? <Row label="If crops are bought"><Flower value={contract.detail.marketPerHarvestFlower} /></Row> : null}
     </Section>
@@ -199,7 +198,6 @@ function ProductionCost({ contract, compositionCatalog }) {
 }
 
 function Harvest({ contract, growing, compositionCatalog }) {
-  if (contract.isPurchased) return <div className="modern-tooltip__notice"><strong>Purchased item</strong><span>You buy this item for <Flower value={contract.purchaseFlower} />.</span></div>;
   const scenario = contract.harvest?.[growing ? "growing" : "average"];
   if (!scenario) return <div className="modern-tooltip__empty">Harvest details unavailable.</div>;
   const spots = scenario.spots || {};
@@ -209,7 +207,7 @@ function Harvest({ contract, growing, compositionCatalog }) {
       <div className="modern-tooltip__stat"><span>Fruit trees</span><strong><NodeSpots nodeKind={contract.nodeKind} spots={spots} /></strong></div>
     </div>
     <FruitSetup detail={scenario.detail} contract={contract} />
-    <FruitLifecycle detail={scenario.detail} yieldPerNode={scenario.yieldPerNode} harvestQuantity={scenario.quantity} productionCostFlower={scenario.productionCostFlower} />
+    <FruitLifecycle detail={scenario.detail} yieldPerNode={scenario.yieldPerNode} harvestQuantity={scenario.quantity} productionCostFlower={scenario.productionCostFlower} itemImage={contract.itemImage} itemName={contract.item} />
     <Section title="Marketplace"><Row label={`Sale after ${frmtNb(contract.taxPercent)}% tax`}><Flower value={scenario.marketAfterTaxFlower} /></Row></Section>
     <ProfitSummary profit={scenario.profitFlower} multiplier={scenario.profitMultiplier} percent={scenario.profitPercent} />
   </>;

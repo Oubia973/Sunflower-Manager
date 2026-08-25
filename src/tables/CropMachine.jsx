@@ -48,7 +48,7 @@ export default function CropMachineTable() {
         let TotalProfit = 0;
         let TotalDailyProfit = 0;
         let TotalTime = 0;
-        const visibleDataColumnCount = [...Array(12).keys()].filter((idx) => showCol(idx)).length + ((showCol(12) && dataSet.options?.isAbo) ? 1 : 0);
+        const visibleDataColumnCount = [...Array(13).keys()].filter((idx) => showCol(idx)).length;
         const unavailableColSpan = 1 + visibleDataColumnCount;
         const tableContent = Keys.map((element) => {
             if ((it[element].cat !== "crop") || it[element].greenhouse) return null;
@@ -207,7 +207,7 @@ export default function CropMachineTable() {
                             style={cellStyleGH}
                             onClick={(e) => handleTooltip(itemName, "cmgainh", gainHTooltip, e)}
                         >{frmtNb(gainH)}</td> : null}
-                        {showCol(12) && dataSet.options?.isAbo ? <td
+                        {showCol(12) ? <td
                             className="tdcenter tooltipcell"
                             style={cellStyleDaily}
                             title={dailyTitle}
@@ -262,7 +262,7 @@ export default function CropMachineTable() {
                     {showCol(9) ? <th className="thcenter">{imgExchng}</th> : null}
                     {showCol(10) ? <th className="thcenter">Profit {imgSfl}</th> : null}
                     {showCol(11) ? <th className="thcenter">Gain/h {imgSfl}</th> : null}
-                    {showCol(12) && dataSet.options?.isAbo ? <th className="thcenter">Daily {imgSfl}</th> : null}
+                    {showCol(12) ? <th className="thcenter">Daily {imgSfl}</th> : null}
                 </tr><tr style={{ height: "25px" }}>
                     <td className="cm-icon-sticky"></td>
                     {showCol(0) ? <td className="thcenter cm-check-sticky"> </td> : null}
@@ -277,7 +277,7 @@ export default function CropMachineTable() {
                     {showCol(9) ? <td className="thcenter">{frmtNb(TotalMarket)}</td> : null}
                     {showCol(10) ? <td className="thcenter" style={cellStyleTP}>{frmtNb(TotalProfit)}</td> : null}
                     {showCol(11) ? <td className="thcenter" style={cellStyleTGH}>{frmtNb(totalGainH)}</td> : null}
-                    {showCol(12) && dataSet.options?.isAbo ? <td className="thcenter" style={cellStyleTDP}>{frmtNb(TotalDailyProfit)}</td> : null}
+                    {showCol(12) ? <td className="thcenter" style={cellStyleTDP}>{frmtNb(TotalDailyProfit)}</td> : null}
                 </tr>
             </thead>
         );

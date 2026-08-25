@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { frmtNb } from "../../../fct.js";
-import { imgcoins, imgna, imgsfl } from "../../../constants/images.js";
+import { imgcoins, imgExchng, imgna, imgprodit, imgsfl } from "../../../constants/images.js";
 import {
   compositionNodes,
   normalizeCompositionNode,
@@ -72,6 +72,13 @@ function CostValue({ value }) {
   return <>{frmtNb(value)}<img className="composition-tree__currency" src={imgsfl} alt="Flower" /></>;
 }
 
+function HeaderIcon({ icon }) {
+  return React.cloneElement(icon, {
+    className: "composition-tree__head-icon",
+    style: { width: 14, height: 14 },
+  });
+}
+
 export default function CompositionTree({
   costTree,
   quantity = 1,
@@ -138,7 +145,10 @@ export default function CompositionTree({
       {view === "tree" ? <button type="button" className="composition-tree__expand" onClick={toggleAll}>{allExpanded ? "Collapse all" : "Expand all"}</button> : null}
     </div> : null}
     <div className="composition-tree__head">
-      <span>Component</span><span>Qty</span>{hasCostColumns ? <><span>Prod.</span><span>Market</span></> : null}
+      <span>Component</span><span>Qty</span>{hasCostColumns ? <>
+        <span className="composition-tree__head-label">Prod.<HeaderIcon icon={imgprodit} /></span>
+        <span className="composition-tree__head-label">Market<HeaderIcon icon={imgExchng} /></span>
+      </> : null}
     </div>
     <div className="composition-tree__body">
       {view === "tree" ? renderTree(roots) : Object.entries(finalResources).map(([name, resource]) => <div className="composition-tree__row is-final" key={name}>

@@ -4,6 +4,7 @@ import DailyProfitModern from "./renderers/DailyProfitModern.jsx";
 import InventoryTooltipModern from "./renderers/InventoryTooltipModern.jsx";
 import InventoryFinancialModern from "./renderers/InventoryFinancialModern.jsx";
 import CompositionTooltipModern from "./composition/CompositionTooltipModern.jsx";
+import CropMachineModern from "./renderers/CropMachineModern.jsx";
 import { frmtNb } from "../../fct.js";
 import "./modern-tooltip.css";
 
@@ -18,7 +19,9 @@ export default function ModernTooltip({
   compositionCatalog,
 }) {
   const singleCompositionItem = contract?.items?.length === 1 ? contract.items[0] : null;
-  const content = context === "dailysfl"
+  const content = ["cmgainh", "cmdailysfl"].includes(context)
+    ? <CropMachineModern context={context} contract={contract} />
+    : context === "dailysfl"
     ? <DailyProfitModern contract={contract} itemName={item} />
     : (["costitem", "cookcost", "craftcompo", "shrinecost", "crustaceancost"].includes(context)
       ? <CompositionTooltipModern contract={contract} catalog={compositionCatalog} hideSingleItemTitle />
@@ -40,6 +43,8 @@ export default function ModernTooltip({
     craftcompo: { title: item, subtitle: "Craft composition", icon: singleCompositionItem?.itemImage },
     shrinecost: { title: item, subtitle: "Shrine composition", icon: singleCompositionItem?.itemImage },
     crustaceancost: { title: item, subtitle: "Crustacean composition", icon: singleCompositionItem?.itemImage },
+    cmgainh: { title: item, subtitle: "Crop Machine hourly gain", icon: contract?.itemImage },
+    cmdailysfl: { title: item, subtitle: "Crop Machine daily profit", icon: contract?.itemImage },
   }[context] || { title: item, subtitle: "Daily profitability", icon: contract?.itemImage };
 
   if (!content) return null;

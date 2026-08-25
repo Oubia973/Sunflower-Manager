@@ -648,6 +648,9 @@ export default function FishTable() {
         totCostMarket += icostm * iQuant;
         const xCost = icost * iQuant;
         const xCostM = icostm * iQuant;
+        const chumTooltipItems = Object.entries(ichum)
+          .filter(([chumName]) => !!chumName)
+          .map(([chumName, chumQuantity]) => buildItemCostTooltipContract(chumName, chumQuantity * iQuant));
         /* let xCostChum = 0;
         Object.entries(ichum).map(([critem, quant]) => {
           const citem = it[critem] || petit[critem] || pfood[critem];
@@ -668,14 +671,17 @@ export default function FishTable() {
             {xListeColCrusta[1][1] === 1 ? <td className="tditem">{item}</td> : null}
             {xListeColCrusta[2][1] === 1 ? <td className="tdcenter">{itemQuantity || ''}</td> : null}
             {xListeColCrusta[3][1] === 1 ? <td className="tdcenter">{icaught || ''}</td> : null}
-            {xListeColCrusta[4][1] === 1 ? <td className="tdcenter tooltipcell">
+            {xListeColCrusta[4][1] === 1 ? <td
+              className="tdcenter tooltipcell"
+              onClick={chumTooltipItems.length ? (e) => handleTooltip(`${item} Chum`, "costitem", { items: chumTooltipItems }, e) : undefined}
+            >
               {Object.entries(ichum).map(([critem, quant]) => {
                 //const citem = crustacean[critem];
                 if (!critem) return null;
                 const itemImg = it[critem]?.img || petit[critem]?.img || bounty[critem]?.img || pfood[critem]?.img || imgna;
                 if (critem !== "") {
                   return (<span key={critem}>{quant * iQuant}
-                    <i><img src={itemImg} alt={''} className="itico" title={critem} onClick={(e) => handleTooltip(critem, "costitem", buildItemCostTooltipContract(critem, quant * iQuant), e)} /></i></span>)
+                    <i><img src={itemImg} alt={''} className="itico" title={critem} /></i></span>)
                 }
                 return null;
               })}</td> : null}

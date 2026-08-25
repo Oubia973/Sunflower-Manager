@@ -1,7 +1,7 @@
 import React from "react";
 import { ColorValue, frmtNb } from "../fct.js";
 
-export default function ProductionCostTooltipDetails({ contract, itemName, isPurchased, icons, setCompoTable }) {
+export default function ProductionCostTooltipDetails({ contract, itemName, icons, setCompoTable }) {
   if (!contract || typeof contract !== "object") return null;
   const detail = contract.detail;
   const itemIcon = <img src={contract.itemImage || icons?.fallback} alt={itemName || "?"} style={{ width: 22, height: 22 }} />;
@@ -57,12 +57,10 @@ export default function ProductionCostTooltipDetails({ contract, itemName, isPur
   }
   if (detail?.kind === "seed") detailView = <div>Seed cost {frmtNb(detail.seedCostFlower)}{icons?.flower}</div>;
 
-  if (isPurchased) return <><div>{itemIcon} {itemName}</div><div>You buy this item for {frmtNb(contract.purchaseFlower)}{icons?.flower}</div></>;
-
   return <>
     <div>{itemIcon} {itemName} cost</div>
     {!contract.isFree ? detailView : null}
-    <div>{itemIcon}x{frmtNb(contract.harvestAveragePerNode)} average per {nodeIcon}</div>
+    <div>Average per node: {frmtNb(contract.harvestAveragePerNode)}{itemIcon} / {nodeIcon}</div>
     <div>Your production cost {frmtNb(contract.productionCostFlower)}{icons?.flower}</div>
     {detail?.kind === "animal" ? <div>(Buying crops {icons?.market}{frmtNb(detail.marketPerHarvestFlower)}{icons?.flower})</div> : null}
     <div>Marketplace{icons?.market}-{frmtNb(contract.taxPercent)}% tax {frmtNb(contract.marketAfterTaxFlower)}{icons?.flower}</div>
