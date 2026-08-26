@@ -33,6 +33,7 @@ export function createTooltipHandlers(setTooltipData, hoveredTooltipCellRef) {
         context,
         value,
         bdrag,
+        anchor: event?.currentTarget || null,
       });
     } catch (error) {
       console.log(error);
@@ -115,6 +116,25 @@ export function createTooltipHandlers(setTooltipData, hoveredTooltipCellRef) {
     setHoveredTooltipCell,
     handleDonClick,
   };
+}
+
+/**
+ * Replays the click which opened a tooltip so its payload is rebuilt from the
+ * latest rendered row. This keeps legacy and modern tooltips reactive without
+ * running a second page-wide calculation.
+ */
+export function refreshOpenTooltip(tooltipData) {
+  const anchor = tooltipData?.anchor;
+  if (!anchor || typeof anchor.dispatchEvent !== 'function' || !document.body.contains(anchor)) {
+    return false;
+  }
+  anchor.dispatchEvent(new MouseEvent('click', {
+    bubbles: true,
+    cancelable: true,
+    clientX: Number(tooltipData.x) || 0,
+    clientY: Number(tooltipData.y) || 0,
+  }));
+  return true;
 }
 
 export default createTooltipHandlers;

@@ -77,7 +77,7 @@ import {
 // Extracted modules
 import { createUIHandlers } from './handlers/uiHandlers.js';
 import { createOptionHandlers } from './handlers/optionHandlers.js';
-import { createTooltipHandlers } from './handlers/tooltipHandlers.js';
+import { createTooltipHandlers, refreshOpenTooltip } from './handlers/tooltipHandlers.js';
 import { useUIState as useUIStateHook } from './hooks/useUIState.js';
 import { useTryitSync } from './hooks/useTryitSync.js';
 import { useAdminVIP } from './hooks/useAdminVIP.js';
@@ -311,6 +311,29 @@ function App() {
   const tooltipHandlers = createTooltipHandlers(setTooltipData, hoveredTooltipCellRef);
   const { handleTooltip, handleTooltipCellMouseOver, handleTooltipCellMouseOut, clearHoveredTooltipCell } = tooltipHandlers;
 
+  useEffect(() => {
+    if (!tooltipData?.anchor) return undefined;
+    const frame = requestAnimationFrame(() => refreshOpenTooltip(tooltipData));
+    return () => cancelAnimationFrame(frame);
+  }, [options]);
+
+  useEffect(() => {
+    setTooltipData(null);
+    if (hoveredTooltipCellRef.current) {
+      hoveredTooltipCellRef.current.classList.remove('tooltipcell-hover');
+      hoveredTooltipCellRef.current = null;
+    }
+  }, [selectedInv]);
+
+  useEffect(() => {
+    if (!showfDlvr && !showfTNFT) return;
+    setTooltipData(null);
+    if (hoveredTooltipCellRef.current) {
+      hoveredTooltipCellRef.current.classList.remove('tooltipcell-hover');
+      hoveredTooltipCellRef.current = null;
+    }
+  }, [showfDlvr, showfTNFT]);
+
   // ========== Storage Hook ==========
   const { setCookie, loadCookie, lastID, setLastID } = useStorage(
     dataSet, dataSetFarm, dataSetFarmRef, setdataSetFarm, setOptions, setUI, tryitConfig
@@ -320,16 +343,10 @@ function App() {
     if (!pendingSaveRef.current) return;
     pendingSaveRef.current = false;
     const farmState = dataSetFarmRef.current || dataSetFarm || {};
-    if (typeof buildAndWriteSnapshot === 'function') {
-      buildAndWriteSnapshot(
-        farmState,
-        farmState?.frmid || dataSet?.options?.farmId || ''
-      );
-    }
     if (typeof setCookie === 'function') {
       setCookie(farmState, dataSet);
     }
-  }, [dataSetFarm, dataSet, buildAndWriteSnapshot, setCookie]);
+  }, [dataSetFarm, dataSet, setCookie]);
 
   useEffect(() => {
     loadCookie();
@@ -911,12 +928,8 @@ function App() {
         (normalizedInputUsername !== "" && normalizedInputUsername === currentLoadedUsername)
       );
       const currentFarmStateBeforeRefresh = dataSetFarmRef.current || dataSetFarm || {};
-      if (typeof buildAndWriteSnapshot === 'function') {
-        buildAndWriteSnapshot(
-          currentFarmStateBeforeRefresh,
-          currentFarmStateBeforeRefresh?.frmid || dataSet?.options?.farmId || currentLoadedFarmId || ''
-        );
-      }
+      // Loading another farm is not a Tryset edit. The persisted client
+      // snapshot remains the source of truth and must not be rebuilt here.
       if (typeof setCookie === 'function') {
         setCookie(currentFarmStateBeforeRefresh, dataSet, lastID);
       }

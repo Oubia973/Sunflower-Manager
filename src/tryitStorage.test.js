@@ -1,4 +1,8 @@
-import { buildPackedTryitSnapshot } from "./tryitStorage.js";
+import {
+  buildPackedTryitSnapshot,
+  readTryitSnapshot,
+  writeTryitSnapshot,
+} from "./tryitStorage.js";
 
 const config = {
   boostTables: ["nft", "skill"],
@@ -40,4 +44,25 @@ test("packs a complete snapshot with table indexes", () => {
 test("refuses compact encoding when the local catalog is incomplete", () => {
   const state = { boostables: { nft: { A: {} }, skill: {} }, itables: { it: {} } };
   expect(buildPackedTryitSnapshot(state, { nft: { Missing: 1 } }, config)).toBeNull();
+});
+
+test("a partial snapshot write does not erase persisted Tryset fields", () => {
+  localStorage.removeItem("SFLManTryit");
+  writeTryitSnapshot({
+    nft: { A: 1 },
+    xspottry: { Wood: 12, Stone: 7 },
+    xspot2try: { Wood: 2, Stone: 0 },
+  });
+
+  writeTryitSnapshot({
+    nft: { B: 1 },
+    xspottry: { Wood: 15 },
+  });
+
+  expect(readTryitSnapshot()).toMatchObject({
+    nft: { A: 1, B: 1 },
+    xspottry: { Wood: 15, Stone: 7 },
+    xspot2try: { Wood: 2, Stone: 0 },
+  });
+  localStorage.removeItem("SFLManTryit");
 });

@@ -7,7 +7,7 @@ import { useCallback } from 'react';
 import { unpackFarmPayloadTables, mergeFarmStateDeep, stripFarmMetadata } from '../fct.js';
 import { buildTryitCoverageSignature, hasSectionData, mergeKnownHashesFromPayload } from '../utils/farmState.js';
 import { computeRequiredSections } from '../utils/sections.js';
-import { buildCanonicalTryitSnapshot, writeTryitSnapshot, hasTryitPayloadContent, isValidTryitConfig, syncTryitStateAcrossFarmState } from '../tryitStorage.js';
+import { readTryitSnapshot, hasTryitPayloadContent, isValidTryitConfig, syncTryitStateAcrossFarmState } from '../tryitStorage.js';
 
 /**
  * Hook for modal handlers
@@ -128,15 +128,16 @@ export function useModalHandlers(
       if (!Object.prototype.hasOwnProperty.call(safeTryPayload, "ftradesHeader")) safeTryPayload.ftradesHeader = prevFarmState?.ftradesHeader;
       const mergedFarmStateRaw = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload, tryitConfig);
       mergeKnownHashesFromPayload(safeTryPayload, farmSectionHashesRef, farmTableHashesRef);
-      const tryitSnapshot = buildCanonicalTryitSnapshot(mergedFarmStateRaw, tryitConfig);
-      const mergedFarmState = tryitSnapshot
+      // Closing the modal is not a Tryset edit. Re-apply the persisted client
+      // configuration instead of rebuilding it from a possibly partial state.
+      const tryitSnapshot = readTryitSnapshot(mergedFarmStateRaw?.frmid || dataSet?.options?.farmId || "");
+      const mergedFarmState = hasTryitPayloadContent(tryitSnapshot)
         ? syncTryitStateAcrossFarmState(mergedFarmStateRaw, tryitConfig, tryitSnapshot)
         : mergedFarmStateRaw;
       const cleanFarmData = stripFarmMetadata(mergedFarmState, 'useModalHandlers/onClose');
       dataSetFarmRef.current = cleanFarmData;
       setdataSetFarm(cleanFarmData);
       setCookie(mergedFarmState, dataSet, lastID);
-      if (tryitSnapshot) writeTryitSnapshot(tryitSnapshot, mergedFarmState?.frmid || dataSet?.options?.farmId || "");
       setdeliveriesData(mergedFarmState?.orderstable || []);
       const nextRefreshPulse = typeof bumpAutoRefreshPulse === "function"
         ? bumpAutoRefreshPulse(ui?.selectedInv || "home")
@@ -185,8 +186,9 @@ export function useModalHandlers(
     if (!Object.prototype.hasOwnProperty.call(safeTryPayload, "ftradesHeader")) safeTryPayload.ftradesHeader = prevFarmState?.ftradesHeader;
     const mergedFarmStateRaw = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload, tryitConfig);
     mergeKnownHashesFromPayload(safeTryPayload, farmSectionHashesRef, farmTableHashesRef);
-    const tryitSnapshot = buildCanonicalTryitSnapshot(mergedFarmStateRaw, tryitConfig);
-    const mergedFarmState = tryitSnapshot
+    // Refreshing calculated data must not redefine frontend-owned Tryset fields.
+    const tryitSnapshot = readTryitSnapshot(mergedFarmStateRaw?.frmid || dataSet?.options?.farmId || "");
+    const mergedFarmState = hasTryitPayloadContent(tryitSnapshot)
       ? syncTryitStateAcrossFarmState(mergedFarmStateRaw, tryitConfig, tryitSnapshot)
       : mergedFarmStateRaw;
     const cleanFarmData = stripFarmMetadata(mergedFarmState, 'useModalHandlers/onRefresh');
@@ -200,9 +202,6 @@ export function useModalHandlers(
       };
     }
     setCookie(mergedFarmState, dataSet, lastID);
-    if (options?.persistTrySnapshot !== false && tryitSnapshot) {
-      writeTryitSnapshot(tryitSnapshot, mergedFarmState?.frmid || dataSet?.options?.farmId || "");
-    }
     if (!mergedFarmState?.ftrades && !mergedFarmState?.ftradesHeader && typeof getPrices === "function") {
       getPrices(false, true, ["trades"]).catch((error) => {
         console.log("TryNFT refresh trades sync error", error);

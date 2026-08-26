@@ -16,13 +16,15 @@ describe("UI handlers and versioned projections", () => {
     };
     let updatedFarmState = null;
     const pendingSaveRef = { current: false };
+    const markTryitPending = jest.fn();
+    const buildAndWriteSnapshot = jest.fn();
     const handlers = createUIHandlers(
       jest.fn(),
       (next) => { updatedFarmState = next; },
       null,
       pendingSaveRef,
-      null,
-      null,
+      markTryitPending,
+      buildAndWriteSnapshot,
       null,
       null,
       null,
@@ -40,6 +42,9 @@ describe("UI handlers and versioned projections", () => {
     expect(updatedFarmState.itables.it.Milk.farmit).toBe(1);
     expect(updatedFarmState.cookData.itables.it.Milk.farmit).toBe(1);
     expect(updatedFarmState.invData.itables.it.Milk.farmit).toBe(0);
+    expect(buildAndWriteSnapshot).toHaveBeenCalledTimes(1);
+    expect(buildAndWriteSnapshot.mock.calls[0][0]).toBe(updatedFarmState);
+    expect(markTryitPending).not.toHaveBeenCalled();
     expect(pendingSaveRef.current).toBe(true);
   });
 });

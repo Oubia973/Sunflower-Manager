@@ -779,7 +779,7 @@ function ModalTNFT({ onClose }) {
         simulatedSeason: selectedTrySeason,
         tryitarrays: tryitSnapshot,
         tryitMode: forceActiveTryRefresh ? "active" : "snapshot",
-        include: ["inventory", "boosts", "trynftpage"],
+        include: ["inventory", "boosts", "trynftpage", "cook"],
         page: "trynft",
         knownHashes: (dataSetLocal?.sectionHashes && typeof dataSetLocal.sectionHashes === "object")
           ? dataSetLocal.sectionHashes

@@ -52,11 +52,6 @@ export function useTryitSync(dataSetFarmRef, tryitConfig) {
       console.error("TRYIT_CONFIG missing: snapshot write skipped to preserve client fields.");
       return null;
     }
-    const existing = readTryitSnapshot(farmId || farmState?.frmid || '');
-    if (!hasTryitPayloadContent(existing)) {
-      console.error("TRYIT snapshot write skipped: no existing local client configuration to refresh.");
-      return null;
-    }
     const snapshot = buildCanonicalTryitSnapshot(farmState, tryitConfig);
     if (hasTryitPayloadContent(snapshot)) {
       writeTryitSnapshot(snapshot, farmId || farmState?.frmid || '');

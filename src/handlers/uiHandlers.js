@@ -99,12 +99,8 @@ export function createUIHandlers(
       if (setCookie) {
         setCookie(currentFarmState, dataSet);
       }
-      if (typeof buildAndWriteSnapshot === 'function') {
-        buildAndWriteSnapshot(
-          currentFarmState,
-          currentFarmState?.frmid || dataSet?.options?.farmId || ''
-        );
-      }
+      // An inventory refresh is not a Tryset edit; do not rebuild its snapshot
+      // from farm data that may currently contain only a subset of the tables.
       // Finally refresh prices from backend
       // Keep the Inv projection in the same response as the recalculated tables.
       // Without it, the page briefly has newer inventory/boost tables alongside an
@@ -152,6 +148,7 @@ export function createUIHandlers(
     // Handle table item toggling (cookit, etc.)
     if (name.includes(':')) {
       const [root, item] = name.split(':', 2);
+      const baseState = dataSetFarmRef?.current || dataSetFarm || {};
       const tableContainers = [
         { projectionKey: null, get: (p) => p?.itables, set: (p, tables) => ({ ...(p || {}), itables: tables }) },
         { projectionKey: 'invData', get: (p) => p?.invData?.itables, set: (p, tables) => ({ ...(p || {}), invData: { ...(p?.invData || {}), itables: tables } }) },
@@ -162,9 +159,8 @@ export function createUIHandlers(
         { projectionKey: 'flowerData', get: (p) => p?.flowerData?.itables, set: (p, tables) => ({ ...(p || {}), flowerData: { ...(p?.flowerData || {}), itables: tables } }) },
         { projectionKey: 'expandPageData', get: (p) => p?.expandPageData?.itables, set: (p, tables) => ({ ...(p || {}), expandPageData: { ...(p?.expandPageData || {}), itables: tables } }) },
       ].filter((container) => (
-        !container.projectionKey || isProjectionCurrent(dataSetFarm || {}, dataSetFarm?.[container.projectionKey])
+        !container.projectionKey || isProjectionCurrent(baseState, baseState?.[container.projectionKey])
       ));
-      const baseState = dataSetFarm || {};
       const allTables = tableContainers.map((container) => container.get(baseState) || {});
       const nextState = { ...(baseState || {}) };
       const it = allTables.map((t) => t?.it).find((t) => t && Object.keys(t).length > 0) || {};
@@ -206,10 +202,16 @@ export function createUIHandlers(
       if (dataSetFarmRef && typeof dataSetFarmRef === 'object') {
         dataSetFarmRef.current = updated;
       }
-      setdataSetFarm(updated);
-      if (typeof markTryitPending === 'function') {
-        markTryitPending();
+      // Persist from the exact state produced by the user event. Deferring this
+      // to an effect lets an unrelated network response win the race and save
+      // stale cookit/spot values instead.
+      if (typeof buildAndWriteSnapshot === 'function') {
+        buildAndWriteSnapshot(
+          updated,
+          updated?.frmid || dataSet?.options?.farmId || ''
+        );
       }
+      setdataSetFarm(updated);
       pendingSaveRef.current = true;
       return;
     }

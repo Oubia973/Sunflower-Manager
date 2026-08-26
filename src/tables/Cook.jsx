@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel, CircularProgress } from '@mui/material';
-import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, PBar, timeToDays, flattenCompoit, buildSeriesMeta } from '../fct.js';
+import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, timeToDays, flattenCompoit, buildSeriesMeta } from '../fct.js';
 import DList from "../dlist.jsx";
 import { fetchJson } from "../services/apiClient.js";
 import { selectCurrentProjection } from "../utils/farmState.js";
+import { selectCookViewTables } from "../utils/cookViewTables.js";
 import { buildBoostTooltipContract } from "../tooltip/boostTooltipContract.js";
 
 let xdxp = 0;
@@ -12,6 +13,12 @@ var dProd = [];
 var dProdtry = [];
 const preAscensionMaxLvl = 150;
 const ascensionMaxLvl = 50;
+const compactNumberFormatter = new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: 2,
+});
+const formatCompactNumber = (value) => compactNumberFormatter.format(Number(value) || 0);
 const formatCookComponentQty = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num) || num === 0) return "";
@@ -62,6 +69,7 @@ export default function CookTable() {
         }
     } = useAppCtx();
     const cookPageData = selectCurrentProjection(dataSetFarm, "cookData") || {};
+    const latestCookPageData = dataSetFarm?.cookData || {};
     const boostTooltipIndex = cookPageData?.tooltipData?.boostIndex || {};
     const levelReqTimerRef = useRef(null);
     const levelReqSeqRef = useRef(0);
@@ -70,6 +78,17 @@ export default function CookTable() {
     const [isLevelRangeLoading, setIsLevelRangeLoading] = useState(false);
     const [cookHeaderStickyTop, setCookHeaderStickyTop] = useState(0);
     const [cookHeaderRowHeight, setCookHeaderRowHeight] = useState(0);
+    const [includeFoodXp, setIncludeFoodXp] = useState(true);
+    const [includeOwnedAgedXp, setIncludeOwnedAgedXp] = useState(true);
+    const [includeFishXp, setIncludeFishXp] = useState(true);
+    const [fishXpMode, setFishXpMode] = useState("aged");
+    const [bumpkinProjection, setBumpkinProjection] = useState(null);
+    const [xpOptionsExpanded, setXpOptionsExpanded] = useState(() => (
+        typeof window === "undefined" || window.innerWidth > 560
+    ));
+    const [xpProjectionExpanded, setXpProjectionExpanded] = useState(() => (
+        typeof window === "undefined" || window.innerWidth > 560
+    ));
     useEffect(() => {
         return () => {
             if (levelReqTimerRef.current) {
@@ -89,7 +108,7 @@ export default function CookTable() {
             cancelAnimationFrame(raf);
             window.removeEventListener("resize", updateCookHeaderTop);
         };
-    }, [selectedQuantityCook, selectedQuantCook, isLevelRangeLoading, fromtolvltime, fromtolvlxp, xListeColCook]);
+    }, [selectedQuantityCook, selectedQuantCook, isLevelRangeLoading, fromtolvltime, fromtolvlxp, xListeColCook, xpOptionsExpanded, xpProjectionExpanded]);
     useEffect(() => {
         const shouldFetchLevelRange = selectedQuantityCook !== "farm";
         if (!shouldFetchLevelRange) {
@@ -189,14 +208,55 @@ export default function CookTable() {
     }
     const topLevelCookTables = dataSetFarm?.itables || {};
     const fallbackCookTables = cookPageData?.itables || {};
-    const cookTables = (
-        topLevelCookTables?.it &&
-        topLevelCookTables?.food &&
-        topLevelCookTables?.pfood &&
-        topLevelCookTables?.fish &&
-        topLevelCookTables?.bounty &&
-        topLevelCookTables?.crustacean
-    ) ? topLevelCookTables : fallbackCookTables;
+    const cookTables = useMemo(
+        () => selectCookViewTables(topLevelCookTables, fallbackCookTables),
+        [topLevelCookTables, fallbackCookTables],
+    );
+    const projectionFood = cookTables?.food || {};
+    const projectionPreparedFood = cookTables?.pfood || {};
+    const projectionInventory = cookPageData?.inventory || {};
+    const fishXpSummary = cookPageData?.meta?.fishXpSummary || latestCookPageData?.meta?.fishXpSummary || {};
+    const keepQuantity = Math.max(0, Number(dataSet?.options?.inputKeep || 0));
+    const foodStockXp = [...Object.entries(projectionFood), ...Object.entries(projectionPreparedFood)]
+        .reduce((total, [itemName, item]) => {
+            const quantity = Math.max(0, Number(projectionInventory[itemName] ?? item?.instock ?? 0) - keepQuantity);
+            const xp = Number(TryChecked ? (item?.xptry ?? item?.xp) : item?.xp);
+            return total + quantity * (Number.isFinite(xp) ? xp : 0);
+        }, 0);
+    const ownedAgedQuantity = Number(fishXpSummary?.agedQuantity || 0);
+    const ownedPrimeAgedQuantity = Number(fishXpSummary?.primeAgedQuantity || 0);
+    const ownedAgedFishQuantity = ownedAgedQuantity + ownedPrimeAgedQuantity;
+    const rawFishQuantity = Number(fishXpSummary?.rawQuantity || 0);
+    const ownedAgedFishXp = Number(TryChecked ? fishXpSummary?.ownedAgedXpTry : fishXpSummary?.ownedAgedXp) || 0;
+    const rawDirectFishXp = Number(TryChecked ? fishXpSummary?.rawXpTry : fishXpSummary?.rawXp) || 0;
+    const rawAgedFishXp = Number(TryChecked ? fishXpSummary?.rawAsAgedXpTry : fishXpSummary?.rawAsAgedXp) || 0;
+    const rawFishXp = fishXpMode === "aged" ? rawAgedFishXp : rawDirectFishXp;
+    const selectedProjectionXp =
+        (includeFoodXp ? foodStockXp : 0) +
+        (includeOwnedAgedXp ? ownedAgedFishXp : 0) +
+        (includeFishXp ? rawFishXp : 0);
+    useEffect(() => {
+        const experience = Number(bumpkinData?.[0]?.xp);
+        const ascensionLevel = Number(bumpkinData?.[0]?.ascensionLevel || 0);
+        if (!Number.isFinite(experience)) {
+            setBumpkinProjection(null);
+            return undefined;
+        }
+        const controller = new AbortController();
+        const timer = setTimeout(() => {
+            fetchJson(API_URL, "/getbumpkinprojection", {
+                method: "POST",
+                body: { experience, addedXp: selectedProjectionXp, ascensionLevel },
+                signal: controller.signal,
+            }).then(setBumpkinProjection).catch((error) => {
+                if (error?.code !== "REQUEST_CANCELLED") setBumpkinProjection(null);
+            });
+        }, 750);
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [API_URL, bumpkinData, selectedProjectionXp]);
     if (cookTables?.it && cookTables?.food && cookTables?.pfood && cookTables?.fish && cookTables?.bounty && cookTables?.crustacean) {
         const { it, food, fish, bounty, pfood, crustacean } = cookTables;
         //const inventoryEntries = selectedQuantityCook === "farm" || "daily" || "dailymax" ? Object.entries(farmData.inventory) : Object.entries(farmData.inventory);
@@ -506,10 +566,12 @@ export default function CookTable() {
         const levelDays = Number(fromtolvltime);
         const levelXp = Number(fromtolvlxp);
         const levelDaysLabel = Number.isFinite(levelDays) ? `${levelDays.toFixed(1)} days` : "- days";
-        const levelXpLabel = Number.isFinite(levelXp) ? `${frmtNb(levelXp)}xp` : "-xp";
+        const levelXpLabel = Number.isFinite(levelXp) ? `${formatCompactNumber(levelXp)} XP` : "- XP";
         const levelRangeBadge = showLevelRange ? (
             <div
+                className="cook-level-range-badge"
                 style={{
+                    position: "relative",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "6px",
@@ -523,58 +585,134 @@ export default function CookTable() {
                     fontSize: "12px",
                 }}
             >
-                <span>From A</span>
-                {xinputFromAscension}
-                <span>L</span>
-                {xinputFromLvl}
-                <span>to A</span>
-                {xinputToAscension}
-                <span>L</span>
-                {xinputToLvl}
-                <span>{levelDaysLabel}, {levelXpLabel}</span>
-                {isLevelRangeLoading ? <CircularProgress size={12} sx={{ color: "rgb(255, 205, 96)" }} /> : null}
+                <div className="cook-level-range-point">
+                    <span>From</span>
+                    <label>A {xinputFromAscension}</label>
+                    <label>L {xinputFromLvl}</label>
+                </div>
+                <span className="cook-level-range-arrow">→</span>
+                <div className="cook-level-range-point">
+                    <span>To</span>
+                    <label>A {xinputToAscension}</label>
+                    <label>L {xinputToLvl}</label>
+                </div>
+                <div className="cook-level-range-summary">
+                    <b>{levelDaysLabel}</b>
+                    <span>{levelXpLabel}</span>
+                    {isLevelRangeLoading ? <CircularProgress size={12} sx={{ color: "rgb(255, 205, 96)" }} /> : null}
+                </div>
             </div>
         ) : null;
         const bumpkinCook = bumpkinData?.[0] || {};
-        const bfdtolvl = !TryChecked ? (bumpkinCook?.foodtolvl ?? 0) : (bumpkinCook?.foodtolvltry ?? 0);
         const currentLevelLabel = bumpkinCook?.levelLabel || `lvl ${bumpkinCook?.lvl ?? 0}`;
-        const potentialLevelLabel = !TryChecked
-            ? bumpkinCook?.foodpotentialLabel
-            : bumpkinCook?.foodpotentialLabeltry;
-        const projectedLevelLabel = potentialLevelLabel || `lvl ${bfdtolvl}`;
-        const readyToAscend = false;
-        const hasBankedFutureLevel = false;
-        const bfdpstlvlRaw = !TryChecked
-            ? Number(bumpkinCook?.foodpotentialxppastlvl)
-            : Number(bumpkinCook?.foodpotentialxppastlvltry);
-        const bfdpstlvl = Number.isFinite(bfdpstlvlRaw) ? Math.ceil(bfdpstlvlRaw) : 0;
-        const bxptonxtlvlRaw = !TryChecked
-            ? Number(bumpkinCook?.foodpotentialxptonextlvl)
-            : Number(bumpkinCook?.foodpotentialxptonextlvltry);
-        const bxptonxtlvl = Number.isFinite(bxptonxtlvlRaw) ? Math.ceil(bxptonxtlvlRaw) : 0;
+        const realLevelLabel = bumpkinProjection?.current?.label || currentLevelLabel;
+        const projectedLevelLabel = bumpkinProjection?.projected?.label || realLevelLabel;
+        const hiddenXp = Math.max(0, Number(bumpkinProjection?.experience || 0) - Number(bumpkinProjection?.blockedExperience || 0));
+        const segments = [
+            { key: "hidden", label: "Earned XP", xp: hiddenXp, color: "#6f7d8c" },
+            ...(includeFoodXp ? [{ key: "food", label: "Food", xp: foodStockXp, color: "#2f9de2" }] : []),
+            ...(includeOwnedAgedXp ? [{ key: "owned-aged", label: "Owned Aged Fish", xp: ownedAgedFishXp, color: "#9c6ade" }] : []),
+            ...(includeFishXp ? [{ key: "fish", label: fishXpMode === "aged" ? "Fish → Aged" : "Raw Fish", xp: rawFishXp, color: "#e79a3b" }] : []),
+        ].filter((segment) => segment.xp > 0);
+        const segmentTotal = Math.max(1, segments.reduce((total, segment) => total + segment.xp, 0));
+        const realMarkerPercent = Math.max(0, Math.min(100, (hiddenXp / segmentTotal) * 100));
+        const realLabelPercent = Math.max(18, Math.min(82, realMarkerPercent));
+        const currentTotalXp = Number(bumpkinProjection?.experience || bumpkinCook?.xp || 0);
+        const projectedTotalXp = currentTotalXp + selectedProjectionXp;
+        const projectedLevelProgress = Math.max(0, Number(bumpkinProjection?.projected?.currentExperienceProgress || 0));
+        const projectedLevelXp = Math.max(0, Number(bumpkinProjection?.projected?.experienceToNextLevel || 0));
+        const projectedLevelPercent = projectedLevelXp > 0
+            ? Math.max(0, Math.min(100, (projectedLevelProgress / projectedLevelXp) * 100))
+            : 0;
+        const optionStyle = { display: "inline-flex", alignItems: "center", gap: "3px", whiteSpace: "nowrap", fontSize: "12px" };
         const stockProgressBadge = selectedQuantityCook === "farm" ? (
             <div
+                className="cook-xp-progress"
                 style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    flexWrap: "wrap",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "5px",
                     margin: "0",
-                    padding: "4px 8px",
+                    padding: "5px 8px 6px",
                     border: "1px solid rgb(90, 90, 90)",
                     borderRadius: "6px",
                     background: "rgba(0, 0, 0, 0.28)",
-                    width: "fit-content",
-                    maxWidth: "min(760px, 100%)",
+                    width: "min(1000px, calc(100% - 16px))",
                 }}
             >
-                <span style={{ fontSize: "12px" }}>
-                    Stock XP: {currentLevelLabel} → {projectedLevelLabel}
-                    {readyToAscend ? " · ready to ascend" : ""}
-                    {hasBankedFutureLevel ? ` · banked for ${potentialLevelLabel}` : ""}
-                    {" ("}not counting Keep quantity{")"}
-                </span>
-                {PBar(bfdpstlvl, 0, bxptonxtlvl, 0, 220)}
+                <div className="cook-xp-levels" style={{ position: "relative", height: "29px", fontSize: "11px" }}>
+                    <span style={{ position: "absolute", left: 0 }}><b>{currentLevelLabel} 🔒</b><br />Capped level</span>
+                    <span style={{ position: "absolute", left: `${realLabelPercent}%`, transform: "translateX(-50%)", textAlign: "center" }}><b>{realLevelLabel}</b><br />Actual XP level</span>
+                    <span style={{ position: "absolute", right: 0, textAlign: "right" }}><b>{projectedLevelLabel}</b><br />With selection</span>
+                </div>
+                <div style={{ position: "relative" }}>
+                    <div style={{ display: "flex", height: "13px", overflow: "hidden", border: "1px solid #8c8178", borderRadius: "7px", background: "#342b27" }}>
+                        {segments.map((segment) => (
+                        <span key={segment.key} title={`${segment.label}: +${formatCompactNumber(segment.xp)} XP`} style={{
+                                width: `${(segment.xp / segmentTotal) * 100}%`,
+                                background: segment.color,
+                                borderRight: "1px solid rgba(0,0,0,.45)",
+                            }} />
+                        ))}
+                    </div>
+                    <span title="Actual XP level" style={{ position: "absolute", left: `${realMarkerPercent}%`, top: "-3px", width: "2px", height: "19px", background: "#fff", boxShadow: "0 0 2px #000", transform: "translateX(-1px)" }} />
+                </div>
+                <div className="cook-xp-toggle-row">
+                    <button
+                        type="button"
+                        className="cook-xp-options-toggle"
+                        aria-expanded={xpProjectionExpanded}
+                        title={xpProjectionExpanded ? "Hide XP projection details" : "Show XP projection details"}
+                        onClick={() => setXpProjectionExpanded((expanded) => !expanded)}
+                    >
+                        {xpProjectionExpanded ? "projection ▲" : "projection ▼"}
+                    </button>
+                    <button
+                        type="button"
+                        className="cook-xp-options-toggle"
+                        aria-expanded={xpOptionsExpanded}
+                        title={xpOptionsExpanded ? "Hide XP options" : "Show XP options"}
+                        onClick={() => setXpOptionsExpanded((expanded) => !expanded)}
+                    >
+                        {xpOptionsExpanded ? "options ▲" : "options ▼"}
+                    </button>
+                </div>
+                {xpProjectionExpanded ? <div className="cook-xp-projection-details">
+                    <span className="cook-xp-total-line">
+                        Total XP <b>{formatCompactNumber(currentTotalXp)}</b>
+                        <span>→</span>
+                        <b>{formatCompactNumber(projectedTotalXp)}</b>
+                        <small>+{formatCompactNumber(selectedProjectionXp)}</small>
+                    </span>
+                    <div className="cook-xp-level-progress">
+                        <b>{projectedLevelLabel}</b>
+                        <span className="cook-xp-level-track" title={`${formatCompactNumber(projectedLevelProgress)} / ${formatCompactNumber(projectedLevelXp)} XP`}>
+                            <i style={{ width: `${projectedLevelPercent}%` }} />
+                        </span>
+                        <span>{formatCompactNumber(projectedLevelProgress)} / {formatCompactNumber(projectedLevelXp)} XP</span>
+                        <small>{Math.round(projectedLevelPercent)}%</small>
+                    </div>
+                </div> : null}
+                {xpOptionsExpanded ? <div className="cook-xp-options" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <label style={optionStyle} title="Keep quantities are excluded">
+                        <input type="checkbox" checked={includeFoodXp} onChange={(e) => setIncludeFoodXp(e.target.checked)} />
+                        Food <span style={{ color: "#63bdf3" }}>+{formatCompactNumber(foodStockXp)} XP</span>
+                    </label>
+                    <label style={optionStyle} title={`${formatCompactNumber(ownedAgedQuantity)} Aged + ${formatCompactNumber(ownedPrimeAgedQuantity)} Prime Aged`}>
+                        <input type="checkbox" checked={includeOwnedAgedXp} onChange={(e) => setIncludeOwnedAgedXp(e.target.checked)} />
+                        Owned Aged Fish <b>×{formatCompactNumber(ownedAgedFishQuantity)}</b> <span style={{ color: "#bd96ed" }}>+{formatCompactNumber(ownedAgedFishXp)} XP</span>
+                    </label>
+                    <label style={optionStyle}>
+                        <input type="checkbox" checked={includeFishXp} onChange={(e) => setIncludeFishXp(e.target.checked)} /> Owned Fish <b>×{formatCompactNumber(rawFishQuantity)}</b>
+                    </label>
+                    {includeFishXp ? <span className="cook-xp-fish-modes" style={{ display: "inline-flex", gap: "6px", paddingLeft: "3px", borderLeft: "1px solid #66564c" }}>
+                        <label style={optionStyle}><input type="radio" name="fishXpMode" checked={fishXpMode === "base"} onChange={() => setFishXpMode("base")} />Raw <span style={{ color: "#efb461" }}>+{formatCompactNumber(rawDirectFishXp)} XP</span></label>
+                        <label style={optionStyle}><input type="radio" name="fishXpMode" checked={fishXpMode === "aged"} onChange={() => setFishXpMode("aged")} />As Aged <span style={{ color: "#efb461" }}>+{formatCompactNumber(rawAgedFishXp)} XP</span></label>
+                    </span> : null}
+                    <span className="cook-xp-selected-total" style={{ marginLeft: "auto", fontSize: "12px", whiteSpace: "nowrap" }}>
+                        Selected XP: <b>+{formatCompactNumber(selectedProjectionXp)}</b>
+                    </span>
+                </div> : null}
             </div>
         ) : null;
         const hasCookStickyBar = Boolean(levelRangeBadge || stockProgressBadge);

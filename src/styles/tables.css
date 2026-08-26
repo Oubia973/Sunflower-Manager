@@ -533,6 +533,280 @@ th {
   background-color: rgb(0, 0, 0);
 }
 
+.cook-xp-options-toggle {
+  align-self: center;
+  min-height: 20px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #d9cfc7;
+  font: inherit;
+  font-size: 12px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.cook-level-range-badge {
+  box-sizing: border-box;
+  color: #f5eee6;
+}
+
+.cook-level-range-point {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cook-level-range-point > span {
+  color: #c9bbb0;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.cook-level-range-point label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 700;
+}
+
+.cook-level-range-point input {
+  box-sizing: border-box;
+  height: 20px;
+  margin-left: 0 !important;
+  border: 1px solid #8c8178;
+  border-radius: 3px;
+  background: #fff;
+  text-align: center;
+}
+
+.cook-level-range-arrow {
+  color: #e7a33f;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.cook-level-range-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 24px;
+  padding: 0 7px;
+  border-left: 1px solid #66564c;
+  white-space: nowrap;
+}
+
+.cook-level-range-summary b {
+  color: #f2ddb4;
+}
+
+.cook-level-range-summary span {
+  color: #63bdf3;
+  font-weight: 700;
+}
+
+.cook-xp-options-toggle:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.cook-xp-toggle-row {
+  display: flex;
+  align-self: center;
+  gap: 5px;
+}
+
+.cook-xp-levels b {
+  font-size: 12px;
+}
+
+.cook-xp-projection-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.cook-xp-total-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.cook-xp-total-line small {
+  color: #75c8f5;
+}
+
+.cook-xp-level-progress {
+  display: grid;
+  grid-template-columns: auto minmax(80px, 1fr) auto auto;
+  align-items: center;
+  gap: 5px;
+  min-width: 260px;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.cook-xp-level-track {
+  display: block;
+  height: 7px;
+  overflow: hidden;
+  border: 1px solid #8c8178;
+  border-radius: 5px;
+  background: #342b27;
+}
+
+.cook-xp-level-track > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #e7a33f;
+}
+
+.cook-xp-level-progress small {
+  color: #d9cfc7;
+}
+
+@media (max-width: 560px) {
+  .cook-level-range-badge {
+    width: calc(100% - 2px) !important;
+    max-width: none !important;
+    justify-content: center;
+  }
+
+  .cook-level-range-summary {
+    flex-basis: 100%;
+    justify-content: center;
+    border-top: 1px solid #493d36;
+    border-left: 0;
+  }
+
+  .cook-xp-progress {
+    box-sizing: border-box;
+    width: calc(100% - 2px) !important;
+    padding-right: 5px !important;
+    padding-left: 5px !important;
+  }
+
+  .cook-xp-levels {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px;
+    height: auto !important;
+    min-height: 29px;
+    font-size: 9px !important;
+  }
+
+  .cook-xp-levels > span {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    min-width: 0;
+    transform: none !important;
+    line-height: 11px;
+  }
+
+  .cook-xp-levels > span:nth-child(2) {
+    text-align: center !important;
+  }
+
+  .cook-xp-levels > span:nth-child(3) {
+    text-align: right !important;
+  }
+
+  .cook-xp-options {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 5px !important;
+    overflow: hidden;
+  }
+
+  .cook-xp-projection-details {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+  }
+
+  .cook-xp-total-line {
+    justify-content: center;
+  }
+
+  .cook-xp-level-progress {
+    grid-template-columns: auto minmax(40px, 1fr) auto;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .cook-xp-level-progress small {
+    display: none;
+  }
+
+  .cook-xp-options label {
+    box-sizing: border-box;
+    max-width: 100%;
+    white-space: normal !important;
+    flex-wrap: wrap;
+    line-height: 14px;
+  }
+
+  .cook-xp-fish-modes {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding-left: 0 !important;
+    border-left: 0 !important;
+    flex-wrap: wrap;
+  }
+
+  .cook-xp-selected-total {
+    box-sizing: border-box;
+    width: 100%;
+    margin-left: 0 !important;
+    text-align: right;
+    white-space: normal !important;
+  }
+}
+
+@media (max-width: 300px) {
+  .cook-xp-toggle-row {
+    width: 100%;
+  }
+
+  .cook-xp-toggle-row button {
+    min-width: 0;
+    flex: 1;
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+
+  .cook-xp-level-progress {
+    grid-template-columns: auto minmax(35px, 1fr);
+  }
+
+  .cook-xp-level-progress > span:last-of-type {
+    grid-column: 1 / -1;
+    text-align: right;
+  }
+
+  .cook-xp-fish-modes {
+    flex-direction: column;
+    gap: 3px !important;
+  }
+
+  .cook-xp-options {
+    font-size: 12px;
+  }
+}
+
 /* Expand planner */
 .expand-page {
   box-sizing: border-box;

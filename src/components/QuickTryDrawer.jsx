@@ -12,6 +12,7 @@ import {
   writeTryitSnapshot,
 } from "../tryitStorage.js";
 import { getQuickTryKnownHashes } from "../utils/quickTryHashes.js";
+import { mergeExplicitSkillLevels } from "../utils/quickTrySnapshot.js";
 import { collectKnownProjectionHashes } from "../utils/farmState.js";
 
 const TABLE_LABELS = {
@@ -125,6 +126,7 @@ export default function QuickTryDrawer({
   const applyTimerRef = useRef(null);
   const requestIdRef = useRef(0);
   const abortRef = useRef(null);
+  const pendingSkillLevelsRef = useRef({});
   const dragRef = useRef(null);
   const resizeRef = useRef(null);
   const didDragRef = useRef(false);
@@ -215,8 +217,13 @@ export default function QuickTryDrawer({
       .filter((item) => getTryValue(tableName, item) !== getActiveValue(tableName, item)).length, 0);
   }, [dataSetFarm, pendingTryState]);
 
-  const applyState = async (state, requestId) => {
-    const snapshot = buildCanonicalTryitSnapshot(state, tryitConfig) || {};
+  const buildQuickTrySnapshot = (state) => mergeExplicitSkillLevels(
+    buildCanonicalTryitSnapshot(state, tryitConfig) || {},
+    pendingSkillLevelsRef.current,
+  );
+
+  const applyState = async (state, requestId, queuedSnapshot) => {
+    const snapshot = queuedSnapshot || buildQuickTrySnapshot(state);
     if (!hasTryitPayloadContent(snapshot)) return;
     abortRef.current?.abort?.();
     const controller = new AbortController();
@@ -267,6 +274,7 @@ export default function QuickTryDrawer({
         buildCanonicalTryitSnapshot(latestState, tryitConfig)
       );
       latestStateRef.current = merged;
+      pendingSkillLevelsRef.current = {};
       setPendingTryState(null);
       if (!TryChecked) setUIField("TryChecked", true);
       handleRefreshfTNFT(dataSet, merged, { persistTrySnapshot: false, markTryitSynced: true });
@@ -279,12 +287,12 @@ export default function QuickTryDrawer({
     }
   };
 
-  const queueApply = (nextState) => {
+  const queueApply = (nextState, snapshot) => {
     const requestId = ++requestIdRef.current;
     if (applyTimerRef.current) clearTimeout(applyTimerRef.current);
     setStatus("pending");
     applyTimerRef.current = setTimeout(() => {
-      applyState(nextState, requestId);
+      applyState(nextState, requestId, snapshot);
     }, APPLY_DELAY_MS);
   };
 
@@ -297,15 +305,19 @@ export default function QuickTryDrawer({
       const maxLevel = Math.max(1, Number(table[entry.name]?.maxLevel || 1));
       const level = Math.max(0, Math.min(maxLevel, Math.floor(Number(nextValue) || 0)));
       table[entry.name] = { ...table[entry.name], leveltry: level, tryit: level };
+      pendingSkillLevelsRef.current = {
+        ...pendingSkillLevelsRef.current,
+        [entry.name]: level,
+      };
     } else {
       table[entry.name] = { ...table[entry.name], tryit: Number(nextValue) > 0 ? 1 : 0 };
     }
     const synced = syncTryitStateAcrossFarmState(current, tryitConfig);
     latestStateRef.current = synced;
     setPendingTryState(synced);
-    const snapshot = buildCanonicalTryitSnapshot(synced, tryitConfig);
+    const snapshot = buildQuickTrySnapshot(synced);
     if (snapshot) writeTryitSnapshot(snapshot, farmId);
-    queueApply(synced);
+    queueApply(synced, snapshot);
   };
 
   if (!farmId || !validConfig) return null;

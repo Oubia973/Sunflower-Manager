@@ -48,3 +48,17 @@ test("explains fruit orchard renewal and separates fruit and wood revenue", () =
   expect(html).toContain("Total daily sales");
   expect(html).not.toContain("Supplement");
 });
+
+test("shows the restock price when it is counted in daily profit", () => {
+  const html = renderToStaticMarkup(<DailyProfitModern contract={{
+    growTime: "01:00:00", cycles: 24, inputFarmHours: 24, restocks: 2,
+    harvestAverage: 5, harvestDaily: 120, nodes: [],
+    profitFlower: 1.2, profitMultiplier: 2, profitPercent: 100,
+    productionCostFlower: 0.5, marketFlower: 2, tradeTaxPercent: 10,
+    showRestockCost: true, restockGems: 30, restockFlower: 0.3,
+  }} />);
+
+  expect(html).toContain("Restock");
+  expect(html).toContain("30");
+  expect(html).toContain("0.3");
+});

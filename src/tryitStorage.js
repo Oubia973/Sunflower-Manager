@@ -451,7 +451,13 @@ export function writeTryitSnapshot(tryitPayload, farmId = "") {
       console.error("TRYIT snapshot write skipped: empty payload would erase local client configuration.");
       return null;
     }
-    const merged = normalized;
+    // A snapshot can be built while only part of the farm state is mounted.
+    // Keep tables/entries that are absent from that partial state; explicit
+    // values (including zero) still win when they come from a user action.
+    const existing = readTryitSnapshot(farmId);
+    const merged = hasTryitPayloadContent(existing)
+      ? mergeTryitPayloads(existing, normalized)
+      : normalized;
     if (!hasTryitPayloadContent(merged)) {
       console.error("TRYIT snapshot write skipped: empty payload would erase local client configuration.");
       return null;
