@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { imgpetEgg, imggem, imgsfl, imgsyncing, imgusdc } from "../constants/images.js";
-import { fetchJson } from "../services/apiClient.js";
+import { fetchJson, fetchJsonResponse } from "../services/apiClient.js";
 
 const GET_AUCTION_COOLDOWN_MS = 10_000;
 const AUCTIONS_COLUMNS_TEMPLATE = [
@@ -9,7 +9,7 @@ const AUCTIONS_COLUMNS_TEMPLATE = [
   ["Type", 1],
   ["cur", 1],
   ["Supply", 1],
-  ["End", 1],
+  ["Start", 1],
   ["Notifications", 1],
 ];
 
@@ -107,6 +107,14 @@ function getAuctionDateMs(auction) {
     if (Number.isFinite(ts)) return ts;
   }
   return null;
+}
+
+function getAuctionStartMs(auction) {
+  if (!auction || typeof auction !== "object") return null;
+  const explicitStart = toTs(auction.startAt ?? auction.startedAt ?? auction.startDate);
+  if (Number.isFinite(explicitStart)) return explicitStart;
+  const endTs = toTs(auction.endAt ?? auction.endedAt ?? auction.endDate ?? auction.date);
+  return Number.isFinite(endTs) ? endTs - (10 * 60 * 1000) : null;
 }
 
 function formatDateTime(value) {
@@ -311,13 +319,12 @@ export default function AuctionsTable() {
     }
     return false;
   }, [auctionCurrencyLabel, leaderboardReward, usdPerSfl]);
-  const highlightedEndTs = useMemo(() => {
+  const highlightedStartTs = useMemo(() => {
     const nowMs = Date.now();
     const todayRows = [];
     const futureRows = [];
     auctions.forEach((auction) => {
-      const endValue = auction?.endAt ?? auction?.endedAt ?? auction?.date;
-      const ts = toTs(endValue);
+      const ts = getAuctionStartMs(auction);
       if (!Number.isFinite(ts)) return;
       if (isTodayTs(ts)) {
         todayRows.push(ts);
@@ -334,7 +341,7 @@ export default function AuctionsTable() {
     let bestAuctionId = "";
     let bestDistance = Infinity;
     auctions.forEach((auction, idx) => {
-      const ts = toTs(auction?.endAt ?? auction?.endedAt ?? auction?.date);
+      const ts = getAuctionStartMs(auction);
       if (!Number.isFinite(ts)) return;
       const distance = Math.abs(ts - nowMs);
       if (distance < bestDistance) {
@@ -517,17 +524,21 @@ export default function AuctionsTable() {
     setDetailsLoading(true);
     setDetailsError("");
     setAuctionDetails(null);
-    setCooldownUntil(Date.now() + GET_AUCTION_COOLDOWN_MS);
     try {
       const username = String(dataSetFarm?.username || "");
       const endpoint = `/getauction?auctionId=${encodeURIComponent(auctionId)}&farmId=${encodeURIComponent(farmId)}&username=${encodeURIComponent(username)}`;
-      const payload = await fetchJson(API_URL, endpoint, { method: "GET" });
+      const { data: payload, response } = await fetchJsonResponse(API_URL, endpoint, { method: "GET" });
+      const cacheStatus = String(response?.headers?.get?.("x-auction-cache") || "").toUpperCase();
+      setCooldownUntil(cacheStatus === "HIT" ? 0 : Date.now() + GET_AUCTION_COOLDOWN_MS);
       setAuctionDetailsCache((prev) => ({
         ...(prev || {}),
         [cacheKey]: payload,
       }));
       setAuctionDetails(payload);
     } catch (error) {
+      if (Number(error?.retryAfterMs || 0) > 0) {
+        setCooldownUntil(Date.now() + Number(error.retryAfterMs));
+      }
       setDetailsError(String(error?.message || error || "Erreur getAuction"));
     } finally {
       setDetailsLoading(false);
@@ -635,7 +646,7 @@ export default function AuctionsTable() {
                   {isColOn(1) ? <th className="thcenter">Type</th> : null}
                   {isColOn(2) ? <th className="thcenter">cur</th> : null}
                   {isColOn(3) ? <th className="thcenter">Supply</th> : null}
-                  {isColOn(4) ? <th className="thcenter">End</th> : null}
+                  {isColOn(4) ? <th className="thcenter">Start</th> : null}
                   {isColOn(5) ? (
                     <th className="thcenter" title="Auction notifications">
                       <span style={{ fontSize: 16, lineHeight: 1 }} aria-label="Notifications">🔔</span>
@@ -648,15 +659,16 @@ export default function AuctionsTable() {
                   const auctionId = getAuctionId(auction) || `#${idx + 1}`;
                   const auctionNotifEnabled = !!auctionSelection?.[auctionId];
                   const isSelected = String(selectedAuctionId) === String(auctionId);
-                  const endValue = auction?.endAt ?? auction?.endedAt ?? auction?.date;
+                  const endValue = auction?.endAt ?? auction?.endedAt ?? auction?.endDate ?? auction?.date;
+                  const startTs = getAuctionStartMs(auction);
                   const endTs = toTs(endValue);
                   const canNotifyAuction = Number.isFinite(endTs) && endTs > now;
-                  const isTodayEnd = isTodayTs(endValue);
-                  const isClosestFuture = !isTodayEnd && highlightedEndTs != null && Number(endTs) === Number(highlightedEndTs);
-                  const mustHighlightEnd = isTodayEnd || isClosestFuture;
-                  const endText = isNarrow
+                  const isTodayStart = isTodayTs(startTs);
+                  const isClosestFuture = !isTodayStart && highlightedStartTs != null && Number(startTs) === Number(highlightedStartTs);
+                  const mustHighlightStart = isTodayStart || isClosestFuture;
+                  const startText = isNarrow
                     ? (() => {
-                      const ts = toTs(endValue);
+                      const ts = startTs;
                       if (!Number.isFinite(ts)) return "-";
                       const d = new Date(ts);
                       const dd = String(d.getDate()).padStart(2, "0");
@@ -665,7 +677,7 @@ export default function AuctionsTable() {
                       const mi = String(d.getMinutes()).padStart(2, "0");
                       return `${dd}/${mm} ${hh}:${mi}`;
                     })()
-                    : formatDateTime(endValue);
+                    : formatDateTime(startTs);
                   return (
                     <tr
                       key={`${auctionId}-${idx}`}
@@ -700,11 +712,11 @@ export default function AuctionsTable() {
                         <td
                           className="tdcenter"
                           style={{
-                            ...(mustHighlightEnd ? { color: "#ffd54f", fontWeight: 700 } : null),
+                            ...(mustHighlightStart ? { color: "#ffd54f", fontWeight: 700 } : null),
                             whiteSpace: "nowrap",
                           }}
                         >
-                          {endText}
+                          {startText}
                         </td>
                       ) : null}
                       {isColOn(5) ? (
