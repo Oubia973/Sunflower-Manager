@@ -46,14 +46,60 @@ export function resolveDailyProfitContract(dataSetFarm, itemName, forTry = false
   return mergeSharedMode(entries.at(-1), forTry);
 }
 
-export function resolveProductionCostContract(dataSetFarm, itemName, forTry = false) {
+export function resolveProductionCostContract(dataSetFarm, itemName, forTry = false, options = {}) {
   const roots = selectTooltipDataBlocks(dataSetFarm)
     .map((block) => block?.productionCosts)
     .filter(isObject);
   const entries = roots.map((root) => root?.items?.[itemName]).filter(isObject);
   const contract = mergeSharedMode(entries.at(-1), forTry);
   const meta = roots.find((root) => isObject(root?._meta))?._meta || {};
-  return contract ? { ...contract, taxPercent: meta.taxPercent } : null;
+  if (!contract) return null;
+  if (contract.detail?.kind !== "animal") return { ...contract, taxPercent: meta.taxPercent };
+
+  const allocationMode = Number(options.allocationMode ?? 0);
+  const animalName = contract.detail.animalName;
+  const selectedRoot = [...roots].reverse().find((root) => isObject(root?.items?.[itemName])) || {};
+  const outputs = Object.entries(selectedRoot.items || {})
+    .map(([name, entry]) => ({ name, contract: mergeSharedMode(entry, forTry) }))
+    .filter(({ contract: candidate }) => candidate?.detail?.kind === "animal" && candidate.detail.animalName === animalName)
+    .map(({ name, contract: candidate }) => ({
+      name,
+      image: candidate.itemImage,
+      quantity: Number(candidate.harvestAveragePerNode || 0),
+      unitCost: Number(candidate.productionCostFlower || 0),
+      allocatedCost: Number(candidate.productionCostFlower || 0) * Number(candidate.harvestAveragePerNode || 0),
+    }));
+  const selected = outputs.find((output) => output.name === itemName);
+  const selectedAllocatedCost = selected?.allocatedCost || 0;
+  const foodCycleCost = allocationMode === 2
+    ? selectedAllocatedCost
+    : outputs.reduce((total, output) => total + output.allocatedCost, 0);
+  const allocatedOutputs = outputs.map((output) => ({
+    ...output,
+    share: foodCycleCost > 0 ? output.allocatedCost / foodCycleCost : 0,
+  }));
+  const allocationLabel = ["By quantity", "By market value", "Full cost per product"][allocationMode] || "By quantity";
+
+  return {
+    ...contract,
+    taxPercent: meta.taxPercent,
+    detail: {
+      ...contract.detail,
+      allocation: {
+        allocationMode,
+        allocationLabel,
+        animalName,
+        outputs: allocatedOutputs,
+        productName: itemName,
+        productImage: contract.itemImage,
+        foodCycleCost,
+        selectedAllocatedCost,
+        selectedAllocationShare: foodCycleCost > 0 ? selectedAllocatedCost / foodCycleCost : 0,
+        yieldPerCycle: Number(contract.harvestAveragePerNode || 0),
+        productionCost: Number(contract.productionCostFlower || 0),
+      },
+    },
+  };
 }
 
 export function resolveMarketComparisonContract(dataSetFarm, itemName, forTry = false, options = {}) {
@@ -69,6 +115,19 @@ export function resolveMarketComparisonContract(dataSetFarm, itemName, forTry = 
     taxPercent: meta.taxPercent,
     quantity: Number(options.quantity) || 1,
     includeProductionCost: !!options.includeProductionCost,
+  };
+}
+
+export function resolveAnimalUnitCostContract(dataSetFarm, value, forTry = false) {
+  if (!isObject(value)) return null;
+  const foodName = value.foodName === "Mix Food" ? "Mix" : value.foodName;
+  const mode = forTry ? "try" : "active";
+  const feedCost = selectTooltipDataBlocks(dataSetFarm)
+    .map((block) => block?.feedCosts?.[mode]?.[foodName])
+    .find(isObject);
+  return {
+    ...value,
+    foodCostTree: feedCost?.costTree || null,
   };
 }
 

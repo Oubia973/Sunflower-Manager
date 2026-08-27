@@ -119,16 +119,20 @@
 }
 
 .quick-try-close {
+  display: grid;
   width: 25px;
   height: 25px;
   padding: 0;
-  border: 0;
-  color: #cfc4bd;
-  background: transparent;
+  place-items: center;
+  color: rgba(248, 238, 231, 0.82);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
   cursor: pointer;
-  font-size: 19px;
-  line-height: 1;
+  font: 18px/1 Arial, sans-serif;
 }
+
+.quick-try-close:hover { background: rgba(255, 255, 255, 0.13); }
 
 .quick-try-tools {
   gap: 4px;

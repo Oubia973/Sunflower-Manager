@@ -607,7 +607,8 @@ export default function CookTable() {
         const currentLevelLabel = bumpkinCook?.levelLabel || `lvl ${bumpkinCook?.lvl ?? 0}`;
         const realLevelLabel = bumpkinProjection?.current?.label || currentLevelLabel;
         const projectedLevelLabel = bumpkinProjection?.projected?.label || realLevelLabel;
-        const hiddenXp = Math.max(0, Number(bumpkinProjection?.experience || 0) - Number(bumpkinProjection?.blockedExperience || 0));
+        const cappedExperience = Number(bumpkinProjection?.cappedExperience || 0);
+        const hiddenXp = Math.max(0, Number(bumpkinProjection?.experience || 0) - cappedExperience);
         const segments = [
             { key: "hidden", label: "Earned XP", xp: hiddenXp, color: "#6f7d8c" },
             ...(includeFoodXp ? [{ key: "food", label: "Food", xp: foodStockXp, color: "#2f9de2" }] : []),

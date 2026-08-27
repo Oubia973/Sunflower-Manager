@@ -253,6 +253,11 @@ export default function AnimalTable() {
                                     buyCropsCostU: prod1costuwithfoodp2pRaw,
                                     marketCostU: prod1costp2pRaw,
                                     tradeTax: dataSet.options.tradeTax,
+                                    allocationMode: dataSet.options.animalCostAllocationMode,
+                                    outputs: [
+                                        { name: prod1name, image: xprod1img, quantity: prod1, unitCost: prod1costRaw },
+                                        { name: prod2name, image: xprod2img, quantity: prod2, unitCost: prod2costRaw },
+                                    ],
                                 }), e)}
                             >
                                 {prod1cost}
@@ -280,6 +285,11 @@ export default function AnimalTable() {
                                     buyCropsCostU: prod2costuwithfoodp2pRaw,
                                     marketCostU: prod2costp2pRaw,
                                     tradeTax: dataSet.options.tradeTax,
+                                    allocationMode: dataSet.options.animalCostAllocationMode,
+                                    outputs: [
+                                        { name: prod1name, image: xprod1img, quantity: prod1, unitCost: prod1costRaw },
+                                        { name: prod2name, image: xprod2img, quantity: prod2, unitCost: prod2costRaw },
+                                    ],
                                 }), e)}
                             >
                                 {prod2cost}

@@ -7,6 +7,7 @@ import {
   buildCompositionCatalog,
   resolveDailyProfitContract,
   resolveMarketComparisonContract,
+  resolveAnimalUnitCostContract,
   resolveCompositionTooltipContract,
   resolveProductionCostContract,
 } from "./resolvers/inventoryTooltipResolvers.js";
@@ -28,6 +29,7 @@ export const MODERN_TOOLTIP_CONTEXTS = new Set([
   "crustaceancost",
   "cmgainh",
   "cmdailysfl",
+  "animalcostu",
 ]);
 
 export function shouldUseModernTooltip(interfaceMode, context, contract) {
@@ -64,12 +66,16 @@ export default function TooltipRouter(props) {
   } else if (props.context === "dailysfl") {
     contract = resolveDailyProfitContract(dataSetFarm, props.item, forTry);
   } else if (props.context === "costp" || props.context === "harvest") {
-    contract = resolveProductionCostContract(dataSetFarm, props.item, forTry);
+    contract = resolveProductionCostContract(dataSetFarm, props.item, forTry, {
+      allocationMode: dataSet?.options?.animalCostAllocationMode,
+    });
   } else if (props.context === "market") {
     contract = resolveMarketComparisonContract(dataSetFarm, props.item, forTry, {
       quantity: props.value?.itemQuant,
       includeProductionCost: props.value?.CostChecked,
     });
+  } else if (props.context === "animalcostu") {
+    contract = resolveAnimalUnitCostContract(dataSetFarm, props.value, forTry);
   } else if (["costitem", "cookcost", "craftcompo", "shrinecost", "crustaceancost"].includes(props.context)) {
     contract = resolveCompositionTooltipContract(dataSetFarm, props.context, props.item, props.value, forTry);
   } else if (props.context === "th") {

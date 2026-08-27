@@ -10,32 +10,63 @@ import {
 } from "../../../constants/images.js";
 import CompositionTree from "../composition/CompositionTree.jsx";
 
-function Icon({ src, label, small = false }) {
+export function Icon({ src, label, small = false }) {
   return <img className={small ? "modern-tooltip__token" : "modern-tooltip__item-icon"} src={src || imgna} alt={label || ""} />;
 }
 
-function Flower({ value }) {
+export function Flower({ value }) {
   return <>{frmtNb(value)} <Icon src={imgsfl} label="Flower" small /></>;
 }
 
-function Coins({ value }) {
+export function Coins({ value }) {
   return <>{frmtNb(value)} <Icon src={imgcoins} label="Coins" small /></>;
 }
 
-function Row({ label, children, tone }) {
+export function Row({ label, children, tone }) {
   return <div className="modern-tooltip__row"><span>{label}</span><span className={`modern-tooltip__value ${tone ? `is-${tone}` : ""}`}>{children}</span></div>;
 }
 
-function Section({ title, children }) {
+export function Section({ title, children }) {
   return <section className="modern-tooltip__section"><h3>{title}</h3>{children}</section>;
 }
 
-function ProfitSummary({ profit, multiplier, percent, showReturn = true }) {
+export function ProfitSummary({ profit, multiplier, percent, showReturn = true }) {
   const positive = Number(profit) >= 0;
   return <div className={`modern-tooltip__summary ${positive ? "is-positive" : "is-negative"}`}>
     <span>Estimated profit</span>
     <strong>{positive ? "+" : ""}<Flower value={profit} /></strong>
     {showReturn ? <small style={{ color: ColorValue(multiplier === null ? Infinity : Number(multiplier || 0)) }}>{multiplier === null ? "∞" : frmtNb(percent)}% return</small> : <small>After tax and selected costs</small>}
+  </div>;
+}
+
+function AllocationOutputs({ outputs = [] }) {
+  return <span className="animal-cost-allocation__outputs">
+    {outputs.map((output, index) => <React.Fragment key={output.name}>
+      {index ? <span aria-hidden="true">·</span> : null}
+      <span>{output.name} <strong>{frmtNb(Number(output.share || 0) * 100)}%</strong></span>
+    </React.Fragment>)}
+  </span>;
+}
+
+export function AnimalAllocation({ contract }) {
+  const allocationPercent = Number(contract.selectedAllocationShare || 0) * 100;
+  const animalImage = { Chicken: imgchkn, Cow: imgcow, Sheep: imgsheep }[contract.animalName] || imgna;
+  return <div className="animal-cost-allocation">
+    <div className="animal-cost-allocation__head">
+      <span>Allocation · {contract.allocationLabel}</span>
+      <AllocationOutputs outputs={contract.outputs} />
+    </div>
+    <Row label={`Allocated to ${contract.productName}`}><Flower value={contract.selectedAllocatedCost} /></Row>
+    <div className="animal-cost-allocation__formula" aria-label="Allocated production cost calculation">
+      <span><small>Food</small>{frmtNb(contract.foodCycleCost)}</span>
+      <b>×</b>
+      <span><small>Share</small>{frmtNb(allocationPercent)}%</span>
+      <b>÷</b>
+      <span><small className="animal-cost-allocation__icons"><Icon src={contract.productImage} label={contract.productName} small /><b>/</b><Icon src={animalImage} label={contract.animalName} small /></small>{frmtNb(contract.yieldPerCycle)}</span>
+      <b>=</b>
+      <strong>{frmtNb(contract.productionCost)} <Icon src={contract.productImage} label={contract.productName} small />/u</strong>
+    </div>
+    {contract.allocationMode === 2 ? <div className="modern-tooltip__notice is-compact">Full cycle cost is assigned to each product.</div> : null}
   </div>;
 }
 
@@ -112,12 +143,13 @@ function CostInputs({ detail, contract, compositionCatalog }) {
     {detail.costTree ? <CompositionTree
       costTree={detail.costTree}
       catalog={compositionCatalog}
-      totalCost={detail.foodCostFlower}
+      totalCost={detail.allocation?.foodCycleCost ?? detail.foodCostFlower}
       totalMarket={detail.foodMarketFlower}
     /> : <>
       <Row label="Food cost"><Flower value={detail.foodCostFlower} /></Row>
       <Row label="Food market value"><Flower value={detail.foodMarketFlower} /></Row>
     </>}
+    {detail.allocation ? <AnimalAllocation contract={detail.allocation} /> : null}
       </>;
     })()}
   </>;

@@ -4,6 +4,7 @@ import {
   resolveMarketComparisonContract,
   resolveCompositionTooltipContract,
   resolveProductionCostContract,
+  resolveAnimalUnitCostContract,
 } from "./inventoryTooltipResolvers.js";
 
 const farm = {
@@ -54,4 +55,30 @@ test("builds a shared image catalog for composition renderers", () => {
     itables: { tool: { Axe: { img: "axe.png" } } },
   });
   expect(catalog).toMatchObject({ Wood: { image: "wood.png" }, Axe: { image: "axe.png" } });
+});
+
+test("attaches the authoritative feed composition to an animal unit contract", () => {
+  const animalFarm = { animalData: { tooltipData: { feedCosts: { active: {
+    Mix: { costTree: { nodes: { Corn: { qty: 2 } } } },
+  } } } } };
+  expect(resolveAnimalUnitCostContract(animalFarm, { productName: "Milk", foodName: "Mix" }, false))
+    .toMatchObject({ productName: "Milk", foodCostTree: { nodes: { Corn: { qty: 2 } } } });
+});
+
+test("explains the shared animal cycle allocation in Inv production costs", () => {
+  const animalDetail = { kind: "animal", animalName: "Cow", foodCostFlower: 0.48 };
+  const animalFarm = { invData: { tooltipData: { productionCosts: {
+    _meta: { taxPercent: 10 },
+    items: {
+      Milk: { shared: { itemImage: "milk.png" }, active: { harvestAveragePerNode: 2.4, productionCostFlower: 0.2, detail: animalDetail } },
+      Leather: { shared: { itemImage: "leather.png" }, active: { harvestAveragePerNode: 0.6, productionCostFlower: 0.2, detail: animalDetail } },
+    },
+  } } } };
+  const contract = resolveProductionCostContract(animalFarm, "Milk", false, { allocationMode: 0 });
+  expect(contract.detail.allocation.foodCycleCost).toBeCloseTo(0.6);
+  expect(contract.detail.allocation.selectedAllocatedCost).toBeCloseTo(0.48);
+  expect(contract.detail.allocation.outputs).toMatchObject([
+    { name: "Milk", share: 0.8 },
+    { name: "Leather", share: 0.2 },
+  ]);
 });

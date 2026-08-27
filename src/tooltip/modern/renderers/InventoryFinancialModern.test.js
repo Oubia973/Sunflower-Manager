@@ -49,6 +49,28 @@ test("keeps the animal food composition and its totals", () => {
   expect(html).toContain("0.6");
 });
 
+test("shows animal allocation after the composition in the Inv tooltip", () => {
+  const html = renderToStaticMarkup(<InventoryFinancialModern context="costp" contract={{
+    profitFlower: 0.3, profitMultiplier: 2.5, profitPercent: 150,
+    item: "Milk", itemImage: "milk.png", nodeKind: "cow",
+    harvestAveragePerNode: 2.4, productionCostFlower: 0.2,
+    marketAfterTaxFlower: 0.5, taxPercent: 10,
+    detail: { kind: "animal", animalName: "Cow", level: 3, foodName: "Mix", foodQuantity: 36,
+      foodCostFlower: 0.48, foodMarketFlower: 0.9,
+      costTree: { nodes: { Corn: { qty: 36, costUnit: 1 / 180 } } },
+      allocation: {
+        allocationMode: 0, allocationLabel: "By quantity", animalName: "Cow", productName: "Milk", productImage: "milk.png",
+        foodCycleCost: 0.6, selectedAllocatedCost: 0.48, selectedAllocationShare: 0.8,
+        yieldPerCycle: 2.4, productionCost: 0.2,
+        outputs: [{ name: "Milk", share: 0.8 }, { name: "Leather", share: 0.2 }],
+      },
+    },
+  }} />);
+  expect(html.indexOf("composition-tree__total")).toBeLessThan(html.indexOf("Allocation · By quantity"));
+  expect(html.indexOf("Allocation · By quantity")).toBeLessThan(html.indexOf("Marketplace</h3>"));
+  expect(html).toContain("Allocated to Milk");
+});
+
 test("keeps animal harvest food items and the authoritative total", () => {
   const html = renderToStaticMarkup(<InventoryFinancialModern context="harvest" growing contract={{
     nodeKind: "sheep", taxPercent: 5,

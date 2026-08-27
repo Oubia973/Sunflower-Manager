@@ -8,6 +8,7 @@ describe("TooltipRouter", () => {
     expect(shouldUseModernTooltip("compact", "cmgainh", {})).toBe(true);
     expect(shouldUseModernTooltip("compact", "cmdailysfl", {})).toBe(true);
     expect(shouldUseModernTooltip("classic", "cmdailysfl", {})).toBe(false);
+    expect(shouldUseModernTooltip("compact", "animalcostu", {})).toBe(true);
   });
 
   test("falls back to the legacy renderer when the modern contract is unavailable", () => {

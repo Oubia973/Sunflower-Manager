@@ -136,6 +136,11 @@ export default function AnimalsReadableTable() {
       buyCropsCostU: isFirst ? row.prod1BuyFood : row.prod2BuyFood,
       marketCostU: isFirst ? row.prod1Market : row.prod2Market,
       tradeTax: dataSet?.options?.tradeTax || 0,
+      allocationMode: dataSet?.options?.animalCostAllocationMode,
+      outputs: [
+        { name: animal.prod1name, image: animal.prod1Icon, quantity: row.prod1, unitCost: row.prod1Cost },
+        { name: animal.prod2name, image: animal.prod2Icon, quantity: row.prod2, unitCost: row.prod2Cost },
+      ],
     }), e);
   };
 

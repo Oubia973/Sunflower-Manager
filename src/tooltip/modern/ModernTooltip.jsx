@@ -5,6 +5,7 @@ import InventoryTooltipModern from "./renderers/InventoryTooltipModern.jsx";
 import InventoryFinancialModern from "./renderers/InventoryFinancialModern.jsx";
 import CompositionTooltipModern from "./composition/CompositionTooltipModern.jsx";
 import CropMachineModern from "./renderers/CropMachineModern.jsx";
+import AnimalUnitCostModern from "./renderers/AnimalUnitCostModern.jsx";
 import { frmtNb } from "../../fct.js";
 import "./modern-tooltip.css";
 
@@ -21,6 +22,8 @@ export default function ModernTooltip({
   const singleCompositionItem = contract?.items?.length === 1 ? contract.items[0] : null;
   const content = ["cmgainh", "cmdailysfl"].includes(context)
     ? <CropMachineModern context={context} contract={contract} />
+    : context === "animalcostu"
+    ? <AnimalUnitCostModern contract={contract} compositionCatalog={compositionCatalog} />
     : context === "dailysfl"
     ? <DailyProfitModern contract={contract} itemName={item} />
     : (["costitem", "cookcost", "craftcompo", "shrinecost", "crustaceancost"].includes(context)
@@ -45,6 +48,7 @@ export default function ModernTooltip({
     crustaceancost: { title: item, subtitle: "Crustacean composition", icon: singleCompositionItem?.itemImage },
     cmgainh: { title: item, subtitle: "Crop Machine hourly gain", icon: contract?.itemImage },
     cmdailysfl: { title: item, subtitle: "Crop Machine daily profit", icon: contract?.itemImage },
+    animalcostu: { title: item, subtitle: `${contract?.animalName || "Animal"} production cost`, icon: contract?.productImage },
   }[context] || { title: item, subtitle: "Daily profitability", icon: contract?.itemImage };
 
   if (!content) return null;
@@ -60,7 +64,7 @@ export default function ModernTooltip({
       draggable={bdrag}
       clickPosition={clickPosition}
       onClose={onClose}
-      variant={["costp", "harvest", "costitem", "cookcost", "craftcompo", "shrinecost", "crustaceancost"].includes(context) ? "composition" : ""}
+      variant={["costp", "harvest", "animalcostu", "costitem", "cookcost", "craftcompo", "shrinecost", "crustaceancost"].includes(context) ? "composition" : ""}
     >
       {content}
     </TooltipShell>

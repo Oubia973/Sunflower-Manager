@@ -102,7 +102,7 @@ export default function DailyProfitModern({ contract }) {
         <Stat label="Farm time">{frmtNb(contract.inputFarmHours)} h</Stat>
         <Stat label="Restocks">{frmtNb(contract.restocks)}</Stat>
       </div>
-      {contract.stockLabel ? <Row label={contract.stockLabel}>{frmtNb(contract.stock)}</Row> : null}
+      {contract.stockLabel && Number(contract.stock) > 0 ? <Row label={contract.stockLabel}>{frmtNb(contract.stock)}</Row> : null}
       {contract.harvestTimeDaily ? <Row label="Daily harvest time">{contract.harvestTimeDaily}</Row> : null}
       <Row label="Average harvest">{frmtNb(contract.harvestAverage)} <Token src={contract.itemImage} label={contract.item || "Harvested item"} />{(contract.nodes || []).map((node, index) => <React.Fragment key={`${node.image || "node"}-${index}`}>{" · "}{frmtNb(node.quantity)} <Token src={node.image} label="Node" /></React.Fragment>)}</Row>
       {resourceBurn ? <div className="modern-tooltip__calculation" aria-label="Harvest after resources burned by tools">

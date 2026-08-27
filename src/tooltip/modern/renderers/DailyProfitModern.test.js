@@ -62,3 +62,15 @@ test("shows the restock price when it is counted in daily profit", () => {
   expect(html).toContain("30");
   expect(html).toContain("0.3");
 });
+
+test("hides an empty stock row", () => {
+  const html = renderToStaticMarkup(<DailyProfitModern contract={{
+    growTime: "01:00:00", stockLabel: "stock", stock: 0,
+    cycles: 1, inputFarmHours: 1, restocks: 0,
+    harvestAverage: 1, harvestDaily: 1, nodes: [],
+    profitFlower: 1, profitMultiplier: 2, profitPercent: 100,
+    productionCostFlower: 0.5, marketFlower: 1.5, tradeTaxPercent: 5,
+  }} />);
+
+  expect(html).not.toContain(">stock<");
+});
