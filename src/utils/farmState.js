@@ -74,11 +74,20 @@ export function hasSectionData(
   };
   const tablePaths = sectionTablePaths?.[section];
   if (Array.isArray(tablePaths) && tablePaths.length > 0) {
-    const hasAllPaths = tablePaths.every((path) => hasPathData(payload, path));
+    // SECTION_TABLE_PATHS is also used by the backend to compose aggregate
+    // sections such as inventory. A sparse page projection (for example
+    // craftData or bountyData) can therefore list source table paths without
+    // transporting their root table. Only validate paths whose root is part
+    // of this section's payload contract, matching the backend serializer.
+    const applicableTablePaths = tablePaths.filter((path) => {
+      const [rootKey] = String(path || "").split(".");
+      return rootKey && keys.includes(rootKey);
+    });
+    const hasAllPaths = applicableTablePaths.every((path) => hasPathData(payload, path));
     if (!hasAllPaths) return false;
     if (
       (section === "inv" || section === "inventory") &&
-      tablePaths.includes("itables.it") &&
+      applicableTablePaths.includes("itables.it") &&
       !hasInventoryItemFields(payload)
     ) {
       return false;

@@ -16,7 +16,7 @@ test("places the animal allocation after the composition total and before market
     ],
   });
   const html = renderToStaticMarkup(<AnimalUnitCostModern
-    contract={{ ...contract, foodCostTree: { nodes: { Corn: { qty: 36, costUnit: 1 / 180, marketUnit: 1 / 120 } } } }}
+    contract={{ ...contract, foodCostTree: { nodes: { Corn: { qty: 1, costUnit: 1 / 180, marketUnit: 1 / 120 } } } }}
     compositionCatalog={{ Corn: { image: "corn.png" } }}
   />);
 
@@ -30,6 +30,7 @@ test("places the animal allocation after the composition total and before market
   expect(html).toContain("If food is bought");
   expect(html).toContain('alt="Milk"');
   expect(html).toContain('alt="Cow"');
+  expect(html).toContain("×36");
 });
 
 test("explains the intentional full-cost allocation", () => {

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { ColorValue, convTime, convtimenbr, frmtNb } from "../fct.js";
 import { selectCurrentProjection } from "../utils/farmState.js";
-import { imgcrops, imgcropslightning, imgexchng, imgsfl, imgstopwatch } from "../constants/images.js";
+import { imgcrops, imgexchng, imgsfl, imgsunflowerseed, imgstopwatch } from "../constants/images.js";
 
 const LAST_AVAILABLE_CROP = "Soybean";
 
@@ -100,7 +100,7 @@ export default function CropMachineReadableTable() {
   const showCol = (index) => xListeColCropMachine?.[index]?.[1] !== 0;
   const showNames = showCol(1);
   const showDaily = showCol(12);
-  const summaryColumns = [2, 3, 6, 9, 10, 11, ...(showDaily ? [12] : [])].filter(showCol);
+  const summaryColumns = [2, 3, 4, 6, 9, 10, 11, ...(showDaily ? [12] : [])].filter(showCol);
   const detailColumns = [4, 5, 6, 7, 8, 9].filter(showCol);
   const tableColumnCount = 1 + summaryColumns.length;
   const narrowTableColumnCount = 1 + [2, 3, 10, 11, ...(showDaily ? [12] : [])].filter(showCol).length;
@@ -147,12 +147,13 @@ export default function CropMachineReadableTable() {
             <tr className="cm-column-head">
               <th className="cm-crop-column"><HeaderIcon icon={imgcrops} label={showNames ? "Crop" : ""} /></th>
               {showCol(2) ? <th><HeaderIcon icon={imgstopwatch} label="Time" /></th> : null}
-              {showCol(3) ? <th><HeaderIcon icon={imgcrops} label="Seeds" /></th> : null}
+              {showCol(3) ? <th><HeaderIcon icon={imgsunflowerseed} label="Seeds" /></th> : null}
+              {showCol(4) ? <th className="cm-wide-column cm-harvest-column"><HeaderIcon icon={imgcrops} label="Harvest" /></th> : null}
               {showCol(6) ? <th className="cm-wide-column"><HeaderIcon icon={it.Oil?.img} label="Oil" /></th> : null}
               {showCol(9) ? <th className="cm-wide-column"><HeaderIcon icon={imgexchng} label="Market" /></th> : null}
               {showCol(10) ? <th><HeaderIcon icon={imgsfl} label="Profit" /></th> : null}
-              {showCol(11) ? <th><HeaderIcon icon={imgcropslightning} label="Per hour" /></th> : null}
-              {showDaily ? <th><HeaderIcon icon={imgsfl} label="Per day" /></th> : null}
+              {showCol(11) ? <th><HeaderLabel label="Per hour" /></th> : null}
+              {showDaily ? <th><HeaderLabel label="Per day" /></th> : null}
             </tr>
           </thead>
           <tbody>
@@ -160,6 +161,7 @@ export default function CropMachineReadableTable() {
               <th className="cm-crop-column"><span>{showNames ? "Selected total" : "Total"}</span><small>{selected.length}</small></th>
               {showCol(2) ? <td>{convTime(totals.time)}</td> : null}
               {showCol(3) ? <td aria-label="No seeds total" /> : null}
+              {showCol(4) ? <td className="cm-wide-column cm-harvest-column" aria-label="No harvest total" /> : null}
               {showCol(6) ? <td className="cm-wide-column">{frmtNb(totals.oil)}</td> : null}
               {showCol(9) ? <td className="cm-wide-column">{frmtNb(totals.market)}</td> : null}
               {showCol(10) ? <td className="cm-main-profit" style={{ color: ColorValue(totals.profit, 0, 10) }}>{signed(totals.profit)}</td> : null}
@@ -195,7 +197,7 @@ export default function CropMachineReadableTable() {
 function CropRow({ row, seedMode, customSeed, oilImage, showDaily, showCol, showNames, detailColumns, expanded, onToggle, onChange, onTooltip }) {
   const canExpand = detailColumns.length > 0;
   const narrowColumnCount = 1 + [2, 3, 10, 11, ...(showDaily ? [12] : [])].filter(showCol).length;
-  const wideColumnCount = 1 + [2, 3, 6, 9, 10, 11, ...(showDaily ? [12] : [])].filter(showCol).length;
+  const wideColumnCount = 1 + [2, 3, 4, 6, 9, 10, 11, ...(showDaily ? [12] : [])].filter(showCol).length;
   const handleRowClick = (event) => {
     if (!canExpand || event.target.closest("button, input, label, a, select, textarea")) return;
     onToggle();
@@ -221,6 +223,7 @@ function CropRow({ row, seedMode, customSeed, oilImage, showDaily, showCol, show
         </th>
         {showCol(2) ? <td>{row.time}</td> : null}
         {showCol(3) ? <td>{seedMode === "custom" && row.available ? <input className="cm-custom-seeds" name={`customSeedCM.${row.name}`} inputMode="numeric" pattern="[0-9]*" value={customSeed} onChange={onChange} aria-label={`${row.name} seeds`} /> : frmtNb(row.seeds)}</td> : null}
+        {showCol(4) ? <td className="cm-wide-column cm-harvest-column">{frmtNb(row.harvest)}</td> : null}
         {showCol(6) ? <td className="cm-wide-column">{frmtNb(row.oil)}</td> : null}
         {showCol(9) ? <td className="cm-wide-column">{frmtNb(row.market)}</td> : null}
         {showCol(10) ? <td className="cm-main-profit" style={{ color: ColorValue(row.profit, 0, 10) }}>{signed(row.profit)}</td> : null}
@@ -239,10 +242,14 @@ function HeaderIcon({ icon, label }) {
   return <span className="cm-header-icon"><img src={icon} alt="" />{label ? <span>{label}</span> : null}</span>;
 }
 
+function HeaderLabel({ label }) {
+  return label ? <span className="cm-header-label">{label}</span> : null;
+}
+
 function CropDetails({ row, oilImage, showCol }) {
   return <div className="cm-detail-grid">
     {showCol(4) || showCol(5) ? <DetailPair items={[
-      showCol(4) ? { label: "Harvest", value: row.harvest } : null,
+      showCol(4) ? { label: "Harvest", value: row.harvest, className: "cm-harvest-detail" } : null,
       showCol(5) ? { label: "Seed cost", value: row.seedCost } : null,
     ]} /> : null}
     {showCol(6) || showCol(7) ? <DetailPair items={[

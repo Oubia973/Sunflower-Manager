@@ -108,6 +108,7 @@ export const imgcoins = asset('./icon/res/coins.png');
 export const imggem = asset('./icon/res/gem.webp');
 export const imgmix = asset('./icon/res/mixed_grain_v2.webp');
 export const imgomni = asset('./icon/res/omnifeed.webp');
+export const imgsunflowerseed = asset('./icon/res/sunflower_seed.png');
 export const imgcrustacean = asset('./icon/fish/dollocaris.webp');
 export const imgfish = asset('./icon/fish/anchovy.png');
 // Towns, quest, and special resources

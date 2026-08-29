@@ -14,6 +14,7 @@ export default function AnimalUnitCostModern({ contract, compositionCatalog }) {
       <Row label={foodName || "Food"}>{frmtNb(contract.foodQuantity)} <Icon src={foodImage} label={foodName || "Food"} small /></Row>
       {contract.foodCostTree ? <CompositionTree
         costTree={contract.foodCostTree}
+        quantity={contract.foodQuantity}
         catalog={compositionCatalog}
         totalCost={contract.foodCycleCost}
         totalMarket={contract.foodCycleMarketCost}

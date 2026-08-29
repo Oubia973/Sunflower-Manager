@@ -37,6 +37,62 @@ test("collects only usable local projection hashes", () => {
   })).toEqual({ cropMachineData: "crop-v1" });
 });
 
+describe("section readiness contracts", () => {
+  test.each([
+    ["craft", "craftData", ["itables.it", "itables.flower", "itables.bounty", "itables.craft"]],
+    ["bounty", "bountyData", ["itables.it", "itables.bounty"]],
+  ])("accepts sparse %s projections without requiring source root tables", (section, projectionKey, tablePaths) => {
+    const payload = {
+      tryitRevision: 4,
+      [projectionKey]: {
+        itables: {},
+        _source: { section, tryitRevision: 4, contentHash: `${section}-v1` },
+      },
+    };
+
+    expect(hasSectionData(
+      payload,
+      section,
+      { [section]: [projectionKey] },
+      { [section]: tablePaths }
+    )).toBe(true);
+  });
+
+  test("still requires declared root tables for hybrid page sections", () => {
+    const payload = {
+      tryitRevision: 4,
+      fishData: {
+        itables: {},
+        _source: { section: "fish", tryitRevision: 4, contentHash: "fish-v1" },
+      },
+    };
+
+    expect(hasSectionData(
+      payload,
+      "fish",
+      { fish: ["fishData", "itables"] },
+      { fish: ["itables.fish", "itables.it"] }
+    )).toBe(false);
+  });
+
+  test("rejects a stale sparse page projection", () => {
+    const payload = {
+      tryitRevision: 5,
+      craftData: {
+        itables: {},
+        _source: { section: "craft", tryitRevision: 4, contentHash: "craft-v1" },
+      },
+    };
+
+    expect(hasSectionData(
+      payload,
+      "craft",
+      { craft: ["craftData"] },
+      { craft: ["itables.craft"] }
+    )).toBe(false);
+  });
+});
+
 describe("versioned page projections", () => {
   test("stamps page projections with the response try revision", () => {
     const merged = mergeFarmStateDeep({}, {
