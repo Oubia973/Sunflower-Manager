@@ -672,8 +672,8 @@ const locale = {
     { "id": "features-chores", "title": "Chores と bounties を計画", "text": "Deliveries Chores Bounties で進捗、報酬、不足素材、コスト、残り時間を追跡できます。", "image": "/pagecoach/features/chores.png", "imageAlt": "進捗と必要素材を示す chores 一覧。" },
     { "id": "features-cooktolvl", "title": "XP の進行を最適化", "text": "Cook は目標レベルまでのレシピを予測し、XP、時間、油、コスト、市場購入を比較します。", "image": "/pagecoach/features/cooktolvl.png", "imageAlt": "目標レベル到達用の Cook テーブル。" },
     { "id": "features-listings", "title": "Listings と floor を比較", "text": "Listings は数量、価格、floor、差額、日付を表示し、有利な出品を素早く見つけられます。", "image": "/pagecoach/features/listings.png", "imageAlt": "Floor 価格と比較した listings。" },
-    { "id": "features-trades", "title": "取引を分析 - VIP", "text": "寄付後に利用できる VIP 機能です。Activity で販売アイテム、平均価格、グラフ化された履歴を確認できます。", "image": "/pagecoach/features/trades.png", "imageAlt": "VIP の取引 Activity 表示と販売グラフ。" },
-    { "id": "features-activitydelivery", "title": "Deliveries のコストを測定 - VIP", "text": "寄付後に利用できる VIP 機能です。Activity は期間内の完了 deliveries、消費資源、コストを表示します。", "image": "/pagecoach/features/activitydelivery.png", "imageAlt": "VIP の日次 deliveries 活動履歴。" }
+    { "id": "features-trades", "title": "取引を分析 - Supporter", "text": "寄付後に利用できる Supporter 機能です。Activity で販売アイテム、平均価格、グラフ化された履歴を確認できます。", "image": "/pagecoach/features/trades.png", "imageAlt": "Supporter の取引 Activity 表示と販売グラフ。" },
+    { "id": "features-activitydelivery", "title": "Deliveries のコストを測定 - Supporter", "text": "寄付後に利用できる Supporter 機能です。Activity は期間内の完了 deliveries、消費資源、コストを表示します。", "image": "/pagecoach/features/activitydelivery.png", "imageAlt": "Supporter の日次 deliveries 活動履歴。" }
   ],
   "baseSteps": [
     {

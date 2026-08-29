@@ -751,6 +751,49 @@ function setActivityDay(activityData, dataSetFarm, ui, ctx) {
         xListeColActivity,
     } = ui;
     if (activityData[0]) {
+        const coinTotals = activityData.reduce((totals, item) => {
+            const coin = item?.data?.coinactivity;
+            if (!coin) return totals;
+            totals.received += Number(coin.received || 0);
+            totals.spent += Number(coin.spent || 0);
+            ["deliveries", "dig", "betty"].forEach((source) => {
+                totals[source].coins += Number(coin?.[source]?.coins || 0);
+                totals[source].costFlower += Number(coin?.[source]?.costFlower || 0);
+            });
+            if (Number(coin.received || 0) || Number(coin.spent || 0)
+                || Number(coin?.deliveries?.coins || 0) || Number(coin?.dig?.coins || 0)
+                || Number(coin?.betty?.coins || 0)) totals.hasData = true;
+            return totals;
+        }, {
+            received: 0,
+            spent: 0,
+            deliveries: { coins: 0, costFlower: 0 },
+            dig: { coins: 0, costFlower: 0 },
+            betty: { coins: 0, costFlower: 0 },
+            hasData: false,
+        });
+        const coinRatioValue = (source) => source.costFlower > 0 ? source.coins / source.costFlower : 0;
+        const periodLabel = selectedFromActivityDay === "season" ? "Season" : `${selectedFromActivityDay} days`;
+        const coinHistory = (
+            <section className="activity-coin-history">
+                <div className="activity-coin-history-title"><strong>Coin activity</strong><span>{periodLabel}</span></div>
+                {coinTotals.hasData ? <>
+                    <div className="activity-coin-flow">
+                        <span>Received <strong>{frmtNb(coinTotals.received, 0)}<img src={imgcoins} alt=" Coins" className="itico" /></strong></span>
+                        <span>Spent <strong>{frmtNb(coinTotals.spent, 0)}<img src={imgcoins} alt=" Coins" className="itico" /></strong></span>
+                        <span>Net <strong>{frmtNb(coinTotals.received - coinTotals.spent, 0)}<img src={imgcoins} alt=" Coins" className="itico" /></strong></span>
+                    </div>
+                    <div className="activity-coin-sources">
+                        <span>Activity</span><span>Average ratio</span><span>Coins</span>
+                        {[['Deliveries', coinTotals.deliveries], ['Dig', coinTotals.dig], ['Betty', coinTotals.betty]].map(([label, source]) => <React.Fragment key={label}>
+                            <strong>{label}</strong>
+                            <strong>{coinRatioValue(source) > 0 ? <>{frmtNb(coinRatioValue(source), 0)}<img src={imgcoins} alt=" Coins" className="itico" />/<img src={imgsfl} alt=" Flower" className="itico" /></> : "\u2014"}</strong>
+                            <strong>{frmtNb(source.coins, 0)}<img src={imgcoins} alt=" Coins" className="itico" /></strong>
+                        </React.Fragment>)}
+                    </div>
+                </> : <div className="activity-coin-history-empty">Coin history starts with the next Activity scan.</div>}
+            </section>
+        );
         const dateSeasonConst = dataSetFarm.constants.dateSeason;
         const actKeys = Object.keys(activityData);
         var totXP = 0;
@@ -1003,6 +1046,7 @@ function setActivityDay(activityData, dataSetFarm, ui, ctx) {
         );
         const table = (
             <>
+                {coinHistory}
                 <table className="table">
                     {tableHeader}
                     <tbody>

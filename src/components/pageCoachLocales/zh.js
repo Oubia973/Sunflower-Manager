@@ -679,8 +679,8 @@ const locale = {
     { "id": "features-chores", "title": "规划 chores 与 bounties", "text": "Deliveries Chores Bounties 可跟踪进度、奖励、缺少的材料、成本及剩余时间。", "image": "/pagecoach/features/chores.png", "imageAlt": "含进度及所需材料的 chores 列表。" },
     { "id": "features-cooktolvl", "title": "优化 XP 升级路线", "text": "Cook 可规划达到目标等级所需的食谱，并比较 XP、时间、油、成本和市场购买。", "image": "/pagecoach/features/cooktolvl.png", "imageAlt": "用于达到目标等级的 Cook 表格。" },
     { "id": "features-listings", "title": "将挂单与 floor 价格比较", "text": "Listings 显示数量、价格、floor、差值和日期，便于快速发现合适的报价。", "image": "/pagecoach/features/listings.png", "imageAlt": "与 floor 价格比较的挂单。" },
-    { "id": "features-trades", "title": "分析交易 - VIP", "text": "贡献后可用的 VIP 功能：Activity 显示已售物品、平均价格及图表化交易历史。", "image": "/pagecoach/features/trades.png", "imageAlt": "VIP 交易 Activity 视图和销售图表。" },
-    { "id": "features-activitydelivery", "title": "衡量 deliveries 成本 - VIP", "text": "贡献后可用的 VIP 功能：Activity 会按时间段显示已完成的 deliveries、消耗的资源及成本。", "image": "/pagecoach/features/activitydelivery.png", "imageAlt": "VIP 每日 deliveries 活动历史。" }
+    { "id": "features-trades", "title": "分析交易 - Supporter", "text": "贡献后可用的 Supporter 功能：Activity 显示已售物品、平均价格及图表化交易历史。", "image": "/pagecoach/features/trades.png", "imageAlt": "Supporter 交易 Activity 视图和销售图表。" },
+    { "id": "features-activitydelivery", "title": "衡量 deliveries 成本 - Supporter", "text": "贡献后可用的 Supporter 功能：Activity 会按时间段显示已完成的 deliveries、消耗的资源及成本。", "image": "/pagecoach/features/activitydelivery.png", "imageAlt": "Supporter 每日 deliveries 活动历史。" }
   ],
   "baseSteps": [
     {

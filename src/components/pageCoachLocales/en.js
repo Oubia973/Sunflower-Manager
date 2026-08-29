@@ -400,8 +400,8 @@
     { id: "features-chores", title: "Plan chores and bounties", text: "Deliveries Chores Bounties follows progress, rewards, missing components, cost and remaining time.", image: "/pagecoach/features/chores.png", imageAlt: "Chores list with progress and required components." },
     { id: "features-cooktolvl", title: "Optimize XP progression", text: "Cook projects recipes for a target level and compares XP, time, oil, cost and market purchasing.", image: "/pagecoach/features/cooktolvl.png", imageAlt: "Cook table for reaching a target level." },
     { id: "features-listings", title: "Compare listings with the floor", text: "Listings detail quantity, price, floor, difference and date to expose useful offers quickly.", image: "/pagecoach/features/listings.png", imageAlt: "Listings compared with floor price." },
-    { id: "features-trades", title: "Analyze trades - VIP", text: "VIP feature available after a contribution: Activity lists sold items, their average price and a charted history so you can review real trades.", image: "/pagecoach/features/trades.png", imageAlt: "VIP trades activity view and sales graph." },
-    { id: "features-activitydelivery", title: "Measure delivery costs - VIP", text: "VIP feature available after a contribution: Activity reports completed deliveries, consumed resources and their cost over a period.", image: "/pagecoach/features/activitydelivery.png", imageAlt: "VIP daily delivery activity history." }
+    { id: "features-trades", title: "Analyze trades - Supporter", text: "Supporter feature available after a contribution: Activity lists sold items, their average price and a charted history so you can review real trades.", image: "/pagecoach/features/trades.png", imageAlt: "Supporter trades activity view and sales graph." },
+    { id: "features-activitydelivery", title: "Measure delivery costs - Supporter", text: "Supporter feature available after a contribution: Activity reports completed deliveries, consumed resources and their cost over a period.", image: "/pagecoach/features/activitydelivery.png", imageAlt: "Supporter daily delivery activity history." }
   ]
 };
 

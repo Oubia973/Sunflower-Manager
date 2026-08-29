@@ -796,17 +796,17 @@ const locale = {
     },
     {
       "id": "features-trades",
-      "title": "거래 분석 - VIP",
-      "text": "기부 후 이용 가능한 VIP 기능: 활동 목록에는 판매된 품목, 평균 가격, 차트 내역이 표시되므로 실제 거래를 검토할 수 있습니다.",
+      "title": "거래 분석 - Supporter",
+      "text": "기부 후 이용 가능한 Supporter 기능: 활동 목록에는 판매된 품목, 평균 가격, 차트 내역이 표시되므로 실제 거래를 검토할 수 있습니다.",
       "image": "/pagecoach/features/trades.png",
-      "imageAlt": "VIP 거래 활동 보기 및 판매 그래프."
+      "imageAlt": "Supporter 거래 활동 보기 및 판매 그래프."
     },
     {
       "id": "features-activitydelivery",
-      "title": "배송비 측정 - VIP",
-      "text": "기여 후 사용 가능한 VIP 기능: 활동 보고서는 일정 기간 동안 완료된 배송, 소비된 리소스 및 비용을 보고합니다.",
+      "title": "배송비 측정 - Supporter",
+      "text": "기여 후 사용 가능한 Supporter 기능: 활동 보고서는 일정 기간 동안 완료된 배송, 소비된 리소스 및 비용을 보고합니다.",
       "image": "/pagecoach/features/activitydelivery.png",
-      "imageAlt": "VIP 일일 배송 활동 내역입니다."
+      "imageAlt": "Supporter 일일 배송 활동 내역입니다."
     }
   ]
 };

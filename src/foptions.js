@@ -238,6 +238,13 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
             "Got it"
         );
     };
+    const handleCoinFlowHelpClick = async () => {
+        await promptInfo(
+            "Received: Coins recorded by the game since the first scan on this device today.\n\nSpent: Coins recorded as spent by the game during the same period.\n\nNet: Received minus Spent.\n\nDeliveries show Coins from completed Coin deliveries today. Dig uses the current sell value of obtained loot, even if it has not been sold yet. Betty uses current sell prices, so it is an estimate.",
+            "Coin activity",
+            "Got it"
+        );
+    };
     function handleChangeTradeTax(e) {
         setTradeTax(e.target.value);
     }
@@ -419,6 +426,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
                     includeDig={dataSet.coinRatioIncludeDig !== false}
                     showBetty={dataSet.coinRatioShowBetty !== false}
                     onOptionChange={onOptionChange}
+                    onFlowHelp={handleCoinFlowHelpClick}
                 />
                 <div style={{ display: 'flex', alignItems: 'center' }}><input type="text" disabled onChange={onOptionChange} value={dataSet.gemsRatio || 0.07}
                     name={"GemsRatio"} style={{ textAlign: "left", width: "45px" }} />Flower{imgSFL}/{imgGem}Gems

@@ -22,6 +22,8 @@ import {
   imgchores,
   imgsynced,
   imgdoubledelivery,
+  imgrefresh,
+  imgsyncing,
   imgsfl,
   imgpurpleDaffodil,
   imgisopod,
@@ -62,6 +64,7 @@ const POPPY_CATEGORY_ICONS = {
   Obsidian: imgobsidian,
 };
 const CHAPTER_TICKET_BOOST_WEARABLES = ["Swamp Lily Hat", "Swamp Armor", "Swamp Pants"];
+const CHAPTER_TICKETS_COOLDOWN_MS = 60 * 1000;
 
 export default function ChapterTable() {
   const stickyBarRef = useRef(null);
@@ -73,6 +76,11 @@ export default function ChapterTable() {
   const [chapterHeaderSubRowHeight, setChapterHeaderSubRowHeight] = useState(0);
   const [chapterDeliveryEnabled, setChapterDeliveryEnabled] = useState(true);
   const [chapterDailyChestEnabled, setChapterDailyChestEnabled] = useState(true);
+  const [chapterTicketsLoading, setChapterTicketsLoading] = useState(false);
+  const [chapterTicketsCooldownUntil, setChapterTicketsCooldownUntil] = useState(0);
+  const [chapterTicketsClock, setChapterTicketsClock] = useState(Date.now());
+  const [chapterLeaderboardRank, setChapterLeaderboardRank] = useState(null);
+  const chapterTicketsAutoLoadFarmRef = useRef("");
   const {
     data: {
       dataSet,
@@ -123,6 +131,42 @@ export default function ChapterTable() {
   const seasonQuestStartRaw = dataSetFarm?.constants?.dateSeasonDailyStart || seasonStartRaw;
   const seasonEndRaw = dataSetFarm?.constants?.dateSeasonEnd || "";
   const seasonAuctionTicketWeekStartRaw = dataSetFarm?.constants?.dateSeasonAuctionTicketWeekStart || "";
+  const farmId = Number(dataSetFarm?.frmid || dataSet?.options?.farmId || 0);
+  const chapterTicketsCooldownActive = chapterTicketsCooldownUntil > chapterTicketsClock;
+  const chapterTicketsCooldownSeconds = Math.max(0, Math.ceil((chapterTicketsCooldownUntil - chapterTicketsClock) / 1000));
+
+  const refreshChapterTickets = async (force = false) => {
+    if (!farmId || chapterTicketsLoading || (!force && chapterTicketsCooldownActive)) return;
+    setChapterTicketsLoading(true);
+    try {
+      const result = await fetchJson(API_URL, `/getchaptertickets?farmId=${encodeURIComponent(String(farmId))}`, { timeoutMs: 20_000 });
+      const tickets = Number(result?.tickets);
+      if (Number.isFinite(tickets) && tickets >= 0) setUIField("chapterCurrentTickets", tickets);
+      const rank = Number(result?.rank);
+      setChapterLeaderboardRank(Number.isFinite(rank) && rank > 0 ? rank : null);
+      const cooldownMs = Math.max(0, Number(result?.cooldownMs || CHAPTER_TICKETS_COOLDOWN_MS));
+      setChapterTicketsCooldownUntil(Date.now() + cooldownMs);
+    } catch (error) {
+      console.log(`Chapter tickets refresh error: ${error?.message || error}`);
+    } finally {
+      setChapterTicketsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const farmKey = String(farmId || "");
+    if (!farmKey || chapterTicketsAutoLoadFarmRef.current === farmKey) return;
+    chapterTicketsAutoLoadFarmRef.current = farmKey;
+    setChapterTicketsCooldownUntil(0);
+    setChapterTicketsClock(Date.now());
+    refreshChapterTickets(true);
+  }, [farmId]);
+
+  useEffect(() => {
+    if (!chapterTicketsCooldownActive) return undefined;
+    const timer = window.setInterval(() => setChapterTicketsClock(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [chapterTicketsCooldownActive]);
   const calendarDates = Array.isArray(chapterMeta?.calendarDates) ? chapterMeta.calendarDates : [];
   const isDoubleDeliveryActive = chapterMeta?.seasonEvent === "doubledelivery";
   const vipChapterTickets = 290;
@@ -237,7 +281,6 @@ export default function ChapterTable() {
   const [chapterCalculationLoading, setChapterCalculationLoading] = useState(false);
   const chapterRequestSeqRef = useRef(0);
   const chapterAbortRef = useRef(null);
-  const farmId = Number(dataSetFarm?.frmid || dataSet?.options?.farmId || 0);
   const validChapterChoreSelection = Object.fromEntries(
     Object.entries(chapterChoreSelection || {})
       .filter(([key, value]) => key && key.length <= 160 && typeof value === "boolean")
@@ -467,6 +510,19 @@ export default function ChapterTable() {
           onChange={handleUIChange}
           style={{ width: "52px", height: "20px" }}
         />
+        {chapterLeaderboardRank ? (
+          <span title="Your current Chapter ticket leaderboard rank">#{frmtNb(chapterLeaderboardRank)}</span>
+        ) : null}
+        <button
+          type="button"
+          onClick={refreshChapterTickets}
+          className="button small-btn"
+          disabled={chapterTicketsLoading || chapterTicketsCooldownActive || !farmId}
+          title={chapterTicketsLoading ? "Updating Chapter tickets" : chapterTicketsCooldownActive ? `Available in ${chapterTicketsCooldownSeconds}s` : "Update Chapter tickets"}
+          style={{ padding: "1px", minWidth: "22px", height: "22px" }}
+        >
+          <img src={chapterTicketsLoading ? imgsyncing : imgrefresh} alt="" className="resico" />
+        </button>
       </span>
       <span style={{ fontSize: "12px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "2px" }}>
         Days left: {frmtNb(remainingDaysValue)}

@@ -93,7 +93,7 @@ export function useAdminVIP(API_URL, dataSetFarm, dataSet, promptPass, promptCho
 
     const action = await promptChoice(
       formatVipPromptMessage({ farmId, username, isAbo, aboExpiresAt }),
-      'VIP',
+      'Supporter',
       [
         { value: 'usdc_polygon', label: 'USDC Polygon', primary: true, iconSrc: imgusdc, labelIconSrc: imgmatic },
         { value: 'usdc_base', label: 'USDC Base', iconSrc: imgusdc, labelIconSrc: imgbase },
@@ -125,7 +125,7 @@ export function useAdminVIP(API_URL, dataSetFarm, dataSet, promptPass, promptCho
 
       const paymentAction = await promptChoice(
         String(responseData?.message || `Payment request sent for farm ${farmId}.`),
-        'VIP',
+        'Supporter',
         [
           { value: 'paid', label: `I donated on ${responseData?.chainLabel || 'Polygon'}`, primary: true },
           { value: 'close', label: 'Close' },
@@ -137,7 +137,7 @@ export function useAdminVIP(API_URL, dataSetFarm, dataSet, promptPass, promptCho
 
       const txHash = await promptInput(
         `Paste the ${(responseData?.chainLabel || 'PolygonScan')} link or the transaction hash.`,
-        'VIP',
+        'Supporter',
         `0x... or ${(responseData?.explorerBaseUrl || 'https://polygonscan.com')}/tx/...`,
         '',
         'Validate',
@@ -163,13 +163,13 @@ export function useAdminVIP(API_URL, dataSetFarm, dataSet, promptPass, promptCho
 
       await promptInfo(
         String(confirmation?.message || `Payment confirmed for farm ${farmId}.`),
-        'VIP',
+        'Supporter',
         'Close',
         { closeOnBackdrop: false }
       );
     } catch (error) {
-      const msg = String(error?.message || 'VIP error');
-      await promptInfo(msg, 'VIP', 'Close', { closeOnBackdrop: false });
+      const msg = String(error?.message || 'Supporter error');
+      await promptInfo(msg, 'Supporter', 'Close', { closeOnBackdrop: false });
     } finally {
       setVipLoading(false);
     }

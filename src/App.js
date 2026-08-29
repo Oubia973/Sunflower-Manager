@@ -1167,7 +1167,7 @@ function App() {
 
     const action = await promptChoice(
       formatVipPromptMessage({ farmId, username, isAbo, aboExpiresAt }),
-      "VIP",
+      "Supporter",
       [
         { value: "usdc_polygon", label: "USDC Polygon", primary: true, iconSrc: imgusdc, labelIconSrc: imgmatic },
         { value: "usdc_base", label: "USDC Base", iconSrc: imgusdc, labelIconSrc: imgbase },
@@ -1194,7 +1194,7 @@ function App() {
 
       const paymentAction = await promptChoice(
         String(responseData?.message || `Payment request sent for farm ${farmId}.`),
-        "VIP",
+        "Supporter",
         [
           { value: "paid", label: `I donated on ${responseData?.chainLabel || "Polygon"}`, primary: true },
           { value: "close", label: "Close" },
@@ -1205,7 +1205,7 @@ function App() {
 
       const txHash = await promptInput(
         `Paste the ${(responseData?.chainLabel || "Polygon")}Scan link or the transaction hash.`,
-        "VIP", `0x... or ${(responseData?.explorerBaseUrl || "https://polygonscan.com")}/tx/...`,
+        "Supporter", `0x... or ${(responseData?.explorerBaseUrl || "https://polygonscan.com")}/tx/...`,
         "", "Validate", "Close",
         { closeOnBackdrop: false }
       );
@@ -1219,15 +1219,15 @@ function App() {
       try { await handleButtonClick("manualLoad"); } catch { /* keep confirmation */ }
       await promptInfo(
         String(confirmation?.message || `Payment confirmed for farm ${farmId}.`),
-        "VIP",
+        "Supporter",
         "Close",
         { closeOnBackdrop: false }
       );
       setReqState("");
     } catch (error) {
-      const msg = String(error?.message || "VIP error");
+      const msg = String(error?.message || "Supporter error");
       setReqState(msg);
-      await promptInfo(msg, "VIP", "Close", { closeOnBackdrop: false });
+      await promptInfo(msg, "Supporter", "Close", { closeOnBackdrop: false });
     } finally { setVipLoading(false); }
   }, [dataSetFarm, dataSet, requestVipPayment, confirmVipPayment]);
 
@@ -1449,7 +1449,7 @@ function App() {
                         </button>
                       ) : null}
                       {Number(dataSet?.options?.farmId || dataSetFarm?.frmid || 0) !== 1972 ? (
-                        <button onClick={handleVipClick} title="VIP" className="button" disabled={vipLoading}>
+                        <button onClick={handleVipClick} title="Supporter" className="button" disabled={vipLoading}>
                           <img src={vipLoading ? imgsyncing : imgadmin} alt="" className="itico" />
                         </button>
                       ) : null}
