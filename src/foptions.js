@@ -12,6 +12,7 @@ import {
 } from './constants/images.js';
 import { ANIMAL_COST_ALLOCATION_OPTIONS } from './constants/animalCostAllocation.js';
 import { buildToolBurnOptions, resolveToolBurnSelection } from './utils/toolBurnOptions.js';
+import CoinEconomySummary from './components/CoinEconomySummary.jsx';
 
 const imgusdcIcon = <img src={imgusdc} alt="USDC" style={{ width: "15px", height: "15px" }} />
 const turtleResourceIcons = {
@@ -65,7 +66,7 @@ function renderGemPackOption(pack) {
     };
 }
 
-function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, toolTable }) {
+function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, toolTable, coinActivity, bestCoinRatio, isAbo }) {
     const [isOpen, setIsOpen] = useState(false);
     const [activeSection, setActiveSection] = useState("general");
     const [justOpened, setJustOpened] = useState(true);
@@ -328,7 +329,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
                 onTouchStart={handleMouseDown}
                 style={{
                     position: "fixed",
-                    left: "max(12px, calc(50% - 260px))",
+                    left: "max(12px, calc(50% - 220px))",
                     top: "max(14px, 13dvh)",
                     transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`,
                     willChange: "transform",
@@ -397,16 +398,28 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
                 </section>
                 <section className={`options-section ${activeSection === "economy" ? "active" : ""}`}>
                     <h3>Economy</h3>
-                <div><input type="number"
+                <div className="options-coin-ratio-setting"><input type="number"
                     onChange={(e) => setDraftOptions(prev => ({ ...prev, coinsRatio: e.target.value }))}
                     onBlur={(e) => {
                         const value = commitNumber("CoinsRatio", e.target.value, { min: 300, fallback: 1000 });
                         setDraftOptions(prev => ({ ...prev, coinsRatio: String(value) }));
                     }}
                     value={draftOptions.coinsRatio}
-                    name={"CoinsRatio"} style={{ textAlign: "left", width: "45px" }} />Coins{imgCoins}/{imgSFL}Flower
-                    <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoCoinRatio || 0}
-                        name={"autoCoinRatio"} style={{ width: "18px", height: "18px", marginRight: 6 }} />Auto</div>
+                    name={"CoinsRatio"} style={{ textAlign: "left", width: "52px" }} />
+                    <span className="options-coin-ratio-unit">Coins{imgCoins} per {imgSFL}Flower</span>
+                    <label><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoCoinRatio || 0}
+                        name={"autoCoinRatio"} />Auto</label></div>
+                <CoinEconomySummary
+                    activity={coinActivity}
+                    farmId={dataSet.farmId}
+                    coinsRatio={draftOptions.coinsRatio}
+                    bestCoinRatio={bestCoinRatio}
+                    isAbo={isAbo}
+                    includeDeliveries={dataSet.coinRatioIncludeDeliveries !== false}
+                    includeDig={dataSet.coinRatioIncludeDig !== false}
+                    showBetty={dataSet.coinRatioShowBetty !== false}
+                    onOptionChange={onOptionChange}
+                />
                 <div style={{ display: 'flex', alignItems: 'center' }}><input type="text" disabled onChange={onOptionChange} value={dataSet.gemsRatio || 0.07}
                     name={"GemsRatio"} style={{ textAlign: "left", width: "45px" }} />Flower{imgSFL}/{imgGem}Gems
                     {/* <FormControl variant="standard" id="formselectinv" className="selectinv" size="small">

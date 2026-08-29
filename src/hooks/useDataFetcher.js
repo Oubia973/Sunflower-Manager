@@ -31,6 +31,7 @@ import { getBalanceValue } from '../utils/balance.js';
 import { computeRequiredSections } from '../utils/sections.js';
 import { fetchJson } from '../services/apiClient.js';
 import { normalizeServerImagesDeep, versionImageUrl } from '../constants/images.js';
+import { getDailyCoinFlow } from '../utils/coinActivity.js';
 
 /**
  * Hook for data fetching and price processing
@@ -308,6 +309,7 @@ export function useDataFetcher(
           });
           mergedFarmData = syncTryitStateAcrossFarmState(mergedFarmData, tryitConfig, tryitSnapshot);
           const farmMeta = mergedFarmData?.farmMeta || mergedFarmData?.frmData || {};
+          getDailyCoinFlow(farmMeta?.coinActivity, mergedFarmData?.frmid || dataSet?.options?.farmId);
           setFarmData(farmMeta);
           dataSet.options.isAbo = mergedFarmData.isabo;
           dataSet.isVip = farmMeta?.vip;

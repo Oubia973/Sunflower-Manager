@@ -189,9 +189,9 @@
 /* Preferences use their own compact layout so the generic tooltip rules do not
    turn the dialog into a nearly full-screen sheet on small devices. */
 .tooltip.options-modal {
-  width: fit-content;
-  min-width: min(340px, calc(100vw - 28px));
-  max-width: min(520px, calc(100vw - 28px));
+  width: min(440px, calc(100vw - 28px));
+  min-width: min(320px, calc(100vw - 28px));
+  max-width: min(440px, calc(100vw - 28px));
   height: auto;
   max-height: min(680px, 74dvh);
   padding: 0;
@@ -202,6 +202,7 @@
   background: linear-gradient(180deg, #171313 0%, #0d0b0b 100%);
   cursor: default;
   touch-action: auto;
+  box-sizing: border-box;
 }
 
 .options-modal__header {
@@ -284,6 +285,213 @@
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.035);
   box-sizing: border-box;
+}
+
+.options-section > details.coin-economy-summary {
+  border: 1px solid rgba(255, 194, 153, 0.22);
+  border-radius: 11px;
+  background: rgba(123, 67, 42, 0.14);
+  overflow: hidden;
+}
+
+.options-section > div.options-coin-ratio-setting {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+}
+
+.options-coin-ratio-unit,
+.options-coin-ratio-setting label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.options-coin-ratio-setting label input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+}
+
+.coin-economy-summary > summary {
+  min-height: 30px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.coin-economy-summary > summary strong {
+  color: rgba(255, 222, 173, 0.95);
+  font-size: 12px;
+}
+
+.coin-economy-body {
+  display: grid;
+  gap: 7px;
+  padding: 0 8px 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.coin-economy-caption,
+.coin-economy-note {
+  padding-top: 6px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 11px;
+}
+
+.coin-economy-flow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+}
+
+.coin-economy-flow-help {
+  padding: 5px 6px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.coin-economy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.coin-economy-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  font-size: 11px;
+}
+
+.coin-economy-source-settings {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 5px 9px;
+  font-size: 11px;
+}
+
+.coin-economy-source-settings > span {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.coin-economy-sources label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.coin-economy-sources input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+
+.coin-economy-betty-toggle {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+}
+
+.coin-economy-betty-toggle input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+
+.coin-economy-metric {
+  display: grid;
+  gap: 2px;
+  padding: 5px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 11px;
+}
+
+.coin-economy-metric strong,
+.coin-economy-breakdown strong,
+.coin-economy-ratio strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.coin-economy-metric.spent strong { color: #ffaaa0; }
+.coin-economy-metric.positive strong { color: #aee7a6; }
+
+.coin-economy-breakdown {
+  display: grid;
+  gap: 3px;
+}
+
+.coin-economy-breakdown > div,
+.coin-economy-ratio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+}
+
+.coin-economy-breakdown span,
+.coin-economy-ratio > span {
+  min-width: 0;
+}
+
+.coin-economy-ratio > span {
+  display: grid;
+  gap: 2px;
+}
+
+.coin-economy-breakdown small,
+.coin-economy-ratio small {
+  display: block;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.coin-economy-ratio-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+}
+
+.coin-economy-breakdown strong,
+.coin-economy-ratio strong {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.coin-economy-ratio {
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.coin-economy-vip {
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: rgba(255, 202, 90, 0.1);
+  color: rgba(255, 222, 173, 0.9);
+  font-size: 11px;
+  text-align: center;
 }
 
 .options-animal-grid {

@@ -1794,7 +1794,10 @@ function App() {
             if (hasChanged) { handleButtonClick("optionChanged"); }
           }} dataSet={dataSet.options} onOptionChange={handleOptionChange} API_URL={API_URL}
             itemTable={dataSetFarm?.itables?.it || selectCurrentProjection(dataSetFarm, "invData")?.itables?.it}
-            toolTable={dataSetFarm?.itables?.tool || selectCurrentProjection(dataSetFarm, "invData")?.itables?.tool} />
+            toolTable={dataSetFarm?.itables?.tool || selectCurrentProjection(dataSetFarm, "invData")?.itables?.tool}
+            coinActivity={dataSetFarm?.farmMeta?.coinActivity}
+            bestCoinRatio={dataSetFarm?.bestCoinRatio}
+            isAbo={!!dataSetFarm?.isabo} />
         )}
         {showChatbot && canUseChatbot && (
           <ModalChatbot onClose={() => setShowChatbot(false)} API_URL={API_URL}

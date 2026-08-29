@@ -27,6 +27,7 @@ import { getBalanceValue } from '../utils/balance.js';
 import { fetchJson, fetchJsonResponse } from '../services/apiClient.js';
 import { LOAD_FARM_SPAM_WINDOW_MS, LOAD_FARM_SPAM_THRESHOLD } from '../constants/api.js';
 import { imgsuspicious, normalizeServerImagesDeep, versionImageUrl } from '../constants/images.js';
+import { getDailyCoinFlow } from '../utils/coinActivity.js';
 
 function normalizeFarmLoadErrorMessage(message, response, endpointLabel = "") {
   const rawMessage = String(message || "").trim();
@@ -173,6 +174,7 @@ export function useFarmLoader(
 
     dataSet.options.username = normalizedResponseData.username;
     dataSet.options.farmId = normalizedResponseData.frmid;
+    getDailyCoinFlow(responseFrmData?.coinActivity, normalizedResponseData.frmid);
     dataSet.isBanned = responseFrmData.isbanned
       ? (
         <div style={{ color: 'red', margin: 0, padding: 0 }}>
