@@ -22,6 +22,11 @@ export default function DList({
     menuIconOnly = false,
     menuMinWidth = null,
     maxListHeight = 450,
+    dateRange = false,
+    minDate = "",
+    maxDate = "",
+    datePeriods = [],
+    referenceDate = "",
     className = "",
     menuClassName = "",
     helpId = "",
@@ -33,6 +38,8 @@ export default function DList({
 
     const [open, setOpen] = useState(false);
     const [q, setQ] = useState("");
+    const [draftRange, setDraftRange] = useState(() => normalizeDateRange(value));
+    const [calendarMonth, setCalendarMonth] = useState(() => getInitialCalendarMonth(value, maxDate));
     const [pos, setPos] = useState(null);
 
     // Animation duration (keep in sync with CSS transition timing)
@@ -54,6 +61,13 @@ export default function DList({
 
     const tupleMode = useMemo(() => isTupleList(options), [options]);
     const effectiveMultiple = tupleMode ? true : multiple;
+
+    useEffect(() => {
+        if (!open && dateRange) {
+            setDraftRange(normalizeDateRange(value));
+            setCalendarMonth(getInitialCalendarMonth(value, maxDate));
+        }
+    }, [value, open, dateRange, maxDate]);
 
     const norm = useMemo(() => normalizeOptions(options), [options]);
 
@@ -118,8 +132,8 @@ export default function DList({
         // Account for the complete popup before choosing a direction. Previously,
         // a list opened down whenever 180px remained below, even when it needed
         // considerably more room and could fit above.
-        const listContentHeight = filtered.length === 0 ? 42 : (filtered.length * 30) + 4;
-        const popupChromeHeight = 2 + (searchable ? 35 : 0) + (effectiveMultiple ? 33 : 0);
+        const listContentHeight = dateRange ? 405 : (filtered.length === 0 ? 42 : (filtered.length * 30) + 4);
+        const popupChromeHeight = dateRange ? 0 : 2 + (searchable ? 35 : 0) + (effectiveMultiple ? 33 : 0);
         const desiredPopupHeight = Math.min(maxListCap, listContentHeight) + popupChromeHeight;
         const openDown = desiredPopupHeight <= spaceBelow
             || (desiredPopupHeight > spaceAbove && spaceBelow >= spaceAbove);
@@ -191,6 +205,37 @@ export default function DList({
         if (effectiveCloseOnSelect) close();
     }
 
+    function applyDateRange() {
+        if (!draftRange.start || !draftRange.end || draftRange.start > draftRange.end) return;
+        emit({ start: draftRange.start, end: draftRange.end });
+        close();
+    }
+
+    function pickCalendarDate(dateValue) {
+        if (!draftRange.start || draftRange.end) {
+            setDraftRange({ start: dateValue, end: "" });
+            return;
+        }
+        if (dateValue < draftRange.start) {
+            setDraftRange({ start: dateValue, end: draftRange.start });
+            return;
+        }
+        setDraftRange({ start: draftRange.start, end: dateValue });
+    }
+
+    function selectDatePreset(preset) {
+        const end = referenceDate || toLocalIsoDate(new Date());
+        let start = end;
+        if (preset.days) start = addIsoDays(end, -(preset.days - 1));
+        if (preset.chapter) {
+            const current = findDatePeriod(datePeriods, end);
+            if (current?.start) start = current.start;
+        }
+        if (minDate && start < minDate) start = minDate;
+        setDraftRange({ start, end });
+        setCalendarMonth(end.slice(0, 7));
+    }
+
     function clearAll(e) {
         e?.preventDefault();
         e?.stopPropagation();
@@ -236,11 +281,16 @@ export default function DList({
     }, [open]);
 
     const triggerContent = useMemo(() => {
+        if (dateRange) {
+            const range = normalizeDateRange(value);
+            if (!range.start || !range.end) return <span className="cd-muted">{placeholder}</span>;
+            return <span className="cd-triggerLabel">{formatDateRangeLabel(range)}</span>;
+        }
         if (!selectedOptions.length) return <span className="cd-muted">{placeholder}</span>;
         if (!effectiveMultiple) return <span className="cd-triggerLabel">{selectedOptions[0].triggerLabel ?? selectedOptions[0].label}</span>;
         const n = selectedOptions.length;
         return <span className="cd-triggerLabel">{n} sélection{n > 1 ? "s" : ""}</span>;
-    }, [selectedOptions, placeholder, effectiveMultiple]);
+    }, [selectedOptions, placeholder, effectiveMultiple, dateRange, value]);
 
     const triggerIcon = useMemo(() => {
         if (listIcon) return renderIcon(listIcon, "cd-ico");
@@ -304,7 +354,50 @@ export default function DList({
         mounted && pos
             ? createPortal(
                 <div ref={menuRef} className={"cd-pop cd-pop--portal " + (dense ? "cd-dense " : "") + (visible ? "cd-open " : "cd-closed ") + (pos?.bottom != null ? "cd-up" : "cd-down") + (menuClassName ? ` ${menuClassName}` : "")} style={popStyle}>
-                    {searchable && (
+                    {dateRange ? (
+                        <div className="cd-dateRangePanel">
+                            <div className="cd-dateRangeSummary">
+                                <div className={`cd-dateSummaryCard ${!draftRange.start ? "is-active" : ""}`}>
+                                    <span>From</span><strong>{formatCalendarSelection(draftRange.start)}</strong>
+                                </div>
+                                <span className="cd-dateArrow" aria-hidden="true">→</span>
+                                <div className={`cd-dateSummaryCard ${draftRange.start && !draftRange.end ? "is-active" : ""}`}>
+                                    <span>To</span><strong>{formatCalendarSelection(draftRange.end)}</strong>
+                                </div>
+                            </div>
+                            <div className="cd-datePresets">
+                                {[{ label: "24h", days: 2 }, { label: "7d", days: 7 }, { label: "31d", days: 31 }, { label: "Chapter", chapter: true }].map((preset) => (
+                                    <button type="button" key={preset.label} onClick={() => selectDatePreset(preset)}>{preset.label}</button>
+                                ))}
+                            </div>
+                            <div className="cd-calendarHeader">
+                                <button type="button" aria-label="Previous month" onClick={() => setCalendarMonth(shiftCalendarMonth(calendarMonth, -1))}>‹</button>
+                                <strong>{formatCalendarMonth(calendarMonth)}</strong>
+                                <button type="button" aria-label="Next month" onClick={() => setCalendarMonth(shiftCalendarMonth(calendarMonth, 1))}>›</button>
+                            </div>
+                            <div className="cd-calendarWeekdays">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <span key={day}>{day}</span>)}</div>
+                            <div className="cd-calendarGrid">
+                                {buildCalendarDays(calendarMonth).map((day) => {
+                                    const disabled = (minDate && day.value < minDate) || (maxDate && day.value > maxDate);
+                                    const isStart = day.value === draftRange.start;
+                                    const isEnd = day.value === draftRange.end;
+                                    const inRange = draftRange.start && draftRange.end && day.value > draftRange.start && day.value < draftRange.end;
+                                    const period = findDatePeriod(datePeriods, day.value);
+                                    return <button key={day.value} type="button" disabled={disabled}
+                                        className={`${day.inMonth ? "" : "is-outside"} ${inRange ? "is-in-range" : ""} ${isStart || isEnd ? "is-edge" : ""}`}
+                                        style={period ? { "--cd-period-color": getPeriodColor(period.index) } : undefined}
+                                        title={period?.name || undefined}
+                                        onClick={() => pickCalendarDate(day.value)}>{day.day}{period ? <span className="cd-periodMark" /> : null}</button>;
+                                })}
+                            </div>
+                            {draftRange.start && draftRange.end && draftRange.start > draftRange.end ? <div className="cd-dateError">The end date must be after the start date.</div> : null}
+                            <div className="cd-dateRangeActions">
+                                <button type="button" className="cd-dateCancel" onClick={close}>Cancel</button>
+                                <button type="button" className="cd-dateApply" onClick={applyDateRange}
+                                    disabled={!draftRange.start || !draftRange.end || draftRange.start > draftRange.end}>Apply</button>
+                            </div>
+                        </div>
+                    ) : searchable && (
                         <div className="cd-searchRow">
                             <input
                                 ref={inputRef}
@@ -316,7 +409,7 @@ export default function DList({
                         </div>
                     )}
 
-                    <div className="cd-list" role="listbox" aria-multiselectable={effectiveMultiple ? "true" : "false"}>
+                    {!dateRange ? <div className="cd-list" role="listbox" aria-multiselectable={effectiveMultiple ? "true" : "false"}>
                         {filtered.length === 0 ? (
                             <div className="cd-empty">Aucun résultat</div>
                         ) : (
@@ -356,9 +449,9 @@ export default function DList({
                                 );
                             })
                         )}
-                    </div>
+                    </div> : null}
 
-                    {effectiveMultiple ? (
+                    {!dateRange && effectiveMultiple ? (
                         <div className="cd-footer">
                             <span className="cd-count">
                                 {selectedOptions.length} sélection{selectedOptions.length > 1 ? "s" : ""}
@@ -411,6 +504,80 @@ function isTupleList(options) {
     if (!Array.isArray(options) || options.length === 0) return false;
     const o = options[0];
     return Array.isArray(o) && o.length >= 2 && (typeof o[0] === "string" || typeof o[0] === "number");
+}
+
+function normalizeDateRange(value) {
+    return {
+        start: /^\d{4}-\d{2}-\d{2}$/.test(String(value?.start || "")) ? String(value.start) : "",
+        end: /^\d{4}-\d{2}-\d{2}$/.test(String(value?.end || "")) ? String(value.end) : "",
+    };
+}
+
+function formatDateRangeLabel(range) {
+    const format = (value) => {
+        const date = new Date(`${value}T12:00:00`);
+        const monthDay = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        return `${monthDay} ’${String(date.getFullYear()).slice(-2)}`;
+    };
+    return `${format(range.start)} → ${format(range.end)}`;
+}
+
+function toLocalIsoDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function getInitialCalendarMonth(value, maxDate) {
+    const range = normalizeDateRange(value);
+    const source = range.end || range.start || maxDate;
+    const date = source ? new Date(`${source}T12:00:00`) : new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function shiftCalendarMonth(monthValue, delta) {
+    const [year, month] = String(monthValue).split("-").map(Number);
+    const date = new Date(year, month - 1 + delta, 1, 12);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatCalendarMonth(monthValue) {
+    const [year, month] = String(monthValue).split("-").map(Number);
+    return new Date(year, month - 1, 1, 12).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
+function formatCalendarSelection(value) {
+    if (!value) return "Select a date";
+    return new Date(`${value}T12:00:00`).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function buildCalendarDays(monthValue) {
+    const [year, month] = String(monthValue).split("-").map(Number);
+    const first = new Date(year, month - 1, 1, 12);
+    const mondayOffset = (first.getDay() + 6) % 7;
+    const start = new Date(year, month - 1, 1 - mondayOffset, 12);
+    return Array.from({ length: 42 }, (_, index) => {
+        const date = new Date(start);
+        date.setDate(start.getDate() + index);
+        return { value: toLocalIsoDate(date), day: date.getDate(), inMonth: date.getMonth() === month - 1 };
+    });
+}
+
+function addIsoDays(value, amount) {
+    const date = new Date(`${value}T12:00:00`);
+    date.setDate(date.getDate() + amount);
+    return toLocalIsoDate(date);
+}
+
+function findDatePeriod(periods, value) {
+    const list = Array.isArray(periods) ? periods : [];
+    const index = list.findIndex((period) => value >= period?.start && value < period?.end);
+    return index >= 0 ? { ...list[index], index } : null;
+}
+
+function getPeriodColor(index) {
+    return ["#d9923b", "#78b7d0", "#b084d6", "#79b978", "#d47777"][index % 5];
 }
 
 function toggleTuple(options, pickedValue) {

@@ -49,6 +49,8 @@ export const uiDefaults = {
   selectedFromActivityDay: "today",
   selectedActivityTradeMetric: "quantity",
   selectedActivityTradeFilters: ["resources", "collectibles", "other"],
+  activityTradeChartCeiling: "",
+  activityTradeDateRange: { start: "", end: "" },
   selectedExpandType: "spring",
   selectedExpandAscension: 1,
   fromexpand: 1,
@@ -409,8 +411,21 @@ export function normalizeUI(raw) {
     : normalizedSelectedFromActivity;
   next.selectedFromActivity = normalizedSelectedFromActivity;
   next.selectedFromActivityDay = normalizedSelectedFromActivityDay;
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  const rawTradeDateRange = next.activityTradeDateRange;
+  next.activityTradeDateRange = rawTradeDateRange
+    && datePattern.test(String(rawTradeDateRange.start || ""))
+    && datePattern.test(String(rawTradeDateRange.end || ""))
+    && rawTradeDateRange.start <= rawTradeDateRange.end
+      ? { start: String(rawTradeDateRange.start), end: String(rawTradeDateRange.end) }
+      : { start: "", end: "" };
 
   next.selectedActivityTradeMetric = next.selectedActivityTradeMetric === "price" ? "price" : "quantity";
+  const rawTradeChartCeiling = String(next.activityTradeChartCeiling ?? "").trim();
+  const tradeChartCeiling = Number(rawTradeChartCeiling);
+  next.activityTradeChartCeiling = rawTradeChartCeiling !== "" && Number.isFinite(tradeChartCeiling) && tradeChartCeiling > 0
+    ? rawTradeChartCeiling
+    : "";
   
   const allowedActivityTradeFilters = new Set(["resources", "collectibles", "other"]);
   next.selectedActivityTradeFilters = (Array.isArray(next.selectedActivityTradeFilters) ? next.selectedActivityTradeFilters : [])

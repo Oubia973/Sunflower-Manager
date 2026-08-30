@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 import { useAppCtx } from "../context/AppCtx";
 import { imgpetEgg, imggem, imgsfl, imgsyncing, imgusdc } from "../constants/images.js";
 import { fetchJson, fetchJsonResponse } from "../services/apiClient.js";
+import DList from "../dlist.jsx";
 
 const GET_AUCTION_COOLDOWN_MS = 10_000;
 const AUCTIONS_COLUMNS_TEMPLATE = [
@@ -257,16 +258,15 @@ export default function AuctionsTable() {
   } = useAppCtx();
 
   const today = useMemo(() => toYmd(new Date()), []);
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() + 21);
-    return toYmd(d);
-  });
-  const [endDate, setEndDate] = useState(() => {
+  const [auctionDateRange, setAuctionDateRange] = useState(() => {
     const d = new Date();
     d.setUTCMonth(d.getUTCMonth() - 3);
-    return toYmd(d);
+    const future = new Date();
+    future.setUTCDate(future.getUTCDate() + 21);
+    return { start: toYmd(d), end: toYmd(future) };
   });
+  const startDate = auctionDateRange.start;
+  const endDate = auctionDateRange.end;
   const [auctions, setAuctions] = useState([]);
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState("");
@@ -596,27 +596,22 @@ export default function AuctionsTable() {
               </span>
             ) : null}
           </h3>
-          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <label htmlFor="auctions-start-date" style={{ fontSize: 12 }}>from</label>
-              <input
-                id="auctions-start-date"
-                type="date"
-                value={startDate}
-                style={{ maxWidth: 132 }}
-                onChange={(e) => setStartDate(String(e.target.value || today))}
-              />
-            </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <label htmlFor="auctions-end-date" style={{ fontSize: 12 }}>to</label>
-              <input
-                id="auctions-end-date"
-                type="date"
-                value={endDate}
-                style={{ maxWidth: 132 }}
-                onChange={(e) => setEndDate(String(e.target.value || today))}
-              />
-            </span>
+          <div id="auctions-start-date" style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+            <DList
+              title="Range"
+              options={[]}
+              dateRange={true}
+              value={auctionDateRange}
+              onChange={setAuctionDateRange}
+              emitEvent={false}
+              referenceDate={today}
+              minDate={dataSetFarm?.constants?.chapterRanges?.[0]?.start || "2024-08-01"}
+              maxDate={toYmd(new Date(Date.now() + (366 * 86400000)))}
+              datePeriods={dataSetFarm?.constants?.chapterRanges || []}
+              menuMinWidth={360}
+              className="activity-trades-range-dlist"
+              height={28}
+            />
           </div>
         </div>
 

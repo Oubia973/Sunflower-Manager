@@ -26,6 +26,77 @@ import {
 
 Chart.register(...registerables);
 
+// Marks a stacked column that continues beyond a manually selected Y-axis ceiling.
+// Values are intentionally left untouched so tooltips always show the real totals.
+const tradeCeilingOverflowPlugin = {
+    id: "tradeCeilingOverflow",
+    afterDatasetsDraw(chart, _args, options) {
+        const ceiling = Number(options?.ceiling || 0);
+        if (!Number.isFinite(ceiling) || ceiling <= 0) return;
+
+        const yScale = chart.scales?.y;
+        const chartArea = chart.chartArea;
+        if (!yScale || !chartArea) return;
+
+        const totals = chart.data.labels.map((_, index) => chart.data.datasets.reduce(
+            (sum, dataset) => sum + Number(dataset?.data?.[index] || 0),
+            0,
+        ));
+        const firstDataset = chart.getDatasetMeta(0);
+        const ctx = chart.ctx;
+
+        totals.forEach((total, index) => {
+            if (total <= ceiling) return;
+            const bar = firstDataset?.data?.[index];
+            if (!bar) return;
+
+            const halfWidth = Math.max(1, Number(bar.width || 2) / 2);
+            const centerX = Number(bar.x || 0);
+            const topDataset = [...chart.data.datasets].reverse().find((dataset) => Number(dataset?.data?.[index] || 0) > 0);
+            const overflowColor = topDataset?.backgroundColor || "rgba(255, 194, 84, 0.95)";
+            const capTop = chartArea.top - 6;
+            const capHeight = 11;
+            const capLeft = centerX - halfWidth;
+            const capWidth = halfWidth * 2;
+            ctx.save();
+            // A short, striped continuation makes the truncation obvious without
+            // letting an outlier take visual space away from the other columns.
+            ctx.globalAlpha = 0.92;
+            ctx.fillStyle = overflowColor;
+            ctx.fillRect(capLeft, capTop, capWidth, capHeight);
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(capLeft, capTop, capWidth, capHeight);
+            ctx.clip();
+            ctx.globalAlpha = 0.42;
+            ctx.strokeStyle = "rgba(255, 248, 211, 0.95)";
+            ctx.lineWidth = 2;
+            for (let x = capLeft - capHeight; x < capLeft + capWidth + capHeight; x += 5) {
+                ctx.beginPath();
+                ctx.moveTo(x, capTop + capHeight);
+                ctx.lineTo(x + capHeight, capTop);
+                ctx.stroke();
+            }
+            ctx.restore();
+            const y = chartArea.top + 4;
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = "rgba(255, 63, 63, 1)";
+            ctx.lineWidth = 2.5;
+            ctx.lineJoin = "round";
+            ctx.beginPath();
+            ctx.moveTo(centerX - halfWidth, y - 2);
+            ctx.lineTo(centerX - halfWidth / 2, y + 2);
+            ctx.lineTo(centerX, y - 2);
+            ctx.lineTo(centerX + halfWidth / 2, y + 2);
+            ctx.lineTo(centerX + halfWidth, y - 2);
+            ctx.stroke();
+            ctx.restore();
+        });
+    },
+};
+
+Chart.register(tradeCeilingOverflowPlugin);
+
 function getSflBalance(balance) {
     if (balance && typeof balance === "object") {
         return Number(balance.sfl || 0);
@@ -211,6 +282,7 @@ function escapeCsvValue(value) {
 }
 
 function getActivityRangeLabel(value) {
+    if (value?.start && value?.end) return `${value.start}_${value.end}`;
     if (value === "today") return "today";
     if (value === "1") return "24h";
     if (value === "7") return "7days";
@@ -460,7 +532,7 @@ function TradeSummaryTable({ items, metric, selectedItems, setSelectedItems }) {
     );
 }
 
-function TradeDailyStackedChart({ days, metric, additionalProps }) {
+function TradeDailyStackedChart({ days, metric, ceiling, additionalProps }) {
     const canvasRef = useRef(null);
     const chartRef = useRef(null);
 
@@ -498,6 +570,16 @@ function TradeDailyStackedChart({ days, metric, additionalProps }) {
         return { labels, datasets: sortedDatasets };
     }, [days, metric]);
 
+    // A ceiling only needs to take over when it actually clips a daily total.
+    // Otherwise Chart.js keeps its natural range instead of leaving empty space.
+    const effectiveCeiling = useMemo(() => {
+        if (!(ceiling > 0)) return 0;
+        const highestDailyTotal = chartData.labels.reduce((highest, _, index) => (
+            Math.max(highest, chartData.datasets.reduce((sum, dataset) => sum + Number(dataset?.data?.[index] || 0), 0))
+        ), 0);
+        return highestDailyTotal > ceiling ? ceiling : 0;
+    }, [chartData, ceiling]);
+
     useEffect(() => {
         if (!canvasRef.current) return;
         if (chartRef.current) {
@@ -525,6 +607,9 @@ function TradeDailyStackedChart({ days, metric, additionalProps }) {
                 },
                 plugins: {
                     mondayMidnightLine: false,
+                    tradeCeilingOverflow: {
+                        ceiling: effectiveCeiling,
+                    },
                     legend: {
                         display: false,
                     },
@@ -553,6 +638,7 @@ function TradeDailyStackedChart({ days, metric, additionalProps }) {
                     y: {
                         stacked: true,
                         beginAtZero: true,
+                        ...(effectiveCeiling > 0 ? { max: effectiveCeiling } : {}),
                         ticks: {
                             callback: (value) => frmtNb(value),
                         },
@@ -570,7 +656,7 @@ function TradeDailyStackedChart({ days, metric, additionalProps }) {
                 chartRef.current = null;
             }
         };
-    }, [chartData]);
+    }, [chartData, effectiveCeiling]);
 
     if (!chartData.datasets.length) {
         return <div style={{ padding: "12px 0" }}>No daily trades in this date range.</div>;
@@ -593,6 +679,7 @@ export default function ActivityTable() {
             selectedFromActivityDay,
             activityDisplay,
             selectedActivityTradeFilters,
+            activityTradeDateRange,
         },
         img: {
             imgSFL,
@@ -666,7 +753,7 @@ export default function ActivityTable() {
                 setActivityData(null);
                 setLoading(false);
             });
-    }, [API_URL, activityDisplay, farmId, selectedInv, selectedFromActivity, selectedFromActivityDay]);
+    }, [API_URL, activityDisplay, farmId, selectedInv, selectedFromActivity, selectedFromActivityDay, activityTradeDateRange]);
 
     if (selectedInv !== "activity") return null;
     if (!dataSetFarm?.itables || !dataSetFarm?.boostables?.nft || !dataSetFarm?.boostables?.nftw || !dataSetFarm?.constants) {
@@ -723,6 +810,9 @@ export default function ActivityTable() {
             headers: {
                 frmid: farmId,
                 time: xContextTime,
+                ...(activityDisplay === "trades" && activityTradeDateRange?.start && activityTradeDateRange?.end
+                    ? { "start-date": activityTradeDateRange.start, "end-date": activityTradeDateRange.end }
+                    : {}),
             },
         });
         if (!Array.isArray(result)) return result;
@@ -1351,8 +1441,12 @@ function setActivityTrades(activityData, dataSetFarm, ui, ctx, tradeSummaryItems
         selectedFromActivity,
         selectedActivityTradeMetric,
         selectedActivityTradeFilters,
+        activityTradeChartCeiling,
+        activityTradeDateRange,
     } = ui;
     const metric = selectedActivityTradeMetric === "price" ? "price" : "quantity";
+    const chartCeiling = Number(activityTradeChartCeiling);
+    const normalizedChartCeiling = Number.isFinite(chartCeiling) && chartCeiling > 0 ? chartCeiling : 0;
     const summaryItems = Array.isArray(tradeSummaryItems) ? tradeSummaryItems : [];
     const selectedItemSet = new Set(Array.isArray(selectedTradeItems) ? selectedTradeItems : []);
     const visibleSummaryItems = summaryItems.filter((item) => selectedItemSet.has(item?.name));
@@ -1391,17 +1485,19 @@ function setActivityTrades(activityData, dataSetFarm, ui, ctx, tradeSummaryItems
                         Price
                     </button>
                     <DList
-                        name="selectedFromActivity"
+                        name="activityTradeDateRange"
                         title="Range"
-                        options={[
-                            { value: "today", label: "Today" },
-                            { value: "1", label: "24h" },
-                            { value: "7", label: "7 days" },
-                            { value: "31", label: "1 month" },
-                            { value: "season", label: "Season" },
-                        ]}
-                        value={selectedFromActivity}
+                        options={[]}
+                        dateRange={true}
+                        value={activityTradeDateRange}
                         onChange={handleUIChange}
+                        placeholder="Choose dates"
+                        maxDate={new Date().toISOString().slice(0, 10)}
+                        referenceDate={new Date().toISOString().slice(0, 10)}
+                        minDate={new Date(Date.now() - (369 * 86400000)).toISOString().slice(0, 10)}
+                        datePeriods={dataSetFarm?.constants?.chapterRanges || []}
+                        menuMinWidth={360}
+                        className="activity-trades-range-dlist"
                         height={28}
                     />
                     <DList
@@ -1412,10 +1508,10 @@ function setActivityTrades(activityData, dataSetFarm, ui, ctx, tradeSummaryItems
                             { value: "tsv", label: "TSV" },
                         ]}
                         value=""
-                        onChange={(value) => downloadTradesCsv(visibleSummaryItems, visibleTradeDailySeries, selectedFromActivity, value)}
+                        onChange={(value) => downloadTradesCsv(visibleSummaryItems, visibleTradeDailySeries, activityTradeDateRange, value)}
                         emitEvent={false}
                         closeOnSelect={true}
-                        placeholder="Export"
+                        placeholder=""
                         height={28}
                     />
                     <DList
@@ -1431,6 +1527,20 @@ function setActivityTrades(activityData, dataSetFarm, ui, ctx, tradeSummaryItems
                         value={selectedActivityTradeFilters}
                         onChange={handleUIChange}
                     />
+                    <label className="activity-trades-ceiling-control" title="Columns above this ceiling show a break while tooltips keep the real values.">
+                        <span>Ceiling</span>
+                        <input
+                            name="activityTradeChartCeiling"
+                            type="number"
+                            min="0"
+                            step="any"
+                            inputMode="decimal"
+                            placeholder="Auto"
+                            value={activityTradeChartCeiling ?? ""}
+                            onChange={handleUIChange}
+                            aria-label="Chart ceiling (0 or blank for automatic)"
+                        />
+                    </label>
                     <div
                         style={{
                             display: "inline-flex",
@@ -1462,7 +1572,7 @@ function setActivityTrades(activityData, dataSetFarm, ui, ctx, tradeSummaryItems
                         </div>
                     </div>
                     <div className="activity-trades-graph-section">
-                        <TradeDailyStackedChart days={visibleTradeDailySeries} metric={metric} />
+                        <TradeDailyStackedChart days={visibleTradeDailySeries} metric={metric} ceiling={normalizedChartCeiling} />
                     </div>
                 </div>
             ) : (
