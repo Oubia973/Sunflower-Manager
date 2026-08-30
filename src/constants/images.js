@@ -177,6 +177,7 @@ export const imgflch = asset('./icon/ui/flch.png');
 export const imgrdy = asset('./icon/ui/expression_alerted.png');
 export const imgtrd = asset('./icon/ui/sparkle2.gif');
 export const imgconfirm = asset('./icon/ui/confirm.png');
+export const imgedit = asset('./icon/ui/edit.png');
 export const imgcancel = asset('./icon/ui/cancel.png');
 export const imgalready = asset('./icon/ui/already.png');
 export const imglove = asset('./icon/ui/expression_love.png');

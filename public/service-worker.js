@@ -115,11 +115,14 @@ self.addEventListener('push', async function (event) {
   const data = event.data.json();
   let items = [];
   let itemIconPath = '';
+  let notificationTitle = 'Sunflower Manager';
   if (Array.isArray(data)) {
     items = data.map(item => item.item || item);
   } else if (typeof data === "object" && data !== null) {
     items = Object.keys(data).filter((key) => !RESERVED_NOTIFICATION_KEYS.has(key));
     itemIconPath = String(data.itemIconPath || '').trim();
+    notificationTitle = String(data.title || notificationTitle).trim() || notificationTitle;
+    if (data.body) items = [String(data.body)];
   }
 
   if (!itemIconPath) {
@@ -156,7 +159,7 @@ self.addEventListener('push', async function (event) {
   const allItems = Array.from(new Set([...previousItems, ...items]));
 
   const bodyText = allItems.join('\n');
-  self.registration.showNotification('Sunflower Manager', {
+  self.registration.showNotification(notificationTitle, {
     body: bodyText,
     icon: itemIconPath || './logo192.png',
     image: itemIconPath || './logo192.png',

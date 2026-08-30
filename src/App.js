@@ -1797,7 +1797,8 @@ function App() {
             toolTable={dataSetFarm?.itables?.tool || selectCurrentProjection(dataSetFarm, "invData")?.itables?.tool}
             coinActivity={dataSetFarm?.farmMeta?.coinActivity}
             bestCoinRatio={dataSetFarm?.bestCoinRatio}
-            isAbo={!!dataSetFarm?.isabo} />
+            isAbo={isAboFarm}
+            deviceId={deviceIdRef.current} />
         )}
         {showChatbot && canUseChatbot && (
           <ModalChatbot onClose={() => setShowChatbot(false)} API_URL={API_URL}

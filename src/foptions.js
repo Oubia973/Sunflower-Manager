@@ -8,11 +8,13 @@ import { promptInfo } from './promptW';
 import { fetchJson } from './services/apiClient.js';
 import {
     imgna, imgusdc, imgCoins, imgSFL, imgGem, imgoptions, imgcancel, imgrefresh, imgrdy,
-    imgstoneRes, imgironOre, imggoldOre,
+    imgstoneRes, imgironOre, imggoldOre, imgcalendar, imgcrop, imgcow, imgapple,
+    imgflowerbed, imgfish, imgcrustacean,
 } from './constants/images.js';
 import { ANIMAL_COST_ALLOCATION_OPTIONS } from './constants/animalCostAllocation.js';
 import { buildToolBurnOptions, resolveToolBurnSelection } from './utils/toolBurnOptions.js';
 import CoinEconomySummary from './components/CoinEconomySummary.jsx';
+import PriceAlertsSettings from './components/PriceAlertsSettings.jsx';
 
 const imgusdcIcon = <img src={imgusdc} alt="USDC" style={{ width: "15px", height: "15px" }} />
 const turtleResourceIcons = {
@@ -48,6 +50,54 @@ const TURTLE_ALLOCATION_OPTIONS = [
     { value: 7, label: renderTurtlePriority(["stone", "iron", "gold"]), searchText: "stone iron gold" },
 ];
 
+const NOTIFICATION_GENERAL_KEYS = new Set([
+    "Market Sold",
+    "Crustaceans",
+    "Auctions",
+    "Floating Island",
+]);
+
+const NOTIFICATION_CATEGORY_LABELS = {
+    animal: "Animals",
+    crop: "Crops",
+    fruit: "Fruits",
+    resources: "Resources",
+    "flowers-honey": "Flowers/Honey",
+    fish: "Fish",
+    crustacean: "Crustaceans",
+    flower: "Flowers",
+    resource: "Resources",
+};
+
+const NOTIFICATION_CATEGORY_BY_KEY = {
+    "Animal needs love": "animal",
+    "Bee Swarm": "flowers-honey",
+    Honey: "flowers-honey",
+};
+
+const RESOURCE_NOTIFICATION_CATEGORIES = new Set(["wood", "mineral", "gem", "oil", "salt"]);
+
+const NOTIFICATION_CATEGORY_ICONS = {
+    animal: imgcow,
+    crop: imgcrop,
+    fruit: imgapple,
+    resources: imgstoneRes,
+    "flowers-honey": imgflowerbed,
+    fish: imgfish,
+    crustacean: imgcrustacean,
+};
+
+function notificationCategoryLabel(category) {
+    const key = String(category || "").trim().toLowerCase();
+    if (!key) return "Other items";
+    return NOTIFICATION_CATEGORY_LABELS[key]
+        || key.replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function notificationCategoryIcon(category, options) {
+    return NOTIFICATION_CATEGORY_ICONS[category] || options[0]?.[3] || imgcalendar;
+}
+
 function formatUsdLabel(value) {
     const num = Number(value) || 0;
     return num.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
@@ -66,7 +116,7 @@ function renderGemPackOption(pack) {
     };
 }
 
-function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, toolTable, coinActivity, bestCoinRatio, isAbo }) {
+function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, toolTable, coinActivity, bestCoinRatio, isAbo, deviceId }) {
     const [isOpen, setIsOpen] = useState(false);
     const [activeSection, setActiveSection] = useState("general");
     const [justOpened, setJustOpened] = useState(true);
@@ -87,6 +137,52 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
         () => resolveToolBurnSelection(dataSet.toolsBurnCraft, toolBurnOptions),
         [dataSet.toolsBurnCraft, toolBurnOptions]
     );
+    const notificationGroups = useMemo(() => {
+        const notifications = Array.isArray(dataSet.notifList) ? dataSet.notifList : [];
+        const labelFor = (entry) => String(entry?.[2] || entry?.[0] || "");
+        const general = notifications.filter((entry) => NOTIFICATION_GENERAL_KEYS.has(String(entry?.[0])));
+        const groupsByCategory = new Map();
+        notifications
+            .filter((entry) => !NOTIFICATION_GENERAL_KEYS.has(String(entry?.[0])))
+            .forEach((entry) => {
+                const itemKey = String(entry?.[0] || "");
+                const itemCategory = String(itemTable?.[itemKey]?.cat || "").trim().toLowerCase();
+                const category = NOTIFICATION_CATEGORY_BY_KEY[itemKey]
+                    || (RESOURCE_NOTIFICATION_CATEGORIES.has(itemCategory)
+                        ? "resources"
+                        : (itemCategory === "flower" ? "flowers-honey" : itemCategory));
+                const group = groupsByCategory.get(category) || [];
+                group.push(entry);
+                groupsByCategory.set(category, group);
+            });
+        const groups = general.length ? [{ label: "General", icon: imgcalendar, options: general }] : [];
+
+        Array.from(groupsByCategory.entries())
+            .sort(([left], [right]) => notificationCategoryLabel(left).localeCompare(notificationCategoryLabel(right)))
+            .forEach(([category, options]) => {
+                groups.push({
+                    label: notificationCategoryLabel(category),
+                    icon: notificationCategoryIcon(category, options),
+                    options: options.slice().sort((left, right) => labelFor(left).localeCompare(labelFor(right))),
+                });
+            });
+
+        return groups;
+    }, [dataSet.notifList, itemTable]);
+
+    const handleNotificationGroupChange = (groupOptions, updatedGroupOptions) => {
+        const updatedByKey = new Map(
+            (Array.isArray(updatedGroupOptions) ? updatedGroupOptions : [])
+                .filter((entry) => Array.isArray(entry))
+                .map((entry) => [String(entry[0]), entry])
+        );
+        const groupKeys = new Set(groupOptions.map((entry) => String(entry[0])));
+        const nextNotifications = (Array.isArray(dataSet.notifList) ? dataSet.notifList : []).map((entry) => {
+            const key = String(entry?.[0]);
+            return groupKeys.has(key) ? (updatedByKey.get(key) || entry) : entry;
+        });
+        onOptionChange(nextNotifications);
+    };
     //const [gemRatio, setGemRatio] = useState(dataSet.gemsRatio || "");
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const [dragging, setDragging] = useState(false);
@@ -538,7 +634,8 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
                 </section>
                 <section className={`options-section ${activeSection === "notifications" ? "active" : ""}`}>
                     <h3>Notifications</h3>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div className="options-notification-settings">
+                    <div className="options-notification-toolbar">
                     <input
                         type="checkbox"
                         onChange={onOptionChange}
@@ -547,22 +644,6 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
                         style={{ width: "18px", height: "18px", marginRight: 6 }}
                     />
                     <span style={{ fontSize: 15, marginRight: 6 }}>Notifications</span>
-                    {/* <DropdownCheckbox
-                        options={dataSet.notifList}
-                        onChange={onOptionChange}
-                        listIcon={imgoptions}
-                    /> */}
-                    <div className="dlist-icon-only">
-                        <DList
-                            name="NotifList"
-                            options={dataSet.notifList}
-                            onChange={onOptionChange}
-                            listIcon={imgoptions}
-                            multiple
-                            clearable={false}
-                            emitEvent={false}
-                        />
-                    </div>
                     <button
                         type="button"
                         onClick={handleNotifHelpClick}
@@ -586,6 +667,31 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
                             style={{ width: "auto", height: "auto" }}
                         />
                     </button>
+                </div>
+                <div className="options-notification-groups">
+                    {notificationGroups.map((group) => (
+                        <DList
+                            key={group.label}
+                            title={group.label}
+                            name="NotifList"
+                            options={group.options}
+                            onChange={(updatedOptions) => handleNotificationGroupChange(group.options, updatedOptions)}
+                            listIcon={group.icon}
+                            multiple
+                            clearable={false}
+                            emitEvent={false}
+                            searchable
+                            maxListHeight={360}
+                        />
+                    ))}
+                </div>
+                <PriceAlertsSettings
+                    API_URL={API_URL}
+                    dataSet={dataSet}
+                    itemTable={itemTable}
+                    isAbo={isAbo}
+                    deviceId={deviceId}
+                />
                 </div>
                 </section>
                 <section className={`options-section ${activeSection === "production" ? "active" : ""}`}>
