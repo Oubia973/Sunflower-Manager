@@ -747,11 +747,6 @@ function App() {
   }, [aboStatusKnown, isAboFarm, ui?.selectedInv, setUIField]);
 
   useEffect(() => {
-    // Redirect sessions that had the parked page selected before this release.
-    if (ui?.selectedInv === "market") setUIField("selectedInv", "home");
-  }, [ui?.selectedInv, setUIField]);
-
-  useEffect(() => {
     const fixedAscensionByIsland = {
       swamp: 1,
       spooky: 2,
@@ -1250,8 +1245,7 @@ function App() {
     ...(isAboFarm ? [{ value: "rngprediction", label: "RNG", iconSrc: imglightning }] : []),
     ...(isAboFarm ? [{ value: "supply", label: "Supply", iconSrc: imgfloatingIsland }] : []),
     { value: "factions", label: "Factions", iconSrc: imgfactions },
-    // Market is temporarily disabled; keep this entry for an easy restoration.
-    // { value: "market", label: "Market", iconSrc: imgexchng },
+    { value: "market", label: "Market", iconSrc: imgexchng },
     { value: "chapter", label: "Chapter", iconSrc: imgchapter },
     { value: "auctions", label: "Auctions", iconSrc: imgcalendar },
     ...(dataSet.options.isAbo ? [{ value: "activity", label: "Activity", iconSrc: imgstopwatch }] : []),

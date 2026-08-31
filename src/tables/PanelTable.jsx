@@ -17,8 +17,7 @@ import CropMachineReadableTable from "./CropMachineReadable";
 import MapTable from "./Map";
 import ExpandTable from "./Expand";
 import ActivityTable from "./Activity";
-// MarketTable is temporarily disabled; retain the import for restoration.
-// import MarketTable from "./Market";
+import MarketTable from "./Market";
 import FactionsTable from "./Factions";
 import TopListsTable from "./TopListsLazy";
 import BuyNodesTable from "./BuyNodes";
@@ -44,8 +43,7 @@ export default function PanelTable() {
   if (selectedInv === "map") return <MapTable />;
   if (selectedInv === "expand") return <ExpandTable />;
   if (selectedInv === "activity") return <ActivityTable />;
-  // Market is temporarily disabled; retain the route for restoration.
-  // if (selectedInv === "market") return <MarketTable />;
+  if (selectedInv === "market") return <MarketTable />;
   if (selectedInv === "factions") return <FactionsTable />;
   if (selectedInv === "toplists") return <TopListsTable />;
   if (selectedInv === "buynodes") return <BuyNodesTable />;
