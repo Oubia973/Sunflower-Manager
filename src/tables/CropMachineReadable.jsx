@@ -3,6 +3,7 @@ import { useAppCtx } from "../context/AppCtx";
 import { ColorValue, convTime, convtimenbr, frmtNb } from "../fct.js";
 import { selectCurrentProjection } from "../utils/farmState.js";
 import { imgcrops, imgexchng, imgsfl, imgsunflowerseed, imgstopwatch } from "../constants/images.js";
+import CropMachineDailyRecap from "./CropMachineDailyRecap.jsx";
 
 const LAST_AVAILABLE_CROP = "Soybean";
 
@@ -140,6 +141,8 @@ export default function CropMachineReadableTable() {
           ))}
         </div>
       </section>
+
+      <CropMachineDailyRecap rows={rows} options={options} oilImage={it.Oil?.img} source={source} />
 
       <section className="cm-comparison-wrap">
         <table className="cm-comparison-table cm-summary-table">

@@ -254,13 +254,19 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
             return;
         }
 
+        const enabledNotifItems = (Array.isArray(dataSet?.notifList) ? dataSet.notifList : [])
+            .filter((entry) => Number(entry?.[1]) === 1)
+            .map((entry) => String(entry?.[0] || "").trim())
+            .filter(Boolean);
+
         setNotifTestBusy(true);
         try {
             const payload = await fetchJson(API_URL, "/notif-test", {
                 method: "POST",
                 body: {
                     farmId,
-                    deviceId: dataSet?.deviceId || "",
+                    deviceId: String(deviceId || "").trim(),
+                    enabledNotifItems,
                 },
             });
             await promptInfo(
@@ -270,7 +276,12 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
             );
         } catch (error) {
             console.error("Notif test error:", error);
-            await promptInfo("Unable to send the notification test right now.", "Notifications", "OK");
+            const message = error?.status === 404
+                ? "Activate notifications on this device before sending a test."
+                : error?.status === 502
+                    ? "The test notification could not be delivered. Reactivate notifications, then try again."
+                    : "Unable to send the notification test right now.";
+            await promptInfo(message, "Notifications", "OK");
         } finally {
             setNotifTestBusy(false);
         }

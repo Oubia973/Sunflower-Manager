@@ -215,6 +215,15 @@ export function mergeFarmStateDeep(prevFarm, nextFarm, tryitConfig = null) {
     if (path.length === 1 && path[0] === "ftrades") {
       return nextNode !== undefined ? nextNode : prevNode;
     }
+    // Cost-tree node maps are complete snapshots. Deep-merging them keeps
+    // removed recipe ingredients alive (for example Leather when Oil Rig
+    // replaces it with Wool).
+    if (
+      String(path[0] || "").endsWith("Data")
+      && path[path.length - 1] === "nodes"
+    ) {
+      return nextNode !== undefined ? nextNode : prevNode;
+    }
     if (
       path.length === 2 &&
       (path[0] === "itables" || path[0] === "boostables") &&

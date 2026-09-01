@@ -27,6 +27,29 @@ test("projection contracts can replace a finite return with null", () => {
   expect(merged.invData.tooltipData.dailyProfit.Wood.try.profitPercent).toBeNull();
   expect(merged.farmMeta.optionalValue).toBe(12);
 });
+
+test("projection cost trees replace removed recipe ingredients", () => {
+  const oilCostTree = (nodes) => ({
+    invData: {
+      tooltipData: {
+        productionCosts: {
+          items: {
+            Oil: { try: { detail: { kind: "tool", costTree: { nodes } } } },
+          },
+        },
+      },
+    },
+  });
+
+  const leather = oilCostTree({ Leather: { qty: 10 } });
+  const wool = mergeFarmStateDeep(leather, oilCostTree({ Wool: { qty: 20 } }));
+  expect(wool.invData.tooltipData.productionCosts.items.Oil.try.detail.costTree.nodes)
+    .toEqual({ Wool: { qty: 20 } });
+
+  const leatherAgain = mergeFarmStateDeep(wool, oilCostTree({ Leather: { qty: 10 } }));
+  expect(leatherAgain.invData.tooltipData.productionCosts.items.Oil.try.detail.costTree.nodes)
+    .toEqual({ Leather: { qty: 10 } });
+});
 import { collectKnownProjectionHashes, hasSectionData, isProjectionCurrent, selectCurrentProjection } from "./farmState.js";
 
 test("collects only usable local projection hashes", () => {
