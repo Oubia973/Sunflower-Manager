@@ -28,6 +28,7 @@ export default function CropMachineDailyRecap({ rows = [], options = {}, oilImag
   const restockLimit = useRestockSettings ? Math.max(0, number(options.inputMaxBB)) : restockPolicy === "limited" ? Math.max(0, number(customRestocks)) : 0;
   const requestBody = useMemo(() => ({
     farmId: String(dataSetFarm?.frmid || options.farmId || ""),
+    username: String(options.username || dataSetFarm?.username || ""),
     sourceHash: String(source?._source?.contentHash || ""),
     sourceVersion: [source?._source?.contentHash, dataSetFarm?.tryitRevision, dataSetFarm?.updated].filter((entry) => entry !== undefined && entry !== null && entry !== "").join(":"),
     deviceId: getOrCreateDeviceId(),
@@ -40,7 +41,7 @@ export default function CropMachineDailyRecap({ rows = [], options = {}, oilImag
     restockLimit,
     gemsRatio: number(options.gemsRatio),
     countRestockCost: !!options.restockCostDaily,
-  }), [dataSetFarm?.frmid, dataSetFarm?.tryitRevision, dataSetFarm?.updated, source?._source?.contentHash, options.farmId, TryChecked, rows, packPolicy, priority, manualOrder, unlimitedRestocks, restockLimit, options.gemsRatio, options.restockCostDaily]);
+  }), [dataSetFarm?.frmid, dataSetFarm?.username, dataSetFarm?.tryitRevision, dataSetFarm?.updated, source?._source?.contentHash, options.farmId, options.username, TryChecked, rows, packPolicy, priority, manualOrder, unlimitedRestocks, restockLimit, options.gemsRatio, options.restockCostDaily]);
   const requestSignature = JSON.stringify(requestBody);
 
   useEffect(() => {

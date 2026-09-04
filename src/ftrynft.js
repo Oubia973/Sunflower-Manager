@@ -13,6 +13,7 @@ import { fetchJson } from "./services/apiClient.js";
 import { buildSupplyTooltipContract } from "./tooltip/supplyTooltipContract.js";
 import { buildBoostTooltipContract } from "./tooltip/boostTooltipContract.js";
 import { readTryitSnapshot, writeTryitSnapshot, buildCanonicalTryitSnapshot, applyTryitSnapshotToFarmState, syncTryitStateAcrossFarmState, hasTryitPayloadContent, isValidTryitConfig } from "./tryitStorage.js";
+import { collectChangedSkillLevels, mergeExplicitSkillLevels } from "./utils/quickTrySnapshot.js";
 import {
   computeProfileSummaryPayload,
   buildBoostDisplayMaps,
@@ -370,9 +371,12 @@ function ModalTNFT({ onClose }) {
     return applyTryitSnapshotToFarmState(baseState, snapshot, tryitConfig);
   };
   const buildActiveTryState = (farmState = dataSetFarm) => deepClone(withTryNftTables(farmState));
-  const persistTryState = (nextState) => {
+  const persistTryState = (nextState, previousState = {}) => {
     if (!hasTryitConfig) return;
-    const snapshot = buildCanonicalTryitSnapshot(nextState, tryitConfig);
+    const snapshot = mergeExplicitSkillLevels(
+      buildCanonicalTryitSnapshot(nextState, tryitConfig) || {},
+      collectChangedSkillLevels(previousState, nextState)
+    );
     if (!hasTryitPayloadContent(snapshot)) {
       console.error("TRYIT snapshot write skipped: no explicit tryit fields found in TryNFT state.");
       return;
@@ -391,8 +395,9 @@ function ModalTNFT({ onClose }) {
     const syncedState = hasTryitConfig
       ? syncTryitStateAcrossFarmState(nextState, tryitConfig)
       : nextState;
+    const previousState = dataSetLocalRef.current || {};
     dataSetLocalRef.current = syncedState;
-    persistTryState(syncedState);
+    persistTryState(syncedState, previousState);
     setdataSetLocal(syncedState);
     handleRefreshfTNFT(dataSet, syncedState, refreshOptions);
   };

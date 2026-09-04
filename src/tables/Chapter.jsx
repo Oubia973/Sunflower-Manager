@@ -288,6 +288,7 @@ export default function ChapterTable() {
   );
   const chapterRequest = {
     farmId,
+    username: dataSet?.options?.username || dataSetFarm?.username || "",
     deviceId: getOrCreateDeviceId(),
     options: {
       tryMode: isTryMode,

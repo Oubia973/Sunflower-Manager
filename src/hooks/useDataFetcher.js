@@ -313,6 +313,10 @@ export function useDataFetcher(
           setFarmData(farmMeta);
           dataSet.options.isAbo = mergedFarmData.isabo;
           dataSet.isVip = farmMeta?.vip;
+          dataSet.aboLifetime = respData?.aboLifetime
+            ?? mergedFarmData?.aboLifetime
+            ?? dataSet?.aboLifetime
+            ?? false;
           dataSet.aboExpiresAt = respData?.aboExpiresAt || mergedFarmData?.aboExpiresAt || 0;
           let refreshOptions = false;
           if (dataSet?.options?.tradeTax !== farmMeta?.tradeTax && dataSet?.options?.tradeTax > 0 && dataSet.options.autoTradeTax) {

@@ -1159,9 +1159,10 @@ function App() {
     const username = String(dataSet?.options?.username || dataSetFarm?.username || "");
     const isAbo = !!dataSet?.options?.isAbo;
     const aboExpiresAt = dataSet?.aboExpiresAt || dataSetFarm?.aboExpiresAt || 0;
+    const aboLifetime = (dataSet?.aboLifetime ?? dataSetFarm?.aboLifetime) === true;
 
     const action = await promptChoice(
-      formatVipPromptMessage({ farmId, username, isAbo, aboExpiresAt }),
+      formatVipPromptMessage({ farmId, username, isAbo, aboExpiresAt, aboLifetime }),
       "Supporter",
       [
         { value: "usdc_polygon", label: "USDC Polygon", primary: true, iconSrc: imgusdc, labelIconSrc: imgmatic },

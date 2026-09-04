@@ -18,7 +18,7 @@ export function formatVipRemaining(expiresAt) {
   return parts.join(" ");
 }
 
-export function formatVipPromptMessage({ farmId, username, isAbo, aboExpiresAt }) {
+export function formatVipPromptMessage({ farmId, username, isAbo, aboExpiresAt, aboLifetime = false }) {
   const lines = [
     `Your contribution helps keep the server running`,
     `your farm stays updated in real time, with no loading delays`,
@@ -36,7 +36,9 @@ export function formatVipPromptMessage({ farmId, username, isAbo, aboExpiresAt }
     lines.push("Choose Polygon or Base for your donation.");
   }
   if (isAbo) {
-    if (Number(aboExpiresAt || 0) > 0) {
+    if (aboLifetime) {
+      lines.push("Subscription: Lifetime");
+    } else if (Number(aboExpiresAt || 0) > 0) {
       const remaining = formatVipRemaining(aboExpiresAt);
       const expiryDate = new Date(aboExpiresAt).toLocaleString("en-US");
       lines.push(`Time remaining: ${remaining || "Unknown"}`);

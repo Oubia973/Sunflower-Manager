@@ -184,6 +184,7 @@ export function useFarmLoader(
       )
       : '';
     dataSet.options.isAbo = normalizedResponseData.isabo;
+    dataSet.aboLifetime = normalizedResponseData.aboLifetime === true;
     dataSet.isVip = responseFrmData.vip;
     dataSet.dateVip = responseFrmData.datevip;
     dataSet.aboExpiresAt = normalizedResponseData.aboExpiresAt || 0;
