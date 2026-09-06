@@ -15,6 +15,7 @@ export default function DList({
     listIcon,
     searchable = false,
     closeOnSelect,
+    showMultipleFooter = true,
     dense = true,
     emitEvent = true,
     clearable = false,
@@ -133,7 +134,7 @@ export default function DList({
         // a list opened down whenever 180px remained below, even when it needed
         // considerably more room and could fit above.
         const listContentHeight = dateRange ? 405 : (filtered.length === 0 ? 42 : (filtered.length * 30) + 4);
-        const popupChromeHeight = dateRange ? 0 : 2 + (searchable ? 35 : 0) + (effectiveMultiple ? 33 : 0);
+        const popupChromeHeight = dateRange ? 0 : 2 + (searchable ? 35 : 0) + (effectiveMultiple && showMultipleFooter ? 33 : 0);
         const desiredPopupHeight = Math.min(maxListCap, listContentHeight) + popupChromeHeight;
         const openDown = desiredPopupHeight <= spaceBelow
             || (desiredPopupHeight > spaceAbove && spaceBelow >= spaceAbove);
@@ -451,7 +452,7 @@ export default function DList({
                         )}
                     </div> : null}
 
-                    {!dateRange && effectiveMultiple ? (
+                    {!dateRange && effectiveMultiple && showMultipleFooter ? (
                         <div className="cd-footer">
                             <span className="cd-count">
                                 {selectedOptions.length} sélection{selectedOptions.length > 1 ? "s" : ""}

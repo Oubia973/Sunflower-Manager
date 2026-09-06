@@ -340,7 +340,7 @@ export function useDataFetcher(
           dataSet.balance = getBalanceValue(frmData?.balance, "sfl");
           dataSet.coins = getBalanceValue(frmData?.balance, "coins");
           const nextGemsRatio = computeGemsRatio(
-            dataSet?.options?.gemsPack || 7400,
+            dataSet?.options?.gemsPack || 15500,
             dataSet?.options?.usdSfl
           );
           if (nextGemsRatio > 0 && Number(dataSet?.options?.gemsRatio || 0) !== nextGemsRatio) {

@@ -29,13 +29,10 @@
 .activity-trades-layout {
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
 }
 
 .activity-trades-list-section {
-  flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -107,6 +104,12 @@
   min-width: 0;
 }
 
+@media (max-width: 249.98px) {
+  .activity-trades-item-name {
+    display: none;
+  }
+}
+
 .activity-trades-metric-header,
 .activity-trades-metric-cell {
   text-align: left;
@@ -130,10 +133,32 @@
 }
 
 .activity-trades-graph-section {
-  flex: 1;
   min-height: 0;
   min-width: 0;
   display: flex;
+}
+
+.activity-trades-resize-handle {
+  position: relative;
+  z-index: 2;
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.activity-trades-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 18%;
+  left: 18%;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.28);
+}
+
+.activity-trades-resize-handle:hover::after,
+.activity-trades-resize-handle:active::after {
+  background: rgba(255, 214, 160, 0.9);
 }
 
 .activity-trades-chart-panel {
@@ -147,6 +172,77 @@
   border-radius: 10px;
   padding: 10px;
   background: rgba(255,255,255,0.03);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  isolation: isolate;
+}
+
+.activity-trades-chart-view-control {
+  align-self: flex-start;
+  margin-bottom: 8px;
+}
+
+.activity-trades-chart-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 0;
+}
+
+.activity-trades-chart-grid.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.activity-trades-chart-content {
+  min-height: 0;
+  position: relative;
+}
+
+.activity-trades-chart-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.activity-trades-external-tooltip {
+  position: absolute;
+  z-index: 10;
+  transform: none;
+  max-width: min(280px, calc(100% - 12px));
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 214, 160, 0.42);
+  border-radius: 6px;
+  background: rgba(12, 7, 4, 0.96);
+  color: rgba(255,255,255,0.94);
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  transition: opacity 100ms ease;
+}
+
+.activity-trades-external-tooltip strong,
+.activity-trades-external-tooltip div {
+  display: block;
+}
+
+.activity-trades-external-tooltip-color {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border: 1px solid rgba(255,255,255,0.45);
+  border-radius: 2px;
+}
+
+@media (max-width: 499px) {
+  .activity-trades-chart-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .table {

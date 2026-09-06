@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ColorValue, convTime, frmtNb, getOrCreateDeviceId } from "../fct.js";
-import { imggem, imgexchng, imgsfl, imgsunflowerseed, imgstopwatch } from "../constants/images.js";
+import { imgcrops, imggem, imgexchng, imgsfl, imgsunflowerseed, imgstopwatch } from "../constants/images.js";
 import { fetchJson } from "../services/apiClient.js";
 import { useAppCtx } from "../context/AppCtx.js";
+import DList from "../dlist.jsx";
 
 const number = (input) => Number(input || 0);
 const value = (input) => frmtNb(number(input));
@@ -10,22 +11,24 @@ const signed = (input) => `${number(input) > 0 ? "+" : ""}${value(input)}`;
 
 const recapResponseCache = new Map();
 
-export default function CropMachineDailyRecap({ rows = [], options = {}, oilImage, source }) {
-  const { config: { API_URL }, data: { dataSetFarm }, ui: { TryChecked } } = useAppCtx();
+export default function CropMachineDailyRecap({ rows = [], options = {}, oilImage, source, priority: priorityOverride, restocks: restocksOverride, showControls = true }) {
+  const { config: { API_URL }, data: { dataSetFarm }, ui: { TryChecked, selectedSeedsCM }, actions: { handleOptionChange } } = useAppCtx();
   const [expanded, setExpanded] = useState(true);
-  const [useRestockSettings, setUseRestockSettings] = useState(true);
-  const [packPolicy, setPackPolicy] = useState("selected");
-  const [restockPolicy, setRestockPolicy] = useState("none");
-  const [customRestocks, setCustomRestocks] = useState(1);
+  const [restockPolicy, setRestockPolicy] = useState("0");
   const [priority, setPriority] = useState("table");
   const [manualOrder, setManualOrder] = useState([]);
   const [simulation, setSimulation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const requestRef = useRef(0);
+  useEffect(() => { if (priorityOverride != null) setPriority(priorityOverride); }, [priorityOverride]);
+  useEffect(() => { if (restocksOverride != null) setRestockPolicy(restocksOverride); }, [restocksOverride]);
   const activeNames = rows.filter((row) => row.active && row.available).map((row) => row.name);
-  const unlimitedRestocks = useRestockSettings ? !!options.autoRefill : restockPolicy === "unlimited";
-  const restockLimit = useRestockSettings ? Math.max(0, number(options.inputMaxBB)) : restockPolicy === "limited" ? Math.max(0, number(customRestocks)) : 0;
+  const activePriority = priorityOverride ?? priority;
+  const activeRestockPolicy = restocksOverride ?? restockPolicy;
+  const packPolicy = selectedSeedsCM === "stock" ? "stock" : "selected";
+  const unlimitedRestocks = activeRestockPolicy === "unlimited";
+  const restockLimit = unlimitedRestocks ? 0 : Math.max(0, number(activeRestockPolicy));
   const requestBody = useMemo(() => ({
     farmId: String(dataSetFarm?.frmid || options.farmId || ""),
     username: String(options.username || dataSetFarm?.username || ""),
@@ -35,13 +38,13 @@ export default function CropMachineDailyRecap({ rows = [], options = {}, oilImag
     tryMode: !!TryChecked,
     crops: rows.filter((row) => row.active && row.available).map((row) => ({ name: row.name, seeds: number(row.seeds) })),
     packPolicy,
-    priority,
+    priority: activePriority,
     manualOrder,
     unlimitedRestocks,
     restockLimit,
     gemsRatio: number(options.gemsRatio),
     countRestockCost: !!options.restockCostDaily,
-  }), [dataSetFarm?.frmid, dataSetFarm?.username, dataSetFarm?.tryitRevision, dataSetFarm?.updated, source?._source?.contentHash, options.farmId, options.username, TryChecked, rows, packPolicy, priority, manualOrder, unlimitedRestocks, restockLimit, options.gemsRatio, options.restockCostDaily]);
+  }), [dataSetFarm?.frmid, dataSetFarm?.username, dataSetFarm?.tryitRevision, dataSetFarm?.updated, source?._source?.contentHash, options.farmId, options.username, TryChecked, rows, packPolicy, activePriority, manualOrder, unlimitedRestocks, restockLimit, options.gemsRatio, options.restockCostDaily]);
   const requestSignature = JSON.stringify(requestBody);
 
   useEffect(() => {
@@ -95,12 +98,11 @@ export default function CropMachineDailyRecap({ rows = [], options = {}, oilImag
       <i aria-hidden="true">{expanded ? "−" : "+"}</i>
     </button>
     {expanded ? activeNames.length ? <div className={`cm-daily-recap__body ${loading ? "is-updating" : ""}`}>
-      <div className="cm-daily-recap__controls">
-        <label className="cm-daily-recap__farm-toggle"><input type="checkbox" checked={useRestockSettings} onChange={(event) => setUseRestockSettings(event.target.checked)} /><span><b>Restock settings</b><small>{options.autoRefill ? "Automatic restocks" : `${value(options.inputMaxBB)} restock max`} · {options.restockCostDaily ? "cost counted" : "cost excluded"}</small></span></label>
-        <label><span>Pack filling</span><select value={packPolicy} onChange={(event) => setPackPolicy(event.target.value)}><option value="selected">Table quantity</option><option value="stock">One stock per pack</option></select></label>
-        <label><span>Priority</span><select value={priority} onChange={(event) => setPriority(event.target.value)}><option value="table">Table order</option><option value="profit">Best profit/hour</option><option value="shortest">Shortest first</option><option value="manual">Manual order</option></select></label>
-        {!useRestockSettings ? <label><span>Restocks</span><span className="cm-daily-recap__restock-control"><select value={restockPolicy} onChange={(event) => setRestockPolicy(event.target.value)}><option value="none">No restock</option><option value="limited">Limited</option><option value="unlimited">Full packs</option></select>{restockPolicy === "limited" ? <input type="number" min="0" value={customRestocks} onChange={(event) => setCustomRestocks(event.target.value)} aria-label="Maximum restocks" title="Maximum restocks" /> : null}</span></label> : null}
-      </div>
+      {showControls ? <div className="cm-daily-recap__controls">
+        <DList title="Priority" options={[{ value: "table", label: "Table order" }, { value: "profit", label: "Best profit/hour" }, { value: "shortest", label: "Shortest first" }, { value: "manual", label: "Manual order" }]} value={priority} emitEvent={false} onChange={setPriority} height={28} />
+        <DList title="Restocks" options={[{ value: "0", label: "None" }, { value: "1", label: "1 restock" }, { value: "2", label: "2 restocks" }, { value: "3", label: "3 restocks" }, { value: "unlimited", label: "Full packs" }]} value={restockPolicy} emitEvent={false} onChange={setRestockPolicy} height={28} />
+        <label className="cm-daily-recap__restock-counted"><input type="checkbox" name="restockCostDaily" checked={!!options.restockCostDaily} onChange={handleOptionChange} /><span>Restock counted</span></label>
+      </div> : null}
       <div className="cm-daily-recap__queue" aria-label="Machine queue order">
         {queue.map((row, index) => {
           const firstRun = traces.find((trace) => trace.name === row.name);
@@ -113,17 +115,16 @@ export default function CropMachineDailyRecap({ rows = [], options = {}, oilImag
       {simulation ? <><div className="cm-daily-recap__metrics">
         <Metric icon={imgstopwatch} label="Machine time" value={convTime(totals.time)} note={totals.idle > 1e-8 ? `${convTime(totals.idle)} idle (seed limit)` : `Full ${value(durationHours)}h window`} />
         <Metric icon={imgsunflowerseed} label="Restocks needed" value={value(totals.restocks)} note={<><Unit value={value(totals.restockGems)} icon={imggem} label="Gems" /> · <Unit value={value(totals.restockFlower)} icon={imgsfl} label="Flower" /></>} />
-        <Metric icon={oilImage} label="Oil" value={<Unit value={value(totals.oil)} icon={oilImage} label="Oil" />} note={<Unit value={value(totals.oilCost)} icon={imgsfl} label="Flower" />} />
+        <Metric icon={oilImage} label="Oil" value={value(totals.oil)} note={<Unit value={value(totals.oilCost)} icon={imgsfl} label="Flower" />} />
         <Metric label="Production cost" value={<Unit value={value(totals.cost)} icon={imgsfl} label="Flower" />} note={countedRestockNote(options, totals)} />
         <Metric icon={imgexchng} label="Market" value={<Unit value={value(totals.market)} icon={imgsfl} label="Flower" />} note={`${value(options.tradeTax)}% tax`} />
-        <Metric label="Combined profit" value={<Unit value={signed(totals.profit)} icon={imgsfl} label="Flower" />} note={totals.cost > 0 ? `×${value(totals.market / totals.cost)} · ${signed(Math.ceil((totals.market / totals.cost) * 100) - 100)}%` : "—"} tone={ColorValue(totals.profit, 0, 10)} featured />
+        <Metric label="Combined profit" value={<Unit value={signed(totals.profit)} icon={imgsfl} label="Flower" />} note={totals.cost > 0 ? `${signed(Math.ceil((totals.market / totals.cost) * 100) - 100)}%` : "—"} tone={ColorValue(totals.profit, 0, 10)} featured />
       </div>
       <div className="cm-daily-recap__breakdown">
-        <div className="cm-daily-recap__breakdown-head"><b>Combined daily result</b><small>{traces.length} machine run{traces.length === 1 ? "" : "s"} across {totals.passes} queue pass{totals.passes === 1 ? "" : "es"}</small></div>
-        <div className="cm-daily-recap__breakdown-columns"><span>Crop</span><span>Pack</span><span>Time</span><span>Cost</span><span>Profit</span></div>
+        <div className="cm-daily-recap__breakdown-columns"><span><img src={imgcrops} alt="Crop" /></span><span>Time</span><span>Pack</span><span>Harvest</span><span>Cost <img src={imgsfl} alt="Flower" /></span><span>Profit <img src={imgsfl} alt="Flower" /></span></div>
         {queue.map((row) => { const result = states[row.name]; return <div className="cm-daily-recap__crop-result" key={row.name}>
-          <span><img src={row.image} alt="" /><b>{row.name}</b><small>{value(result.restocks)} restock{result.restocks === 1 ? "" : "s"}{traces.some((trace) => trace.name === row.name && trace.partial) ? " · partial" : ""}</small></span>
-          <b>{value(result.runs)}</b><b>{convTime(result.time)}</b><b><Unit value={value(result.cost)} icon={imgsfl} label="Flower" /></b><b style={{ color: ColorValue(result.profit, 0, 10) }}><Unit value={signed(result.profit)} icon={imgsfl} label="Flower" /></b>
+          <span><img src={row.image} alt={row.name} /></span>
+          <b>{convTime(result.time)}</b><b>{value(result.runs)}</b><b>{value(result.harvest)}</b><b>{value(result.cost)}</b><b style={{ color: ColorValue(result.profit, 0, 10) }}>{signed(result.profit)}</b>
         </div>; })}
       </div></> : <div className="cm-daily-recap__loading">{error || "Calculating daily recap…"}</div>}
     </div> : <p className="cm-daily-recap__empty">Select at least one crop in the table to build the 24-hour machine queue.</p> : null}
@@ -131,9 +132,9 @@ export default function CropMachineDailyRecap({ rows = [], options = {}, oilImag
 }
 
 function countedRestockNote(options, totals) {
-  const base = <><Unit value={value(totals.seedCost)} icon={imgsfl} label="Flower" /> seeds + <Unit value={value(totals.oilCost)} icon={imgsfl} label="Flower" /> oil</>;
+  const base = `${value(totals.seedCost)} seeds · ${value(totals.oilCost)} oil`;
   if (!totals.restocks) return base;
-  return options.restockCostDaily ? <>{base} + <Unit value={value(totals.restockCost)} icon={imgsfl} label="Flower" /> restock</> : <>{base} · restock not counted</>;
+  return options.restockCostDaily ? `${base} · ${value(totals.restockCost)} restock` : `${base} · restock excluded`;
 }
 
 function Metric({ icon, label, value: metricValue, note, tone, featured = false }) {

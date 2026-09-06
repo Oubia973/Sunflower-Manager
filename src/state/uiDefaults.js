@@ -48,6 +48,7 @@ export const uiDefaults = {
   selectedFromActivity: "today",
   selectedFromActivityDay: "today",
   selectedActivityTradeMetric: "quantity",
+  selectedActivityTradeChartViews: ["bars"],
   selectedActivityTradeFilters: ["resources", "collectibles", "other"],
   activityTradeChartCeiling: "",
   activityTradeDateRange: { start: "", end: "" },
@@ -56,6 +57,9 @@ export const uiDefaults = {
   fromexpand: 1,
   toexpand: 16,
   selectedSeedsCM: "stock",
+  cropMachineRecapPriority: "table",
+  cropMachineRecapRestockMode: "none",
+  cropMachineRecapRestockLimit: "1",
   selectedQuantFetch: "stock",
   activityDisplay: "item",
   selectedActivityQuestCategory: "Delivery",
@@ -173,6 +177,13 @@ export const uiDefaults = {
  */
 export function normalizeUI(raw) {
   const next = { ...(raw || {}) };
+  if (!["none", "settings", "limited", "unlimited"].includes(next.cropMachineRecapRestockMode)) {
+    const legacyRestocks = String(next.cropMachineRecapRestocks ?? "0");
+    next.cropMachineRecapRestockMode = legacyRestocks === "unlimited" ? "unlimited" : Number(legacyRestocks) > 0 ? "limited" : "none";
+    if (Number(legacyRestocks) > 0) next.cropMachineRecapRestockLimit = legacyRestocks;
+  }
+  next.cropMachineRecapRestockLimit = String(Math.max(1, Math.min(10000, Math.floor(Number(next.cropMachineRecapRestockLimit) || 1))));
+  delete next.cropMachineRecapRestocks;
   next.selectedAnimalPettings = ["0", "1", "2"].includes(String(next.selectedAnimalPettings))
     ? String(next.selectedAnimalPettings)
     : "0";
@@ -421,6 +432,14 @@ export function normalizeUI(raw) {
       : { start: "", end: "" };
 
   next.selectedActivityTradeMetric = next.selectedActivityTradeMetric === "price" ? "price" : "quantity";
+  const rawActivityTradeChartViews = Array.isArray(next.selectedActivityTradeChartViews)
+    ? next.selectedActivityTradeChartViews
+    : [next.selectedActivityTradeChartView];
+  next.selectedActivityTradeChartViews = [...new Set(rawActivityTradeChartViews.filter((view) => view === "bars" || view === "categories"))];
+  if (next.selectedActivityTradeChartViews.length < 1) {
+    next.selectedActivityTradeChartViews = ["bars"];
+  }
+  delete next.selectedActivityTradeChartView;
   const rawTradeChartCeiling = String(next.activityTradeChartCeiling ?? "").trim();
   const tradeChartCeiling = Number(rawTradeChartCeiling);
   next.activityTradeChartCeiling = rawTradeChartCeiling !== "" && Number.isFinite(tradeChartCeiling) && tradeChartCeiling > 0

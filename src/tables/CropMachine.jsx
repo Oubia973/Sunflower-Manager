@@ -4,8 +4,6 @@ import { selectCurrentProjection } from "../utils/farmState.js";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, convtimenbr, convTime, ColorValue } from '../fct.js';
 import DList from "../dlist.jsx";
-import CropMachineDailyRecap from "./CropMachineDailyRecap.jsx";
-import { buildCropMachineRows } from "./CropMachineReadable.jsx";
 
 
 export default function CropMachineTable() {
@@ -40,15 +38,6 @@ export default function CropMachineTable() {
         const imgSfl = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
         const imgoil = <img src={it["Oil"].img} alt={''} className="nodico" title="Oil" style={{ width: '15px', height: '15px' }} />;
         const CM = cmSource.CropMachine || {};
-        const recapRows = buildCropMachineRows({
-            it,
-            machine: CM,
-            options: dataSet.options,
-            tryMode: TryChecked,
-            seedMode: selectedSeedsCM || "stock",
-            customSeeds: customSeedCM,
-            selectedCrops: toCM,
-        });
         let actualCMCrop = true;
         const actualLastCrop = "Soybean";
         let TotalSeedCost = 0;
@@ -303,7 +292,6 @@ export default function CropMachineTable() {
             </>
         );
         return (<div className="crop-machine-classic-page">
-            <CropMachineDailyRecap rows={recapRows} options={dataSet.options} oilImage={it["Oil"]?.img} source={cmSource} />
             {table}
         </div>);
     }

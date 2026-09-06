@@ -10,6 +10,13 @@ const LAST_AVAILABLE_CROP = "Soybean";
 const number = (value) => Number(value || 0);
 const signed = (value) => `${number(value) > 0 ? "+" : ""}${frmtNb(value)}`;
 
+export function resolveRecapRestocks(mode, limit, settingsRestocks) {
+  if (mode === "unlimited") return "unlimited";
+  if (mode === "settings") return String(Math.max(0, Math.floor(number(settingsRestocks))));
+  if (mode === "limited") return String(Math.max(1, Math.floor(number(limit)) || 1));
+  return "0";
+}
+
 export function buildCropMachineRows({ it, machine, options, tryMode, seedMode, customSeeds, selectedCrops }) {
   let available = true;
   const tradeTax = (100 - number(options?.tradeTax)) / 100;
@@ -81,8 +88,8 @@ export function buildCropMachineRows({ it, machine, options, tryMode, seedMode, 
 export default function CropMachineReadableTable() {
   const {
     data: { dataSet, dataSetFarm },
-    ui: { customSeedCM, toCM, selectedSeedsCM, xListeColCropMachine, TryChecked },
-    actions: { handleUIChange, handleOptionChange, handleTooltip },
+    ui: { customSeedCM, toCM, selectedSeedsCM, xListeColCropMachine, TryChecked, cropMachineRecapPriority, cropMachineRecapRestockMode, cropMachineRecapRestockLimit },
+    actions: { handleUIChange, handleTooltip },
   } = useAppCtx();
   const source = selectCurrentProjection(dataSetFarm, "cropMachineData") || dataSetFarm;
   const it = source?.itables?.it;
@@ -124,25 +131,11 @@ export default function CropMachineReadableTable() {
     daily: sum.daily + row.dailyProfit,
   }), { time: 0, seeds: 0, harvest: 0, seedCost: 0, oil: 0, oilCost: 0, cost: 0, market: 0, profit: 0, daily: 0 });
   const totalHourly = totals.time > 0 ? totals.profit / (totals.time * 24) : 0;
+  const recapRestocks = resolveRecapRestocks(cropMachineRecapRestockMode, cropMachineRecapRestockLimit, dataSet?.options?.inputMaxBB);
 
   return (
     <main className={`crop-machine-readable-page crop-machine-table ${showNames ? "show-crop-name" : "hide-crop-name"}`}>
-      <section className="cm-readable-toolbar">
-        <div>
-          <strong>Batch size</strong>
-          <span>Choose how many seeds each crop sends to the machine.</span>
-        </div>
-        <div className="cm-seed-modes" role="group" aria-label="Batch seed quantity">
-          {[{ value: "stock", label: "Stock" }, { value: "max", label: "Maximum" }, { value: "custom", label: "Custom" }].map((mode) => (
-            <button key={mode.value} type="button" className={seedMode === mode.value ? "is-selected" : ""}
-              onClick={() => handleUIChange({ target: { name: "selectedSeedsCM", value: mode.value } })}>
-              {mode.label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <CropMachineDailyRecap rows={rows} options={options} oilImage={it.Oil?.img} source={source} />
+      <CropMachineDailyRecap rows={rows} options={options} oilImage={it.Oil?.img} source={source} priority={cropMachineRecapPriority || "table"} restocks={recapRestocks} showControls={false} />
 
       <section className="cm-comparison-wrap">
         <table className="cm-comparison-table cm-summary-table">
@@ -169,18 +162,7 @@ export default function CropMachineReadableTable() {
               {showCol(9) ? <td className="cm-wide-column">{frmtNb(totals.market)}</td> : null}
               {showCol(10) ? <td className="cm-main-profit" style={{ color: ColorValue(totals.profit, 0, 10) }}>{signed(totals.profit)}</td> : null}
               {showCol(11) ? <td className="cm-main-profit" style={{ color: ColorValue(totalHourly, 0, 10) }}>{signed(totalHourly)}</td> : null}
-              {showDaily ? <td>
-                <label className="cm-daily-restock-toggle" title="Count restock costs in the daily profit calculation">
-                  <input
-                    type="checkbox"
-                    name="restockCostDaily"
-                    checked={!!options.restockCostDaily}
-                    onChange={handleOptionChange}
-                    aria-label="Count restock costs in daily profit"
-                  />
-                  <span>Restock<small>Cost</small></span>
-                </label>
-              </td> : null}
+              {showDaily ? <td aria-label="No daily total" /> : null}
             </tr>
             {availableRows.map((row) => <CropRow key={row.name} row={row} seedMode={seedMode} customSeed={customSeedCM?.[row.name] ?? row.stock}
               oilImage={it.Oil?.img} showDaily={showDaily} showCol={showCol} showNames={showNames} detailColumns={detailColumns} expanded={expandedRows.has(row.name)} onToggle={() => toggleRow(row.name)} onChange={handleUIChange} onTooltip={handleTooltip} />)}

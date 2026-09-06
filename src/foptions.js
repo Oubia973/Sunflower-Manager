@@ -3,7 +3,7 @@ import DropdownCheckbox from './listcol.js';
 import DList from "./dlist.jsx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import { frmtNb } from './fct.js';
-import { computeGemsRatio, getGemsPackUsd } from './gemsRatio.js';
+import { computeGemsRatio, getGemsPackFlowerUsd } from './gemsRatio.js';
 import { promptInfo } from './promptW';
 import { fetchJson } from './services/apiClient.js';
 import {
@@ -104,15 +104,15 @@ function formatUsdLabel(value) {
 }
 
 function renderGemPackOption(pack) {
-    const usd = getGemsPackUsd(pack);
+    const flowerUsd = getGemsPackFlowerUsd(pack);
     const gemLabel = <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>{pack}{imgGem}</span>;
-    const usdLabel = <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>{formatUsdLabel(usd)}{imgusdcIcon}</span>;
+    const flowerLabel = <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>Flower: {formatUsdLabel(flowerUsd)}{imgusdcIcon}{imgSFL}</span>;
     return {
         value: pack,
-        searchText: `${pack} gems ${usd} usdc`,
+        searchText: `${pack} gems ${flowerUsd} flower discount`,
         label: gemLabel,
-        labelEnd: usdLabel,
-        triggerLabel: <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{gemLabel}{usdLabel}</span>,
+        labelEnd: flowerLabel,
+        triggerLabel: <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{gemLabel}{flowerLabel}</span>,
     };
 }
 
@@ -122,7 +122,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
     const [justOpened, setJustOpened] = useState(true);
     const [notifTestBusy, setNotifTestBusy] = useState(false);
     const [tradeTax, setTradeTax] = useState(dataSet.tradeTax || "");
-    const [gemsPack, setGemsPack] = useState(Number(dataSet.gemsPack || 7400));
+    const [gemsPack, setGemsPack] = useState(Number(dataSet.gemsPack || 15500));
     const [draftOptions, setDraftOptions] = useState(() => ({
         inputFarmTime: String(dataSet.inputFarmTime ?? 15),
         inputMaxBB: String(dataSet.inputMaxBB ?? 1),
@@ -413,7 +413,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
             animalLvl: { ...(dataSet.animalLvl || {}) },
         });
         setTradeTax(dataSet.tradeTax ?? "");
-        setGemsPack(Number(dataSet.gemsPack || 7400));
+        setGemsPack(Number(dataSet.gemsPack || 15500));
     }, [dataSet]);
     useEffect(() => {
         if (!dragging) return undefined;
@@ -556,7 +556,6 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
                             renderGemPackOption(650),
                             renderGemPackOption(1350),
                             renderGemPackOption(2800),
-                            renderGemPackOption(7400),
                             renderGemPackOption(15500),
                             renderGemPackOption(200000),
                         ]}

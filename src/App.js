@@ -1640,7 +1640,7 @@ function App() {
                       }} listIcon={imgoptions} iconOnly={true} height={28} menuMinWidth={220} />
                   </>
                 )}
-                {selectedInv === "cropmachine" && (
+                {selectedInv === "cropmachine" && <>
                   <DList options={cropMachinePickerOptions} value={cropMachinePickerValue} multiple={true} closeOnSelect={false} emitEvent={false}
                     onChange={(selectedValues) => {
                       const selectedSet = new Set((selectedValues || []).map(String));
@@ -1651,7 +1651,14 @@ function App() {
                       });
                       setUIField("xListeColCropMachine", next);
                     }} listIcon={imgoptions} iconOnly={true} height={28} menuMinWidth={220} />
-                )}
+                  {ui.interfaceMode === "compact" && <>
+                    <DList name="selectedSeedsCM" title="Pack quantity" options={[{ value: "stock", label: "Stock" }, { value: "max", label: "Maximum" }, { value: "custom", label: "Custom" }]} value={ui.selectedSeedsCM || "stock"} onChange={handleUIChange} height={28} />
+                    <DList name="cropMachineRecapPriority" title="Priority" options={[{ value: "table", label: "Table order" }, { value: "profit", label: "Best profit/hour" }, { value: "shortest", label: "Shortest first" }, { value: "manual", label: "Manual order" }]} value={ui.cropMachineRecapPriority || "table"} onChange={handleUIChange} height={28} />
+                    <DList name="cropMachineRecapRestockMode" title="Restocks" options={[{ value: "none", label: "None" }, { value: "settings", label: "Settings" }, { value: "limited", label: "Limited" }, { value: "unlimited", label: "Unlimited" }]} value={ui.cropMachineRecapRestockMode || "none"} onChange={handleUIChange} height={28} />
+                    {ui.cropMachineRecapRestockMode === "limited" || ui.cropMachineRecapRestockMode === "settings" ? <input className="crop-machine-recap-restock-limit" type="number" name="cropMachineRecapRestockLimit" min="0" max="10000" step="1" value={ui.cropMachineRecapRestockMode === "settings" ? String(Math.max(0, Math.min(10000, Math.floor(Number(dataSet.options?.inputMaxBB) || 0)))) : ui.cropMachineRecapRestockLimit || "1"} onChange={(event) => setUIField("cropMachineRecapRestockLimit", String(Math.max(1, Math.min(10000, Math.floor(Number(event.target.value) || 1)))))} disabled={ui.cropMachineRecapRestockMode === "settings"} aria-label={ui.cropMachineRecapRestockMode === "settings" ? "Restock daily setting" : "Number of restocks"} title={ui.cropMachineRecapRestockMode === "settings" ? "Restock daily setting" : "Number of restocks"} /> : null}
+                    <label className="crop-machine-restock-counted"><input type="checkbox" name="restockCostDaily" checked={!!dataSet.options?.restockCostDaily} onChange={handleOptionChange} /><span>Restock<br />counted</span></label>
+                  </>}
+                </>}
                 {selectedInv === "buynodes" && (
                   <DList options={buyNodesPickerOptions} value={buyNodesPickerValue} multiple={true} closeOnSelect={false} emitEvent={false}
                     onChange={(selectedValues) => {

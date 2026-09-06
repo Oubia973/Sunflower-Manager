@@ -1,4 +1,4 @@
-import { buildCropMachineRows } from "./CropMachineReadable.jsx";
+import { buildCropMachineRows, resolveRecapRestocks } from "./CropMachineReadable.jsx";
 
 const crop = (overrides = {}) => ({
   cat: "crop", btime: "01:00:00", stock: 10, seed: 2, harvestnode: 3,
@@ -37,5 +37,12 @@ describe("buildCropMachineRows", () => {
     expect(rows[0]).toMatchObject({ name: "Sunflower", seeds: 7, active: false, available: true });
     expect(rows[1]).toMatchObject({ name: "Soybean", active: false, available: false });
     expect(rows[2]).toMatchObject({ name: "Celestine", active: false, available: false });
+  });
+});
+
+describe("resolveRecapRestocks", () => {
+  test("uses the Restock daily preference when Settings is selected", () => {
+    expect(resolveRecapRestocks("settings", "1", "3")).toBe("3");
+    expect(resolveRecapRestocks("settings", "1", "0")).toBe("0");
   });
 });

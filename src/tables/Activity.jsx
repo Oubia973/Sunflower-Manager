@@ -405,6 +405,7 @@ function buildActivityTradesSummary(activityData, dataSetFarm, tradeTax) {
                     name: itemMeta.name,
                     color: itemMeta.color,
                     img: itemMeta.img,
+                    cat: itemMeta.cat || "",
                     qty: 0,
                     price: 0,
                     tradeGroup: itemMeta.tradeGroup || "other",
@@ -459,6 +460,7 @@ function buildActivityTradesDailySeries(activityData, dataSetFarm, tradeTax) {
                 name: itemMeta.name,
                 color: itemMeta.color,
                 img: itemMeta.img,
+                cat: itemMeta.cat || "",
                 qty,
                 price,
                     tradeGroup: itemMeta.tradeGroup || "other",
@@ -519,7 +521,7 @@ function TradeSummaryTable({ items, metric, selectedItems, setSelectedItems }) {
                         <td className="activity-trades-item-cell">
                             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                                 <img src={item.img || imgna} alt="" className="itico" />
-                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
+                                <span className="activity-trades-item-name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
                             </div>
                         </td>
                         <td className="activity-trades-metric-cell">{frmtNb(item.qty)}</td>
@@ -532,7 +534,78 @@ function TradeSummaryTable({ items, metric, selectedItems, setSelectedItems }) {
     );
 }
 
-function TradeDailyStackedChart({ days, metric, ceiling, additionalProps }) {
+function renderActivityTradeExternalTooltip({ chart, tooltip }, metric) {
+    const host = chart?.canvas?.closest(".activity-trades-chart-panel");
+    if (!host) return;
+    let tooltipEl = host.querySelector(".activity-trades-external-tooltip");
+    if (!tooltipEl) {
+        tooltipEl = document.createElement("div");
+        tooltipEl.className = "activity-trades-external-tooltip";
+        tooltipEl.addEventListener("mouseenter", () => clearTimeout(tooltipEl.hideTimer));
+        tooltipEl.addEventListener("mouseleave", () => {
+            tooltipEl.style.opacity = "0";
+            tooltipEl.style.pointerEvents = "none";
+        });
+        host.appendChild(tooltipEl);
+    }
+    if (!tooltip || tooltip.opacity === 0) {
+        clearTimeout(tooltipEl.hideTimer);
+        tooltipEl.hideTimer = setTimeout(() => {
+            if (!tooltipEl.matches(":hover")) {
+                tooltipEl.style.opacity = "0";
+                tooltipEl.style.pointerEvents = "none";
+            }
+        }, 180);
+        return;
+    }
+
+    clearTimeout(tooltipEl.hideTimer);
+
+    tooltipEl.replaceChildren();
+    const title = document.createElement("strong");
+    title.textContent = tooltip.title?.join(" ") || "Details";
+    tooltipEl.appendChild(title);
+    const points = (tooltip.dataPoints || []).filter((point) => Number(point?.parsed?.y ?? point?.parsed ?? 0) > 0);
+    if (points.length > 1) {
+        const total = points.reduce((sum, point) => sum + Number(point?.parsed?.y ?? point?.parsed ?? 0), 0);
+        const totalLine = document.createElement("div");
+        totalLine.textContent = `Total: ${frmtNb(total)}${metric === "price" ? " Flower" : " sold"}`;
+        tooltipEl.appendChild(totalLine);
+    }
+    points.forEach((point) => {
+        const line = document.createElement("div");
+        const colorMarker = document.createElement("span");
+        colorMarker.className = "activity-trades-external-tooltip-color";
+        const datasetColor = point?.element?.options?.backgroundColor || point?.dataset?.backgroundColor;
+        colorMarker.style.backgroundColor = Array.isArray(datasetColor)
+            ? datasetColor[point.dataIndex]
+            : datasetColor || getFallbackTradeColor(point.dataset?.label || point.label || "");
+        line.appendChild(colorMarker);
+        const label = point.dataset?.label || point.label || "";
+        const value = Number(point?.parsed?.y ?? point?.parsed ?? 0);
+        line.append(`${label}: ${frmtNb(value)}${metric === "price" ? " Flower" : " sold"}`);
+        tooltipEl.appendChild(line);
+    });
+    const canvasBounds = chart.canvas.getBoundingClientRect();
+    const hostBounds = host.getBoundingClientRect();
+    const anchorX = canvasBounds.left - hostBounds.left + tooltip.caretX;
+    const anchorY = canvasBounds.top - hostBounds.top + tooltip.caretY;
+    const tooltipWidth = tooltipEl.offsetWidth;
+    const tooltipHeight = tooltipEl.offsetHeight;
+    const margin = 8;
+    const minLeft = margin - hostBounds.left;
+    const maxLeft = window.innerWidth - hostBounds.left - tooltipWidth - margin;
+    const minTop = margin - hostBounds.top;
+    const maxTop = window.innerHeight - hostBounds.top - tooltipHeight - margin;
+    const preferredTop = anchorY - tooltipHeight - 10;
+    const top = preferredTop >= minTop ? preferredTop : anchorY + 10;
+    tooltipEl.style.left = `${Math.round(Math.min(Math.max(anchorX - (tooltipWidth / 2), minLeft), maxLeft))}px`;
+    tooltipEl.style.top = `${Math.round(Math.min(Math.max(top, minTop), maxTop))}px`;
+    tooltipEl.style.opacity = "1";
+    tooltipEl.style.pointerEvents = "auto";
+}
+
+function TradeDailyStackedChart({ days, metric, ceiling }) {
     const canvasRef = useRef(null);
     const chartRef = useRef(null);
 
@@ -595,7 +668,7 @@ function TradeDailyStackedChart({ days, metric, ceiling, additionalProps }) {
                 maintainAspectRatio: false,
                 layout: {
                     padding: {
-                        bottom: 20,
+                        bottom: 8,
                     },
                 },
                 animation: {
@@ -614,15 +687,9 @@ function TradeDailyStackedChart({ days, metric, ceiling, additionalProps }) {
                         display: false,
                     },
                     tooltip: {
+                        enabled: false,
+                        external: (context) => renderActivityTradeExternalTooltip(context, metric),
                         filter: (context) => Number(context?.parsed?.y || 0) > 0,
-                        callbacks: {
-                            beforeBody: (items) => {
-                                const totalQty = items.reduce((sum, item) => sum + Number(item?.dataset?.qtyData?.[item.dataIndex] || 0), 0);
-                                const totalPrice = items.reduce((sum, item) => sum + Number(item?.dataset?.priceData?.[item.dataIndex] || 0), 0);
-                                return [`Total: ${frmtNb(totalQty)} sold | ${frmtNb(totalPrice)} Flower`];
-                            },
-                            label: (context) => `${context.dataset.label}: ${frmtNb(context.dataset.qtyData?.[context.dataIndex] || 0)} sold | ${frmtNb(context.dataset.priceData?.[context.dataIndex] || 0)} Flower`,
-                        },
                     },
                 },
                 scales: {
@@ -662,11 +729,163 @@ function TradeDailyStackedChart({ days, metric, ceiling, additionalProps }) {
         return <div style={{ padding: "12px 0" }}>No daily trades in this date range.</div>;
     }
 
-return (
-    <div className="activity-trades-chart-panel" {...additionalProps}>
-        <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }}></canvas>
-    </div>
-);
+    return <canvas ref={canvasRef} className="activity-trades-chart-canvas"></canvas>;
+}
+
+function TradeCategoryPieChart({ items, metric }) {
+    const canvasRef = useRef(null);
+    const chartRef = useRef(null);
+    const chartData = useMemo(() => {
+        const categories = {};
+        items.forEach((item) => {
+            const category = String(item?.cat || "").trim() || "Other";
+            const value = Number(metric === "price" ? item?.price : item?.qty || 0);
+            if (!(value > 0)) return;
+            if (!categories[category]) {
+                categories[category] = { value: 0, colors: {} };
+            }
+            categories[category].value += value;
+            const color = item?.color || getFallbackTradeColor(item?.name || category);
+            categories[category].colors[color] = (categories[category].colors[color] || 0) + value;
+        });
+        const entries = Object.entries(categories)
+            .sort(([categoryA, dataA], [categoryB, dataB]) => dataB.value - dataA.value || categoryA.localeCompare(categoryB));
+        return {
+            labels: entries.map(([category]) => category),
+            datasets: [{
+                data: entries.map(([, data]) => data.value),
+                backgroundColor: entries.map(([category, data]) => (
+                    Object.entries(data.colors)
+                        .sort(([, valueA], [, valueB]) => valueB - valueA)[0]?.[0]
+                    || getFallbackTradeColor(category)
+                )),
+                borderColor: "rgba(34, 18, 10, 0.9)",
+                borderWidth: 2,
+            }],
+        };
+    }, [items, metric]);
+
+    useEffect(() => {
+        if (!canvasRef.current) return;
+        if (chartRef.current) chartRef.current.destroy();
+        chartRef.current = new Chart(canvasRef.current.getContext("2d"), {
+            type: "doughnut",
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 320 },
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: { color: "rgba(255,255,255,0.82)", boxWidth: 12, padding: 10 },
+                    },
+                    tooltip: {
+                        enabled: false,
+                        external: (context) => renderActivityTradeExternalTooltip(context, metric),
+                    },
+                },
+            },
+        });
+        return () => {
+            if (chartRef.current) {
+                chartRef.current.destroy();
+                chartRef.current = null;
+            }
+        };
+    }, [chartData, metric]);
+
+    if (!chartData.datasets[0].data.length) {
+        return <div style={{ padding: "12px 0" }}>No category data in this date range.</div>;
+    }
+
+    return <canvas ref={canvasRef} className="activity-trades-chart-canvas"></canvas>;
+}
+
+function ResizableTradePanels({ summaryItems, metric, selectedTradeItems, setSelectedTradeItems, chartViews, visibleSummaryItems, visibleTradeDailySeries, normalizedChartCeiling, handleUIChange }) {
+    const layoutRef = useRef(null);
+    const resizingRef = useRef(false);
+    const [listHeight, setListHeight] = useState(50);
+
+    const updateListHeight = (clientY) => {
+        const bounds = layoutRef.current?.getBoundingClientRect();
+        if (!bounds || bounds.height <= 0) return;
+        const nextHeight = ((clientY - bounds.top) / bounds.height) * 100;
+        setListHeight(Math.min(78, Math.max(22, nextHeight)));
+    };
+
+    return (
+        <div ref={layoutRef} className="activity-trades-layout" style={{ gridTemplateRows: `${listHeight}% 10px minmax(0, 1fr)` }}>
+            <div className="activity-trades-list-section">
+                <div className="activity-trades-list-panel">
+                    <TradeSummaryTable
+                        items={summaryItems}
+                        metric={metric}
+                        selectedItems={selectedTradeItems}
+                        setSelectedItems={setSelectedTradeItems}
+                    />
+                </div>
+            </div>
+            <div
+                className="activity-trades-resize-handle"
+                role="separator"
+                aria-orientation="horizontal"
+                aria-label="Resize trade list and charts"
+                onPointerDown={(event) => {
+                    event.preventDefault();
+                    resizingRef.current = true;
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    updateListHeight(event.clientY);
+                }}
+                onPointerMove={(event) => {
+                    if (resizingRef.current) updateListHeight(event.clientY);
+                }}
+                onPointerUp={(event) => {
+                    resizingRef.current = false;
+                    event.currentTarget.releasePointerCapture(event.pointerId);
+                }}
+                onPointerCancel={() => { resizingRef.current = false; }}
+            />
+            <div className="activity-trades-graph-section">
+                <div className="activity-trades-chart-panel">
+                    <div className="activity-trades-chart-view-control">
+                        <DList
+                            name="selectedActivityTradeChartViews"
+                            options={[
+                                { value: "bars", label: "Bars" },
+                                { value: "categories", label: "Categories" },
+                            ]}
+                            multiple={true}
+                            closeOnSelect={false}
+                            showMultipleFooter={false}
+                            value={chartViews}
+                            onChange={(event) => handleUIChange({
+                                target: {
+                                    name: "selectedActivityTradeChartViews",
+                                    value: Array.isArray(event?.target?.value) && event.target.value.length > 0
+                                        ? event.target.value
+                                        : ["bars"],
+                                },
+                            })}
+                            height={28}
+                        />
+                    </div>
+                    <div className={`activity-trades-chart-grid${chartViews.length === 1 ? " is-single" : ""}`}>
+                        {chartViews.includes("bars") && (
+                            <div className="activity-trades-chart-content">
+                                <TradeDailyStackedChart days={visibleTradeDailySeries} metric={metric} ceiling={normalizedChartCeiling} />
+                            </div>
+                        )}
+                        {chartViews.includes("categories") && (
+                            <div className="activity-trades-chart-content">
+                                <TradeCategoryPieChart items={visibleSummaryItems} metric={metric} />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export default function ActivityTable() {
@@ -1441,10 +1660,15 @@ function setActivityTrades(activityData, dataSetFarm, ui, ctx, tradeSummaryItems
         selectedFromActivity,
         selectedActivityTradeMetric,
         selectedActivityTradeFilters,
+        selectedActivityTradeChartViews,
         activityTradeChartCeiling,
         activityTradeDateRange,
     } = ui;
     const metric = selectedActivityTradeMetric === "price" ? "price" : "quantity";
+    const selectedChartViews = Array.isArray(selectedActivityTradeChartViews) && selectedActivityTradeChartViews.length > 0
+        ? selectedActivityTradeChartViews.filter((view) => view === "bars" || view === "categories")
+        : ["bars"];
+    const chartViews = selectedChartViews.length > 0 ? selectedChartViews : ["bars"];
     const chartCeiling = Number(activityTradeChartCeiling);
     const normalizedChartCeiling = Number.isFinite(chartCeiling) && chartCeiling > 0 ? chartCeiling : 0;
     const summaryItems = Array.isArray(tradeSummaryItems) ? tradeSummaryItems : [];
@@ -1560,21 +1784,17 @@ function setActivityTrades(activityData, dataSetFarm, ui, ctx, tradeSummaryItems
                 </div>
             </div>
             {summaryItems.length > 0 ? (
-                <div className="activity-trades-layout">
-                    <div className="activity-trades-list-section">
-                        <div className="activity-trades-list-panel">
-                            <TradeSummaryTable
-                                items={summaryItems}
-                                metric={metric}
-                                selectedItems={selectedTradeItems}
-                                setSelectedItems={setSelectedTradeItems}
-                            />
-                        </div>
-                    </div>
-                    <div className="activity-trades-graph-section">
-                        <TradeDailyStackedChart days={visibleTradeDailySeries} metric={metric} ceiling={normalizedChartCeiling} />
-                    </div>
-                </div>
+                <ResizableTradePanels
+                    summaryItems={summaryItems}
+                    metric={metric}
+                    selectedTradeItems={selectedTradeItems}
+                    setSelectedTradeItems={setSelectedTradeItems}
+                    chartViews={chartViews}
+                    visibleSummaryItems={visibleSummaryItems}
+                    visibleTradeDailySeries={visibleTradeDailySeries}
+                    normalizedChartCeiling={normalizedChartCeiling}
+                    handleUIChange={handleUIChange}
+                />
             ) : (
                 <div style={{ padding: "12px 0" }}>No trades in this date range.</div>
             )}
