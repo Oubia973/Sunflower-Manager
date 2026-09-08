@@ -784,7 +784,10 @@ function ModalTNFT({ onClose }) {
         simulatedSeason: selectedTrySeason,
         tryitarrays: tryitSnapshot,
         tryitMode: forceActiveTryRefresh ? "active" : "snapshot",
-        include: ["inventory", "boosts", "trynftpage", "cook"],
+        // Crop Machine owns derived Active/Try timing projections (mtime,
+        // mtimetry and perCrop). Refresh them with the Tryset so shrine and
+        // collectible speed changes are visible immediately on that page.
+        include: ["inventory", "boosts", "trynftpage", "cook", "cropmachine"],
         page: "trynft",
         knownHashes: (dataSetLocal?.sectionHashes && typeof dataSetLocal.sectionHashes === "object")
           ? dataSetLocal.sectionHashes

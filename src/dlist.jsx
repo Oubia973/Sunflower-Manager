@@ -367,7 +367,7 @@ export default function DList({
                                 </div>
                             </div>
                             <div className="cd-datePresets">
-                                {[{ label: "24h", days: 2 }, { label: "7d", days: 7 }, { label: "31d", days: 31 }, { label: "Chapter", chapter: true }].map((preset) => (
+                                {[{ label: "Today", days: 1 }, { label: "7d", days: 7 }, { label: "31d", days: 31 }, { label: "Chapter", chapter: true }].map((preset) => (
                                     <button type="button" key={preset.label} onClick={() => selectDatePreset(preset)}>{preset.label}</button>
                                 ))}
                             </div>

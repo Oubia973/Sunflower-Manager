@@ -20,6 +20,7 @@ import {
     imgexchng,
     imgdelivBoard,
     imgpirateBounty,
+    imgoptions,
     getNpcIconPath,
     getImageFileName,
 } from "../constants/images.js";
@@ -96,6 +97,125 @@ const tradeCeilingOverflowPlugin = {
 };
 
 Chart.register(tradeCeilingOverflowPlugin);
+
+const tradeFlowerIcon = typeof Image !== "undefined" ? new Image() : null;
+if (tradeFlowerIcon) tradeFlowerIcon.src = imgsfl;
+
+const tradeAverageLinePlugin = {
+    id: "tradeAverageLine",
+    afterDraw(chart, _args, options) {
+        const average = Number(options?.value || 0);
+        const yScale = chart.scales?.y;
+        const chartArea = chart.chartArea;
+        if (!(average > 0) || !yScale || !chartArea) return;
+        const y = yScale.getPixelForValue(average);
+        if (y < chartArea.top || y > chartArea.bottom) return;
+
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.strokeStyle = "rgba(255, 71, 71, 0.96)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([7, 4]);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, y);
+        ctx.lineTo(chartArea.right, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const label = String(options?.label || "Average");
+        const showFlowerIcon = !!options?.flowerIcon && !!tradeFlowerIcon?.complete && tradeFlowerIcon.naturalWidth > 0;
+        const iconSize = showFlowerIcon ? 13 : 0;
+        const iconGap = showFlowerIcon ? 3 : 0;
+        ctx.font = "12px Arial, sans-serif";
+        const labelWidth = ctx.measureText(label).width;
+        const labelX = Math.max(chartArea.left + 4, chartArea.right - labelWidth - iconGap - iconSize - 6);
+        const labelY = Math.max(10, chartArea.top - 10);
+        ctx.fillStyle = "rgba(255, 142, 142, 0.92)";
+        ctx.fillText(label, labelX, labelY);
+        if (showFlowerIcon) {
+            ctx.drawImage(tradeFlowerIcon, labelX + labelWidth + iconGap, labelY - 10, iconSize, iconSize);
+        }
+        ctx.restore();
+    },
+};
+
+Chart.register(tradeAverageLinePlugin);
+
+// Kept local to the trade-category doughnut: percentages remain readable
+// without adding a chart-wide dependency for data labels.
+const tradeCategoryPercentagePlugin = {
+    id: "tradeCategoryPercentage",
+    afterDatasetsDraw(chart) {
+        const dataset = chart.data.datasets?.[0];
+        const values = dataset?.data || [];
+        const total = values.reduce((sum, value) => sum + Number(value || 0), 0);
+        if (!(total > 0)) return;
+
+        const meta = chart.getDatasetMeta(0);
+        const largestArc = meta.data.reduce((largest, arc) => Math.max(largest, Number(arc?.outerRadius || 0)), 0);
+        // At narrow widths the legend leaves too little room for readable labels.
+        // Hide all slice percentages instead of drawing overlapping values.
+        if (largestArc < 55) return;
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = "600 12px Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        meta.data.forEach((arc, index) => {
+            const value = Number(values[index] || 0);
+            if (!(value > 0)) return;
+            const percentage = (value / total) * 100;
+            if (percentage < 4) return;
+            const angle = (arc.startAngle + arc.endAngle) / 2;
+            const radius = (arc.innerRadius + arc.outerRadius) / 2;
+            const x = arc.x + Math.cos(angle) * radius;
+            const y = arc.y + Math.sin(angle) * radius;
+            const background = Array.isArray(dataset.backgroundColor)
+                ? dataset.backgroundColor[index]
+                : dataset.backgroundColor;
+            ctx.fillStyle = getTradePercentageTextColor(background);
+            ctx.shadowColor = getTradePercentageTextColor(background) === "#ffffff"
+                ? "rgba(0, 0, 0, 0.8)"
+                : "rgba(255, 255, 255, 0.85)";
+            ctx.shadowBlur = 3;
+            ctx.fillText(`${Math.round(percentage)}%`, x, y);
+        });
+        ctx.restore();
+    },
+};
+
+function getTradePercentageTextColor(color) {
+    const source = String(color || "").trim();
+    const rgbMatch = source.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
+    const hexMatch = source.match(/^#([\da-f]{3}|[\da-f]{6})$/i);
+    const hslMatch = source.match(/^hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)$/i);
+    let rgb = null;
+    if (rgbMatch) rgb = rgbMatch.slice(1).map(Number);
+    if (hexMatch) {
+        const hex = hexMatch[1].length === 3
+            ? hexMatch[1].split("").map((value) => value + value).join("")
+            : hexMatch[1];
+        rgb = [0, 2, 4].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16));
+    }
+    if (hslMatch) {
+        const hue = Number(hslMatch[1]) / 360;
+        const saturation = Number(hslMatch[2]) / 100;
+        const lightness = Number(hslMatch[3]) / 100;
+        const chroma = (1 - Math.abs((2 * lightness) - 1)) * saturation;
+        const part = ((hue * 6) % 2) - 1;
+        const secondary = chroma * (1 - Math.abs(part));
+        const [red, green, blue] = hue < 1 / 6 ? [chroma, secondary, 0]
+            : hue < 2 / 6 ? [secondary, chroma, 0]
+                : hue < 3 / 6 ? [0, chroma, secondary]
+                    : hue < 4 / 6 ? [0, secondary, chroma]
+                        : hue < 5 / 6 ? [secondary, 0, chroma]
+                            : [chroma, 0, secondary];
+        const match = lightness - (chroma / 2);
+        rgb = [red, green, blue].map((value) => Math.round((value + match) * 255));
+    }
+    if (!rgb) return "#ffffff";
+    const luminance = ((rgb[0] * 0.299) + (rgb[1] * 0.587) + (rgb[2] * 0.114)) / 255;
+    return luminance > 0.58 ? "#17100c" : "#ffffff";
+}
 
 function getSflBalance(balance) {
     if (balance && typeof balance === "object") {
@@ -195,6 +315,68 @@ function getFallbackTradeColor(itemName) {
     return `hsl(${Math.abs(hash) % 360}, 68%, 58%)`;
 }
 
+function getTradeColorRgb(color) {
+    const source = String(color || "").trim();
+    const rgbMatch = source.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    const hexMatch = source.match(/^#([\da-f]{3}|[\da-f]{6})$/i);
+    const hslMatch = source.match(/^hsla?\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%/i);
+    if (rgbMatch) return rgbMatch.slice(1, 4).map(Number);
+    if (hexMatch) {
+        const hex = hexMatch[1].length === 3
+            ? hexMatch[1].split("").map((value) => value + value).join("")
+            : hexMatch[1];
+        return [0, 2, 4].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16));
+    }
+    if (!hslMatch) return null;
+    const hue = Number(hslMatch[1]) / 360;
+    const saturation = Number(hslMatch[2]) / 100;
+    const lightness = Number(hslMatch[3]) / 100;
+    const chroma = (1 - Math.abs((2 * lightness) - 1)) * saturation;
+    const part = ((hue * 6) % 2) - 1;
+    const secondary = chroma * (1 - Math.abs(part));
+    const [red, green, blue] = hue < 1 / 6 ? [chroma, secondary, 0]
+        : hue < 2 / 6 ? [secondary, chroma, 0]
+            : hue < 3 / 6 ? [0, chroma, secondary]
+                : hue < 4 / 6 ? [0, secondary, chroma]
+                    : hue < 5 / 6 ? [secondary, 0, chroma]
+                        : [chroma, 0, secondary];
+    const match = lightness - (chroma / 2);
+    return [red, green, blue].map((value) => Math.round((value + match) * 255));
+}
+
+function areTradeColorsTooSimilar(firstColor, secondColor) {
+    if (String(firstColor).toLowerCase() === String(secondColor).toLowerCase()) return true;
+    const first = getTradeColorRgb(firstColor);
+    const second = getTradeColorRgb(secondColor);
+    if (!first || !second) return false;
+    const distance = Math.sqrt(first.reduce((sum, value, index) => sum + ((value - second[index]) ** 2), 0));
+    return distance < 90;
+}
+
+function getDistinctTradeCategoryColors(entries) {
+    const colors = [];
+    return entries.map(([category, data]) => {
+        const dominantItemColor = Object.entries(data.colors)
+            .sort(([, valueA], [, valueB]) => valueB - valueA)[0]?.[0]
+            || getFallbackTradeColor(category);
+        if (!colors.some((color) => areTradeColorsTooSimilar(color, dominantItemColor))) {
+            colors.push(dominantItemColor);
+            return dominantItemColor;
+        }
+
+        const baseHue = Number(getFallbackTradeColor(category).match(/\d+/)?.[0] || 0);
+        for (let attempt = 0; attempt < 360; attempt += 1) {
+            const color = `hsl(${(baseHue + (attempt * 137)) % 360}, 76%, 52%)`;
+            if (!colors.some((usedColor) => areTradeColorsTooSimilar(usedColor, color))) {
+                colors.push(color);
+                return color;
+            }
+        }
+        colors.push(dominantItemColor);
+        return dominantItemColor;
+    });
+}
+
 function getSyntheticTradeId(itemName) {
     const source = String(itemName || "");
     let hash = 0;
@@ -215,6 +397,7 @@ function getTradeItemMetaMap(dataSetFarm) {
                 name,
                 color: item?.color || getFallbackTradeColor(name),
                 cat: item?.cat || "",
+                greenhouse: !!item?.greenhouse,
                 img: item?.img || imgna,
                 boostTable: extra.boostTable || "",
                 tradeGroup: extra.tradeGroup || "other",
@@ -284,7 +467,7 @@ function escapeCsvValue(value) {
 function getActivityRangeLabel(value) {
     if (value?.start && value?.end) return `${value.start}_${value.end}`;
     if (value === "today") return "today";
-    if (value === "1") return "24h";
+    if (value === "1") return "today";
     if (value === "7") return "7days";
     if (value === "31") return "1month";
     if (value === "season") return "season";
@@ -406,6 +589,7 @@ function buildActivityTradesSummary(activityData, dataSetFarm, tradeTax) {
                     color: itemMeta.color,
                     img: itemMeta.img,
                     cat: itemMeta.cat || "",
+                    greenhouse: !!itemMeta.greenhouse,
                     qty: 0,
                     price: 0,
                     tradeGroup: itemMeta.tradeGroup || "other",
@@ -461,6 +645,7 @@ function buildActivityTradesDailySeries(activityData, dataSetFarm, tradeTax) {
                 color: itemMeta.color,
                 img: itemMeta.img,
                 cat: itemMeta.cat || "",
+                greenhouse: !!itemMeta.greenhouse,
                 qty,
                 price,
                     tradeGroup: itemMeta.tradeGroup || "other",
@@ -562,14 +747,41 @@ function renderActivityTradeExternalTooltip({ chart, tooltip }, metric) {
     clearTimeout(tooltipEl.hideTimer);
 
     tooltipEl.replaceChildren();
-    const title = document.createElement("strong");
-    title.textContent = tooltip.title?.join(" ") || "Details";
-    tooltipEl.appendChild(title);
+    const formatPercentage = (value, total) => {
+        const percentage = total > 0 ? Math.round(((Number(value || 0) / total) * 100) * 10) / 10 : 0;
+        return Number.isInteger(percentage) ? percentage : percentage.toFixed(1);
+    };
+    const appendTradeValue = (line, value) => {
+        line.append(frmtNb(value));
+        if (metric === "price") {
+            const flowerIcon = document.createElement("img");
+            flowerIcon.className = "activity-trades-external-tooltip-flower";
+            flowerIcon.src = imgsfl;
+            flowerIcon.alt = "Flower";
+            line.appendChild(flowerIcon);
+        } else {
+            line.append(" sold");
+        }
+    };
     const points = (tooltip.dataPoints || []).filter((point) => Number(point?.parsed?.y ?? point?.parsed ?? 0) > 0);
+    const categoryItems = points[0]?.dataset?.categoryItems?.[points[0]?.dataIndex] || [];
+    const title = document.createElement("strong");
+    const titleText = tooltip.title?.join(" ") || "Details";
+    if (categoryItems.length > 0) {
+        const values = points[0]?.dataset?.data || [];
+        const total = values.reduce((sum, value) => sum + Number(value || 0), 0);
+        const selectedValue = Number(points[0]?.parsed?.y ?? points[0]?.parsed ?? 0);
+        const percentage = formatPercentage(selectedValue, total);
+        title.textContent = `${titleText} - ${percentage}%`;
+    } else {
+        title.textContent = titleText;
+    }
+    tooltipEl.appendChild(title);
     if (points.length > 1) {
         const total = points.reduce((sum, point) => sum + Number(point?.parsed?.y ?? point?.parsed ?? 0), 0);
         const totalLine = document.createElement("div");
-        totalLine.textContent = `Total: ${frmtNb(total)}${metric === "price" ? " Flower" : " sold"}`;
+        totalLine.append("Total: ");
+        appendTradeValue(totalLine, total);
         tooltipEl.appendChild(totalLine);
     }
     points.forEach((point) => {
@@ -583,9 +795,33 @@ function renderActivityTradeExternalTooltip({ chart, tooltip }, metric) {
         line.appendChild(colorMarker);
         const label = point.dataset?.label || point.label || "";
         const value = Number(point?.parsed?.y ?? point?.parsed ?? 0);
-        line.append(`${label}: ${frmtNb(value)}${metric === "price" ? " Flower" : " sold"}`);
+        const quantity = Number(point?.dataset?.qtyData?.[point.dataIndex] || 0);
+        const quantityLabel = categoryItems.length === 0 && quantity > 0
+            ? ` x${frmtNb(quantity)}`
+            : "";
+        line.append(`${label}${quantityLabel}: `);
+        appendTradeValue(line, value);
         tooltipEl.appendChild(line);
     });
+    if (categoryItems.length > 0) {
+        const categoryTotal = (points[0]?.dataset?.data || []).reduce((sum, value) => sum + Number(value || 0), 0);
+        const itemsTitle = document.createElement("strong");
+        itemsTitle.className = "activity-trades-external-tooltip-items-title";
+        itemsTitle.textContent = "-";
+        tooltipEl.appendChild(itemsTitle);
+        categoryItems.forEach((item) => {
+            const line = document.createElement("div");
+            line.className = "activity-trades-external-tooltip-item";
+            const colorMarker = document.createElement("span");
+            colorMarker.className = "activity-trades-external-tooltip-color";
+            colorMarker.style.backgroundColor = item.color || getFallbackTradeColor(item.name);
+            line.appendChild(colorMarker);
+            const percentage = formatPercentage(item.value, categoryTotal);
+            line.append(`${item.name} ${percentage}%: `);
+            appendTradeValue(line, item.value);
+            tooltipEl.appendChild(line);
+        });
+    }
     const canvasBounds = chart.canvas.getBoundingClientRect();
     const hostBounds = host.getBoundingClientRect();
     const anchorX = canvasBounds.left - hostBounds.left + tooltip.caretX;
@@ -605,9 +841,17 @@ function renderActivityTradeExternalTooltip({ chart, tooltip }, metric) {
     tooltipEl.style.pointerEvents = "auto";
 }
 
-function TradeDailyStackedChart({ days, metric, ceiling }) {
+function TradeDailyStackedChart({ days, metric, ceiling, showAverage }) {
     const canvasRef = useRef(null);
     const chartRef = useRef(null);
+
+    useEffect(() => {
+        if (!tradeFlowerIcon) return undefined;
+        const redraw = () => chartRef.current?.draw();
+        if (tradeFlowerIcon.complete) redraw();
+        else tradeFlowerIcon.addEventListener("load", redraw);
+        return () => tradeFlowerIcon.removeEventListener("load", redraw);
+    }, []);
 
     const chartData = useMemo(() => {
         const labels = days.map((day) => day.label);
@@ -653,6 +897,14 @@ function TradeDailyStackedChart({ days, metric, ceiling }) {
         return highestDailyTotal > ceiling ? ceiling : 0;
     }, [chartData, ceiling]);
 
+    const averageDailyTotal = useMemo(() => {
+        if (chartData.labels.length === 0) return 0;
+        const total = chartData.labels.reduce((sum, _, index) => (
+            sum + chartData.datasets.reduce((dayTotal, dataset) => dayTotal + Number(dataset?.data?.[index] || 0), 0)
+        ), 0);
+        return total / chartData.labels.length;
+    }, [chartData]);
+
     useEffect(() => {
         if (!canvasRef.current) return;
         if (chartRef.current) {
@@ -668,7 +920,8 @@ function TradeDailyStackedChart({ days, metric, ceiling }) {
                 maintainAspectRatio: false,
                 layout: {
                     padding: {
-                        bottom: 8,
+                        top: 28,
+                        bottom: 0,
                     },
                 },
                 animation: {
@@ -683,6 +936,11 @@ function TradeDailyStackedChart({ days, metric, ceiling }) {
                     tradeCeilingOverflow: {
                         ceiling: effectiveCeiling,
                     },
+                    tradeAverageLine: {
+                        value: showAverage ? averageDailyTotal : 0,
+                        label: `${chartData.labels.length} days avg. ${frmtNb(averageDailyTotal)}${metric === "price" ? "" : " sold"}`,
+                        flowerIcon: metric === "price",
+                    },
                     legend: {
                         display: false,
                     },
@@ -696,7 +954,10 @@ function TradeDailyStackedChart({ days, metric, ceiling }) {
                     x: {
                         stacked: true,
                         ticks: {
-                            padding: 8,
+                            padding: 0,
+                            minRotation: 0,
+                            maxRotation: 0,
+                            autoSkipPadding: 2,
                         },
                         grid: {
                             color: "rgba(255,255,255,0.08)",
@@ -723,7 +984,7 @@ function TradeDailyStackedChart({ days, metric, ceiling }) {
                 chartRef.current = null;
             }
         };
-    }, [chartData, effectiveCeiling]);
+    }, [chartData, effectiveCeiling, averageDailyTotal, metric, showAverage]);
 
     if (!chartData.datasets.length) {
         return <div style={{ padding: "12px 0" }}>No daily trades in this date range.</div>;
@@ -732,38 +993,51 @@ function TradeDailyStackedChart({ days, metric, ceiling }) {
     return <canvas ref={canvasRef} className="activity-trades-chart-canvas"></canvas>;
 }
 
-function TradeCategoryPieChart({ items, metric }) {
+function TradeCategoryPieChart({ items, metric, groupGreenhouseItems }) {
     const canvasRef = useRef(null);
     const chartRef = useRef(null);
+    const [useSideLegend, setUseSideLegend] = useState(() => (
+        typeof window !== "undefined" && window.matchMedia("(max-width: 499px)").matches
+    ));
+
+    useEffect(() => {
+        const media = window.matchMedia("(max-width: 499px)");
+        const update = () => setUseSideLegend(media.matches);
+        update();
+        media.addEventListener("change", update);
+        return () => media.removeEventListener("change", update);
+    }, []);
+
     const chartData = useMemo(() => {
         const categories = {};
         items.forEach((item) => {
-            const category = String(item?.cat || "").trim() || "Other";
+            const category = groupGreenhouseItems && item?.greenhouse
+                ? "Greenhouse"
+                : (String(item?.cat || "").trim() || "Other");
             const value = Number(metric === "price" ? item?.price : item?.qty || 0);
             if (!(value > 0)) return;
             if (!categories[category]) {
-                categories[category] = { value: 0, colors: {} };
+                categories[category] = { value: 0, colors: {}, items: [] };
             }
             categories[category].value += value;
             const color = item?.color || getFallbackTradeColor(item?.name || category);
             categories[category].colors[color] = (categories[category].colors[color] || 0) + value;
+            categories[category].items.push({ name: item?.name || "Unknown", value, color });
         });
         const entries = Object.entries(categories)
             .sort(([categoryA, dataA], [categoryB, dataB]) => dataB.value - dataA.value || categoryA.localeCompare(categoryB));
+        const categoryColors = getDistinctTradeCategoryColors(entries);
         return {
             labels: entries.map(([category]) => category),
             datasets: [{
                 data: entries.map(([, data]) => data.value),
-                backgroundColor: entries.map(([category, data]) => (
-                    Object.entries(data.colors)
-                        .sort(([, valueA], [, valueB]) => valueB - valueA)[0]?.[0]
-                    || getFallbackTradeColor(category)
-                )),
+                categoryItems: entries.map(([, data]) => [...data.items].sort((a, b) => b.value - a.value || a.name.localeCompare(b.name))),
+                backgroundColor: categoryColors,
                 borderColor: "rgba(34, 18, 10, 0.9)",
                 borderWidth: 2,
             }],
         };
-    }, [items, metric]);
+    }, [items, metric, groupGreenhouseItems]);
 
     useEffect(() => {
         if (!canvasRef.current) return;
@@ -774,9 +1048,11 @@ function TradeCategoryPieChart({ items, metric }) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                radius: "92%",
                 animation: { duration: 320 },
                 plugins: {
                     legend: {
+                        display: !useSideLegend,
                         position: "bottom",
                         labels: { color: "rgba(255,255,255,0.82)", boxWidth: 12, padding: 10 },
                     },
@@ -786,6 +1062,7 @@ function TradeCategoryPieChart({ items, metric }) {
                     },
                 },
             },
+            plugins: [tradeCategoryPercentagePlugin],
         });
         return () => {
             if (chartRef.current) {
@@ -793,16 +1070,33 @@ function TradeCategoryPieChart({ items, metric }) {
                 chartRef.current = null;
             }
         };
-    }, [chartData, metric]);
+    }, [chartData, metric, useSideLegend]);
 
     if (!chartData.datasets[0].data.length) {
         return <div style={{ padding: "12px 0" }}>No category data in this date range.</div>;
     }
 
-    return <canvas ref={canvasRef} className="activity-trades-chart-canvas"></canvas>;
+    return (
+        <div className="activity-trades-category-chart">
+            <div className="activity-trades-category-canvas-wrap">
+                <canvas ref={canvasRef} className="activity-trades-chart-canvas"></canvas>
+            </div>
+            <div className="activity-trades-category-legend" aria-label="Trade categories">
+                {chartData.labels.map((label, index) => (
+                    <span className="activity-trades-category-legend-item" key={label}>
+                        <span
+                            className="activity-trades-category-legend-color"
+                            style={{ backgroundColor: chartData.datasets[0].backgroundColor[index] }}
+                        />
+                        {label}
+                    </span>
+                ))}
+            </div>
+        </div>
+    );
 }
 
-function ResizableTradePanels({ summaryItems, metric, selectedTradeItems, setSelectedTradeItems, chartViews, visibleSummaryItems, visibleTradeDailySeries, normalizedChartCeiling, handleUIChange }) {
+function ResizableTradePanels({ summaryItems, metric, selectedTradeItems, setSelectedTradeItems, chartViews, chartOptions, visibleSummaryItems, visibleTradeDailySeries, normalizedChartCeiling, handleUIChange }) {
     const layoutRef = useRef(null);
     const resizingRef = useRef(false);
     const [listHeight, setListHeight] = useState(50);
@@ -867,18 +1161,43 @@ function ResizableTradePanels({ summaryItems, metric, selectedTradeItems, setSel
                                         : ["bars"],
                                 },
                             })}
-                            height={28}
+                            height={22}
+                        />
+                        <DList
+                            name="selectedActivityTradeChartOptions"
+                            options={[
+                                { value: "average", label: "Show average on bar chart" },
+                                { value: "greenhouse", label: "Greenhouse items in Greenhouse category" },
+                            ]}
+                            multiple={true}
+                            closeOnSelect={false}
+                            showMultipleFooter={false}
+                            value={chartOptions}
+                            onChange={handleUIChange}
+                            listIcon={imgoptions}
+                            iconOnly={true}
+                            height={22}
+                            menuMinWidth={280}
                         />
                     </div>
                     <div className={`activity-trades-chart-grid${chartViews.length === 1 ? " is-single" : ""}`}>
                         {chartViews.includes("bars") && (
                             <div className="activity-trades-chart-content">
-                                <TradeDailyStackedChart days={visibleTradeDailySeries} metric={metric} ceiling={normalizedChartCeiling} />
+                                <TradeDailyStackedChart
+                                    days={visibleTradeDailySeries}
+                                    metric={metric}
+                                    ceiling={normalizedChartCeiling}
+                                    showAverage={chartOptions.includes("average")}
+                                />
                             </div>
                         )}
                         {chartViews.includes("categories") && (
-                            <div className="activity-trades-chart-content">
-                                <TradeCategoryPieChart items={visibleSummaryItems} metric={metric} />
+                            <div className="activity-trades-chart-content activity-trades-category-chart-content">
+                                <TradeCategoryPieChart
+                                    items={visibleSummaryItems}
+                                    metric={metric}
+                                    groupGreenhouseItems={chartOptions.includes("greenhouse")}
+                                />
                             </div>
                         )}
                     </div>
@@ -1013,13 +1332,17 @@ export default function ActivityTable() {
     async function getActivity() {
         if (!farmId) return null;
 
+        const todayUtc = new Date().toISOString().slice(0, 10);
+        const tradeDateRange = activityTradeDateRange?.start && activityTradeDateRange?.end
+            ? activityTradeDateRange
+            : { start: todayUtc, end: todayUtc };
         const xContextTime =
             activityDisplay === "day"
                 ? selectedFromActivityDay
                 : activityDisplay === "item"
                     ? selectedFromActivity
                     : activityDisplay === "trades"
-                        ? selectedFromActivity
+                        ? "today"
                     : activityDisplay === "quest"
                         ? "season"
                         : "today";
@@ -1029,8 +1352,8 @@ export default function ActivityTable() {
             headers: {
                 frmid: farmId,
                 time: xContextTime,
-                ...(activityDisplay === "trades" && activityTradeDateRange?.start && activityTradeDateRange?.end
-                    ? { "start-date": activityTradeDateRange.start, "end-date": activityTradeDateRange.end }
+                ...(activityDisplay === "trades"
+                    ? { "start-date": tradeDateRange.start, "end-date": tradeDateRange.end }
                     : {}),
             },
         });
@@ -1596,7 +1919,6 @@ function setActivityItem(activityData, dataSetFarm, ui, ctx) {
                             title="Quantity"
                             options={[
                                 { value: "today", label: "Today" },
-                                { value: "1", label: "24h" },
                                 { value: "7", label: "7 days" },
                                 { value: "31", label: "1 month" },
                                 { value: "season", label: "Season" },
@@ -1661,6 +1983,7 @@ function setActivityTrades(activityData, dataSetFarm, ui, ctx, tradeSummaryItems
         selectedActivityTradeMetric,
         selectedActivityTradeFilters,
         selectedActivityTradeChartViews,
+        selectedActivityTradeChartOptions,
         activityTradeChartCeiling,
         activityTradeDateRange,
     } = ui;
@@ -1669,6 +1992,9 @@ function setActivityTrades(activityData, dataSetFarm, ui, ctx, tradeSummaryItems
         ? selectedActivityTradeChartViews.filter((view) => view === "bars" || view === "categories")
         : ["bars"];
     const chartViews = selectedChartViews.length > 0 ? selectedChartViews : ["bars"];
+    const chartOptions = Array.isArray(selectedActivityTradeChartOptions)
+        ? selectedActivityTradeChartOptions.filter((option) => option === "average" || option === "greenhouse")
+        : ["average"];
     const chartCeiling = Number(activityTradeChartCeiling);
     const normalizedChartCeiling = Number.isFinite(chartCeiling) && chartCeiling > 0 ? chartCeiling : 0;
     const summaryItems = Array.isArray(tradeSummaryItems) ? tradeSummaryItems : [];
@@ -1692,19 +2018,19 @@ function setActivityTrades(activityData, dataSetFarm, ui, ctx, tradeSummaryItems
 
     return (
         <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
-            <div className="modalgraph-buttons" style={{ marginBottom: 12 }}>
-                <div className="modalgraph-header-left" style={{ width: "100%", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div className="modalgraph-buttons" style={{ marginBottom: 6 }}>
+                <div className="modalgraph-header-left" style={{ width: "100%", display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
                     <button
                         type="button"
                         onClick={() => handleUIChange({ target: { name: "selectedActivityTradeMetric", value: "quantity" } })}
-                        className={`graph-mode-btn ${metric === "quantity" ? "is-active" : ""}`}
+                        className={`graph-mode-btn activity-trades-metric-button ${metric === "quantity" ? "is-active" : ""}`}
                     >
                         Sold
                     </button>
                     <button
                         type="button"
                         onClick={() => handleUIChange({ target: { name: "selectedActivityTradeMetric", value: "price" } })}
-                        className={`graph-mode-btn ${metric === "price" ? "is-active" : ""}`}
+                        className={`graph-mode-btn activity-trades-metric-button ${metric === "price" ? "is-active" : ""}`}
                     >
                         Price
                     </button>
@@ -1790,6 +2116,7 @@ function setActivityTrades(activityData, dataSetFarm, ui, ctx, tradeSummaryItems
                     selectedTradeItems={selectedTradeItems}
                     setSelectedTradeItems={setSelectedTradeItems}
                     chartViews={chartViews}
+                    chartOptions={chartOptions}
                     visibleSummaryItems={visibleSummaryItems}
                     visibleTradeDailySeries={visibleTradeDailySeries}
                     normalizedChartCeiling={normalizedChartCeiling}

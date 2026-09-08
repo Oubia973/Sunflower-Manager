@@ -252,7 +252,12 @@ export default function ExpandTable() {
           </thead>
           <tbody>
             {entries.map((entry) => {
-              const rowNodes = entry.nodes || entry.nodesBase || {};
+              // Base rows can contain both the island's cumulative node floor
+              // and nodes newly granted by its upgrade reward chest.
+              const rowNodes = {
+                ...(entry.nodesBase || {}),
+                ...(entry.nodes || {}),
+              };
               const rowResources = entry.resources || {};
               const rowValues = getResourceValues(rowResources, it, dataSet, TryChecked);
               const isFarm = Number.isFinite(farmCurrent) && farmCurrent === entry.expansion;

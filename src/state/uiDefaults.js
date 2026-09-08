@@ -49,6 +49,7 @@ export const uiDefaults = {
   selectedFromActivityDay: "today",
   selectedActivityTradeMetric: "quantity",
   selectedActivityTradeChartViews: ["bars"],
+  selectedActivityTradeChartOptions: ["average"],
   selectedActivityTradeFilters: ["resources", "collectibles", "other"],
   activityTradeChartCeiling: "",
   activityTradeDateRange: { start: "", end: "" },
@@ -414,9 +415,12 @@ export function normalizeUI(raw) {
 
   // Normalize activity date ranges
   const allowedActivityRanges = new Set(["today", "1", "7", "31", "season"]);
-  const normalizedSelectedFromActivity = allowedActivityRanges.has(String(next.selectedFromActivity || ""))
-    ? String(next.selectedFromActivity)
-    : "today";
+  const rawSelectedFromActivity = String(next.selectedFromActivity || "");
+  const normalizedSelectedFromActivity = rawSelectedFromActivity === "1"
+    ? "today"
+    : allowedActivityRanges.has(rawSelectedFromActivity)
+      ? rawSelectedFromActivity
+      : "today";
   const normalizedSelectedFromActivityDay = allowedActivityRanges.has(String(next.selectedFromActivityDay || ""))
     ? String(next.selectedFromActivityDay)
     : normalizedSelectedFromActivity;
@@ -440,6 +444,14 @@ export function normalizeUI(raw) {
     next.selectedActivityTradeChartViews = ["bars"];
   }
   delete next.selectedActivityTradeChartView;
+  const allowedActivityTradeChartOptions = new Set(["average", "greenhouse"]);
+  next.selectedActivityTradeChartOptions = (Array.isArray(next.selectedActivityTradeChartOptions)
+    ? next.selectedActivityTradeChartOptions
+    : ["average"])
+    .filter((option) => allowedActivityTradeChartOptions.has(option));
+  if (next.selectedActivityTradeChartOptions.length < 1) {
+    next.selectedActivityTradeChartOptions = [];
+  }
   const rawTradeChartCeiling = String(next.activityTradeChartCeiling ?? "").trim();
   const tradeChartCeiling = Number(rawTradeChartCeiling);
   next.activityTradeChartCeiling = rawTradeChartCeiling !== "" && Number.isFinite(tradeChartCeiling) && tradeChartCeiling > 0
