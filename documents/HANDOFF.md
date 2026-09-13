@@ -12,11 +12,12 @@ Short checkpoint between ChatGPT web and Codex/local. Keep only current frontend
 - Local web development runs on port 3000 and proxies the private backend on `127.0.0.1:2003`.
 - CI checks dependencies, tracked credentials, lint, tests, web build, Capacitor sync and Android debug build.
 - CI PR #3 fixed the runtime dependency-audit flow: non-breaking runtime security fixes refresh the lockfile before `npm ci`, so dev dependencies remain available for lint/tests.
+- The lightweight continuity structure from PR #2 is merged: `AGENTS.md`, `PROJECT_CONTEXT.md` and this short handoff.
 - Existing code contains historical large/mixed-purpose files; improve structure progressively rather than with a broad cleanup refactor.
 
-## Current frontend work
+## Chatbot UI
 
-Active UI PR: `chatbot-ui-refresh` / PR #1.
+PR #1 is merged on `main`.
 
 The chatbot refresh is presentation-focused:
 
@@ -27,18 +28,15 @@ The chatbot refresh is presentation-focused:
 - improved mobile full-screen layout;
 - conversation hook/API behavior intentionally unchanged.
 
-The earlier `fast-uri` CI blocker is now fixed on `main`. PR #1 still contains its temporary audit workaround and must be realigned with the shared CI before merge.
+The merged branch passed the full GitHub CI chain: runtime audit, tracked-credential check, lint, tests, production web build, Capacitor sync and Android debug APK build.
 
-## Organization work
+## Working rules
 
-Branch `frontend-project-organization` adds the lightweight shared structure:
-
-- `AGENTS.md`: local vs GitHub rules, change boundaries and validation expectations;
-- `PROJECT_CONTEXT.md`: frontend/backend ownership, runtime map and key paths;
-- `documents/HANDOFF.md`: this short checkpoint.
-
-Do not duplicate the backend's large AI roadmap/documentation system here unless a frontend domain actually needs it.
+- Use `AGENTS.md` for local-vs-GitHub boundaries and validation expectations.
+- Use `PROJECT_CONTEXT.md` for frontend/backend ownership and runtime paths.
+- Keep this handoff short and current; do not duplicate Git history here.
+- Do not duplicate the backend's larger AI roadmap/documentation system unless a frontend domain actually needs it.
 
 ## Next action
 
-Validate and merge this organization PR against the corrected shared CI. Then realign PR #1 with `main`, remove its temporary CI workaround, run the full CI and visually review the chatbot UI before merge.
+Visually verify the refreshed chatbot in the real local/site environment, then continue frontend work from `main` using the new continuity rules. For future chatbot UI changes, keep presentation separate from `useChatbotConversation.js` unless behavior intentionally changes.
