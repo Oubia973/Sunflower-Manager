@@ -11,6 +11,7 @@ Short checkpoint between ChatGPT web and Codex/local. Keep only current frontend
 - Public React frontend plus Capacitor Android wrapper.
 - Local web development runs on port 3000 and proxies the private backend on `127.0.0.1:2003`.
 - CI checks dependencies, tracked credentials, lint, tests, web build, Capacitor sync and Android debug build.
+- CI PR #3 fixed the runtime dependency-audit flow: non-breaking runtime security fixes refresh the lockfile before `npm ci`, so dev dependencies remain available for lint/tests.
 - Existing code contains historical large/mixed-purpose files; improve structure progressively rather than with a broad cleanup refactor.
 
 ## Current frontend work
@@ -26,7 +27,7 @@ The chatbot refresh is presentation-focused:
 - improved mobile full-screen layout;
 - conversation hook/API behavior intentionally unchanged.
 
-A CI failure on that PR came from the runtime dependency audit (`fast-uri` 3.1.5 vulnerability), before lint/tests/build ran. A temporary CI-side `npm audit fix --omit=dev` step was added on that branch. The durable dependency fix should ultimately be recorded in `package-lock.json`, rather than relying on CI mutation.
+The earlier `fast-uri` CI blocker is now fixed on `main`. PR #1 still contains its temporary audit workaround and must be realigned with the shared CI before merge.
 
 ## Organization work
 
@@ -40,4 +41,4 @@ Do not duplicate the backend's large AI roadmap/documentation system here unless
 
 ## Next action
 
-Finish and merge the lightweight organization branch independently. Then return to PR #1, apply the durable dependency-lock fix, verify lint/tests/build/Android CI, and review the chatbot UI visually before merge.
+Validate and merge this organization PR against the corrected shared CI. Then realign PR #1 with `main`, remove its temporary CI workaround, run the full CI and visually review the chatbot UI before merge.
