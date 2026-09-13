@@ -3,6 +3,7 @@ import { imgcancel, imggoblinThinking, imggrubnuk, imgarrowUp } from "./constant
 import ChatbotMarkdown from "./components/chatbot/ChatbotMarkdown.jsx";
 import ChatbotDebugPanel from "./components/chatbot/ChatbotDebugPanel.jsx";
 import useChatbotConversation from "./components/chatbot/useChatbotConversation.js";
+import "./components/chatbot/chatbot-ui.css";
 
 function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayload, currentPage, username }) {
   const {
@@ -96,16 +97,24 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
           onTouchStart={handleMouseDown}
           style={{ cursor: dragging ? "grabbing" : "grab" }}
         >
-          <img src={imggrubnuk} alt="Grubnuk" className="chatbot-title-icon" title="Grubnuk" />
-          <span className="chatbot-beta-badge">BETA</span>
-          {isSubscriber ? null : (
-            <span className="chatbot-remaining-questions" title={`Remaining today: ${Math.max(0, dailyLimit - chatbotUsed)}`}>
-              {Math.max(0, dailyLimit - chatbotUsed)}/{dailyLimit} <span className="chatbot-remaining-questions-label">daily limit</span>
-            </span>
-          )}
-          <button onClick={closeModal} className="button" title="Close">
-            <img src={imgcancel} alt="" className="resico" />
-          </button>
+          <div className="chatbot-header-main">
+            <img src={imggrubnuk} alt="Grubnuk" className="chatbot-title-icon" title="Grubnuk" />
+            <div className="chatbot-header-copy">
+              <strong>Grubnuk</strong>
+              <span>Ask about your farm or Sunflower Land mechanics</span>
+            </div>
+            <span className="chatbot-beta-badge">BETA</span>
+          </div>
+          <div className="chatbot-header-meta">
+            {isSubscriber ? null : (
+              <span className="chatbot-remaining-questions" title={`Remaining today: ${Math.max(0, dailyLimit - chatbotUsed)}`}>
+                {Math.max(0, dailyLimit - chatbotUsed)}/{dailyLimit} <span className="chatbot-remaining-questions-label">daily limit</span>
+              </span>
+            )}
+            <button onClick={closeModal} className="button" title="Close">
+              <img src={imgcancel} alt="" className="resico" />
+            </button>
+          </div>
         </div>
         <div className="chatbot-body" ref={bodyRef} onScroll={handleBodyScroll}>
           {messages.map((message, index) => (
@@ -129,7 +138,7 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message"
+            placeholder="Message Grubnuk"
             maxLength={4000}
             rows={2}
           />
