@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Apply non-breaking security fixes
+        run: npm audit fix --omit=dev
+
       - name: Audit shipped dependencies
         run: npm audit --omit=dev --audit-level=moderate
 
