@@ -51,6 +51,16 @@ signing configuration. For a release build, copy
 `android/keystore.properties.example` to `android/keystore.properties` and use
 your own keystore. Keystores and signing passwords are ignored by Git.
 
+## Project continuity
+
+For work shared between Codex/local development and remote GitHub sessions:
+
+- `documents/HANDOFF.md` is the short current checkpoint and next action;
+- `PROJECT_CONTEXT.md` describes frontend/backend ownership and key runtime paths;
+- `AGENTS.md` contains the working rules, validation expectations and local-vs-remote boundaries.
+
+Keep `documents/HANDOFF.md` concise. Detailed history belongs in Git rather than being duplicated in documentation.
+
 ## Public Firebase configuration
 
 `android/app/google-services.json` contains Firebase's public Android client
