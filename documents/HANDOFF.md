@@ -28,6 +28,8 @@ The chatbot refresh is presentation-focused:
 - improved mobile full-screen layout;
 - conversation hook/API behavior intentionally unchanged.
 
+Local pending change: the chatbot now has a bottom-right resize handle for mouse and touch. Its dimensions are constrained to the current viewport; no backend/API change is involved. Visual validation on desktop and an actual touch device remains required.
+
 The merged branch passed the full GitHub CI chain: runtime audit, tracked-credential check, lint, tests, production web build, Capacitor sync and Android debug APK build.
 
 ## Working rules

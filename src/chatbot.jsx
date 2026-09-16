@@ -23,8 +23,12 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
   const [isOpen, setIsOpen] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
+  const [modalSize, setModalSize] = useState(null);
+  const [resizing, setResizing] = useState(false);
+  const modalRef = useRef(null);
   const dragStartMouse = useRef({ x: 0, y: 0 });
   const dragStartOffset = useRef({ x: 0, y: 0 });
+  const resizeStart = useRef(null);
   
   const closeModal = () => {
     setIsOpen(false);
@@ -62,6 +66,50 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
     setDragging(false);
   };
 
+  const clampModalSize = ({ width, height }) => {
+    const horizontalMargin = window.innerWidth <= 700 ? 8 : 32;
+    const verticalMargin = window.innerWidth <= 700 ? 8 : 32;
+    const maxWidth = Math.max(0, window.innerWidth - horizontalMargin);
+    const maxHeight = Math.max(0, window.innerHeight - verticalMargin);
+    return {
+      width: Math.min(maxWidth, Math.max(Math.min(320, maxWidth), width)),
+      height: Math.min(maxHeight, Math.max(Math.min(360, maxHeight), height)),
+    };
+  };
+
+  const handleResizeStart = (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const rect = modalRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    resizeStart.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      width: rect.width,
+      height: rect.height,
+    };
+    setResizing(true);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  };
+
+  const handleResizeMove = (event) => {
+    const start = resizeStart.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+    setModalSize(clampModalSize({
+      width: start.width + event.clientX - start.startX,
+      height: start.height + event.clientY - start.startY,
+    }));
+  };
+
+  const handleResizeEnd = (event) => {
+    const start = resizeStart.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+    resizeStart.current = null;
+    setResizing(false);
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+
 
   useEffect(() => {
     setTimeout(() => setIsOpen(true), 50);
@@ -78,11 +126,13 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
       onTouchEnd={handleMouseUp}
     >
       <div
+        ref={modalRef}
         className="tooltip chatbot-modal"
         style={{
           position: "fixed",
           left: "50%",
           top: "50%",
+          ...(modalSize ? { width: `${modalSize.width}px`, height: `${modalSize.height}px` } : {}),
           "--chatbot-dx": `${dragOffset.x}px`,
           "--chatbot-dy": `${dragOffset.y}px`,
           willChange: "transform",
@@ -151,6 +201,14 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
             {cooldown > 0 ? `${cooldown}s` : <img src={imgarrowUp} alt="Send" className="resico" />}
           </button>
         </div>
+        <div
+          className={`chatbot-resize-handle ${resizing ? "is-resizing" : ""}`}
+          role="presentation"
+          onPointerDown={handleResizeStart}
+          onPointerMove={handleResizeMove}
+          onPointerUp={handleResizeEnd}
+          onPointerCancel={handleResizeEnd}
+        />
       </div>
     </div>
   );
