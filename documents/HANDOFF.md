@@ -1,6 +1,6 @@
 # Frontend handoff
 
-Updated: 2026-09-13
+Updated: 2026-09-17
 
 ## Role
 
@@ -29,6 +29,12 @@ The chatbot refresh is presentation-focused:
 - conversation hook/API behavior intentionally unchanged.
 
 Local pending change: the chatbot now has a bottom-right resize handle for mouse and touch. Its dimensions are constrained to the current viewport; no backend/API change is involved. Visual validation on desktop and an actual touch device remains required.
+
+## Daily production preferences
+
+Local pending changes move the existing Daily calculation controls from General into the previously empty Production tab, with grouped labels and inline explanations. A default-on `allowPartialNodePlanting` preference lets users keep proportional partial-node production or require full-node harvests. The backend now exposes planting rounds separately from equivalent harvests so a fractional `1.47` output with a 3-hour grow time reports two rounds and a 6-hour final harvest instead of shortening the second cycle.
+
+Focused frontend tooltip tests, frontend lint, production build, and focused backend SetYield/tooltip regressions pass. Visual validation of the reorganized Preferences modal on desktop and mobile remains required. Backend restart/deployment has not been performed.
 
 The merged branch passed the full GitHub CI chain: runtime audit, tracked-credential check, lint, tests, production web build, Capacitor sync and Android debug APK build.
 

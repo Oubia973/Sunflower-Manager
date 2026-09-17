@@ -68,8 +68,11 @@ export default function DailyProfitTooltipDetails({
     <>
       <div>{itemIcon} {itemName} daily</div>
       <div>Grow time: {contract.growTime} {contract.stockLabel ? <span>{contract.stockLabel}: {frmtNb(contract.stock)}</span> : null}</div>
-      <div>{frmtNb(contract.cycles)} harvest/day with {frmtNb(contract.inputFarmHours)}h and {frmtNb(contract.restocks)} restock</div>
-      {contract.harvestTimeDaily ? <div>Time to harvest by day: {contract.harvestTimeDaily}</div> : null}
+      <div>{frmtNb(contract.cycles)} equivalent harvest/day with {frmtNb(contract.inputFarmHours)}h and {frmtNb(contract.restocks)} restock</div>
+      {contract.plantingRounds !== undefined && contract.plantingRounds !== contract.cycles
+        ? <div>Planting rounds: {frmtNb(contract.plantingRounds)}</div>
+        : null}
+      {contract.harvestTimeDaily ? <div>Time to final harvest: {contract.harvestTimeDaily}</div> : null}
       <div>Harvest average {itemIcon}x{frmtNb(contract.harvestAverage)} {nodeDisplay}</div>
       {resourceBurn ? (
         <>

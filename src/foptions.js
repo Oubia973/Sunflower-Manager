@@ -484,31 +484,69 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
                     name={"autoRefresh"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Auto refresh tables</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.checkPlacedEquiped || 0}
                     name={"checkPlacedEquiped"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Check boosts placed/equipped</div>
-                <div><input type="number"
-                    onChange={(e) => setDraftOptions(prev => ({ ...prev, inputFarmTime: e.target.value }))}
-                    onBlur={(e) => {
-                        const value = commitNumber("FarmTime", e.target.value, { min: 1, max: 24, fallback: 15 });
-                        setDraftOptions(prev => ({ ...prev, inputFarmTime: String(value) }));
-                    }}
-                    value={draftOptions.inputFarmTime}
-                    name={"FarmTime"} style={{ textAlign: "left", width: "45px" }} />Hours you can check your farm daily</div>
-                <div><input type="number"
-                    onChange={(e) => setDraftOptions(prev => ({ ...prev, inputMaxBB: e.target.value }))}
-                    onBlur={(e) => {
-                        const value = commitNumber("inputMaxBB", e.target.value, { min: 0, fallback: 1 });
-                        setDraftOptions(prev => ({ ...prev, inputMaxBB: String(value) }));
-                    }}
-                    value={draftOptions.inputMaxBB}
-                    name={"inputMaxBB"} style={{ textAlign: "left", width: "45px" }} />Restock daily</div>
-                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoRefill || 0}
-                    name={"autoRefill"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Auto restock by time
-                    {/* <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.showRestockCost || 0}
-                        name={"showRestockCost"} style={{ width: "18px", height: "18px", marginRight: 6 }} />show in tooltip */}
-                </div>
-                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.restockCostDaily || 0}
-                    name={"restockCostDaily"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Restock counted in daily</div>
-                <div><input type="checkbox" onChange={onOptionChange} checked={dataSet.averageDailyCycles !== false}
-                    name={"averageDailyCycles"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Daily cycles average when more than 24h</div>
+                </section>
+                <section className={`options-section options-production ${activeSection === "production" ? "active" : ""}`}>
+                    <h3>Daily production</h3>
+                    <div className="options-setting options-setting--number">
+                        <label htmlFor="daily-farm-availability">Daily farm availability</label>
+                        <span className="options-setting__control">
+                            <input
+                                id="daily-farm-availability"
+                                type="number"
+                                min="1"
+                                max="24"
+                                onChange={(e) => setDraftOptions(prev => ({ ...prev, inputFarmTime: e.target.value }))}
+                                onBlur={(e) => {
+                                    const value = commitNumber("FarmTime", e.target.value, { min: 1, max: 24, fallback: 15 });
+                                    setDraftOptions(prev => ({ ...prev, inputFarmTime: String(value) }));
+                                }}
+                                value={draftOptions.inputFarmTime}
+                                name="FarmTime"
+                            />
+                            <span>hours/day</span>
+                        </span>
+                        <small>Hours during which you can return and start another production cycle.</small>
+                    </div>
+                    <div className="options-setting options-setting--check">
+                        <label><input type="checkbox" onChange={onOptionChange} checked={dataSet.allowPartialNodePlanting !== false}
+                            name="allowPartialNodePlanting" />Use available stock for partial planting</label>
+                        <small>Plant the available nodes when there is not enough stock to fill every active node.</small>
+                    </div>
+                    <h3>Restocking</h3>
+                    <div className="options-setting options-setting--number">
+                        <label htmlFor="daily-restock-limit">Daily restock limit</label>
+                        <span className="options-setting__control">
+                            <input
+                                id="daily-restock-limit"
+                                type="number"
+                                min="0"
+                                onChange={(e) => setDraftOptions(prev => ({ ...prev, inputMaxBB: e.target.value }))}
+                                onBlur={(e) => {
+                                    const value = commitNumber("inputMaxBB", e.target.value, { min: 0, fallback: 1 });
+                                    setDraftOptions(prev => ({ ...prev, inputMaxBB: String(value) }));
+                                }}
+                                value={draftOptions.inputMaxBB}
+                                name="inputMaxBB"
+                            />
+                        </span>
+                        <small>Maximum number of shop restocks included in the daily calculation.</small>
+                    </div>
+                    <div className="options-setting options-setting--check">
+                        <label><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoRefill}
+                            name="autoRefill" />Restock automatically when needed</label>
+                        <small>Derive restocks from production time instead of using the daily limit.</small>
+                    </div>
+                    <div className="options-setting options-setting--check">
+                        <label><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.restockCostDaily}
+                            name="restockCostDaily" />Include restock cost in daily profit</label>
+                        <small>Subtract the Flower value of restocks from the daily result.</small>
+                    </div>
+                    <h3>Long cycles</h3>
+                    <div className="options-setting options-setting--check">
+                        <label><input type="checkbox" onChange={onOptionChange} checked={dataSet.averageDailyCycles !== false}
+                            name="averageDailyCycles" />Average long cycles per day</label>
+                        <small>For cycles extending beyond 24 hours, show their daily equivalent (48 hours = 0.5/day).</small>
+                    </div>
                 </section>
                 <section className={`options-section ${activeSection === "economy" ? "active" : ""}`}>
                     <h3>Economy</h3>

@@ -110,6 +110,29 @@ describe("DailyProfitTooltipDetails", () => {
     expect(html).not.toContain("Harvest total by day");
   });
 
+  test("shows fractional output separately from real planting rounds", () => {
+    const html = render({
+      growTime: "03:00:00",
+      cycles: 1.47,
+      plantingRounds: 2,
+      harvestTimeDaily: "06:00:00",
+      inputFarmHours: 24,
+      restocks: 1,
+      harvestAverage: 74,
+      harvestDaily: 108.78,
+      productionCostFlower: 0,
+      marketFlower: 0,
+      profitFlower: 0,
+      profitMultiplier: null,
+      profitPercent: null,
+      tradeTaxPercent: 10,
+    });
+
+    expect(html).toContain("1.470 equivalent harvest/day");
+    expect(html).toContain("Planting rounds: 2");
+    expect(html).toContain("Time to final harvest: 06:00:00");
+  });
+
   test("explains the Obsidian weekly market limit", () => {
     const html = render({
       cycles: 1,
