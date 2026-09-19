@@ -181,99 +181,119 @@ export const parseDebugStatus = (statusLog = []) => {
     return state;
 };
 
-function DebugPill({ children, muted = false }) {
-  if (!children) return null;
-  return <span className={muted ? "chatbot-debug-pill chatbot-debug-pill-muted" : "chatbot-debug-pill"}>{children}</span>;
+const ACTIVITY_GROUPS = {
+  analysis: { label: "Analyzing request", labels: ["thinking", "intent", "intentpolicy", "route"] },
+  farm: { label: "Checking your farm", labels: ["farmplan", "theme", "data", "signals"] },
+  sources: { label: "Searching sources", labels: ["knowledge", "knowledgemode", "docs", "topics", "wikirag"] },
+  tools: { label: "Preparing tools and data", labels: ["evidenceplan", "lean", "tools", "toolsfiltered"] },
+  answer: { label: "Preparing answer", labels: ["model", "generation"] },
+  queue: { label: "Waiting for processing", labels: ["queue"] },
+};
+
+function parseStatusEntry(entry) {
+  const raw = String(entry || "").trim();
+  const match = raw.match(/^([^:]+):\s*(.*)$/);
+  return { raw, label: match ? match[1].trim() : "", detail: match ? match[2].trim() : raw };
 }
 
-function DebugSection({ title, children }) {
+function findActivityGroup(label) {
+  const normalized = String(label || "").toLowerCase();
+  if (normalized === "context") return "analysis";
+  return Object.entries(ACTIVITY_GROUPS).find(([, group]) => group.labels.includes(normalized))?.[0] || "other";
+}
+
+function getReadableDetail(label, detail) {
+  const normalized = String(label || "").toLowerCase();
+  if (normalized === "thinking") return "Analyzing the question";
+  if (normalized === "context") return "Selecting relevant data and sources";
+  if (["intent", "intentpolicy", "route"].includes(normalized)) return "Request type identified";
+  if (normalized === "farmplan") return "Relevant farm data identified";
+  if (normalized === "theme") return detail && !/^none$/i.test(detail) ? `Themes: ${detail}` : "Farm themes checked";
+  if (normalized === "data") return detail && !/^none$/i.test(detail) ? `Data: ${detail}` : "No additional data required";
+  if (normalized === "signals") return "Data availability checked";
+  if (["knowledge", "knowledgemode"].includes(normalized)) return "Knowledge sources selected";
+  if (normalized === "docs") return "Available documentation checked";
+  if (normalized === "topics") return detail && !/^none$/i.test(detail) ? `Topics found: ${detail}` : "No external topic required";
+  if (normalized === "wikirag") return "Relevant information found in the wiki";
+  if (normalized === "evidenceplan") return "Information required for the answer identified";
+  if (normalized === "tools") return detail && !/^none$/i.test(detail) ? `Selected: ${detail}` : "No specialized tool required";
+  if (["lean", "toolsfiltered"].includes(normalized)) return null;
+  if (normalized === "model") return "Answer method selected";
+  if (normalized === "generation") {
+    const duration = detail.match(/\b(\d+)ms\b/i)?.[1];
+    return duration ? `Answer generated in ${(Number(duration) / 1000).toFixed(1)} s` : "Answer generated";
+  }
+  if (normalized === "queue") return detail ? `Server: ${detail}` : "Request accepted";
+  return "Internal step completed";
+}
+
+export const buildActivitySteps = (statusLog = [], isActive = false) => {
+  const steps = [];
+  (Array.isArray(statusLog) ? statusLog : []).forEach((entry) => {
+    const parsed = parseStatusEntry(entry);
+    if (!parsed.raw) return;
+    const id = findActivityGroup(parsed.label);
+    const definition = ACTIVITY_GROUPS[id] || { label: "Processing request" };
+    let step = steps.find((candidate) => candidate.id === id);
+    if (!step) {
+      step = { id, label: definition.label, details: [] };
+      steps.push(step);
+    }
+    const detail = getReadableDetail(parsed.label, parsed.detail);
+    if (detail && !step.details.includes(detail)) step.details.push(detail);
+  });
+  return steps.map((step, index) => ({
+    ...step,
+    state: isActive && index === steps.length - 1 ? "active" : "complete",
+  }));
+};
+
+function ActivityStep({ step }) {
+  const hasDetails = step.details.length > 0;
+  const content = (
+    <>
+      <span className={`chatbot-activity-marker is-${step.state}`} aria-hidden="true">
+        {step.state === "active" ? "" : "✓"}
+      </span>
+      <span className="chatbot-activity-step-copy">
+        <span className="chatbot-activity-step-label">{step.label}</span>
+      </span>
+      {hasDetails ? <span className="chatbot-activity-chevron" aria-hidden="true" /> : null}
+    </>
+  );
+
+  if (!hasDetails) return <div className="chatbot-activity-step chatbot-activity-step-static">{content}</div>;
   return (
-    <div className="chatbot-debug-section">
-      <div className="chatbot-debug-section-title">{title}</div>
-      {children}
-    </div>
+    <details className="chatbot-activity-step">
+      <summary>{content}</summary>
+      <ul className="chatbot-activity-details">
+        {step.details.map((detail, index) => <li key={`${step.id}-${index}`}>{detail}</li>)}
+      </ul>
+    </details>
   );
 }
 
-export default function ChatbotDebugPanel({ statusLog, messageIndex }) {
+export default function ChatbotDebugPanel({ statusLog, messageIndex, isActive = false }) {
   if (!statusLog?.length) return null;
   const debug = parseDebugStatus(statusLog);
-  const toolCount = Array.isArray(debug.tools) ? debug.tools.length : 0;
-  const filteredToolCount = Array.isArray(debug.toolsFiltered) ? debug.toolsFiltered.length : 0;
+  const steps = buildActivitySteps(statusLog, isActive);
+  const currentStep = steps[steps.length - 1];
+  const summaryLabel = isActive && currentStep
+    ? `${currentStep.label}…`
+    : "Answer steps";
 
   return (
-    <details className="chatbot-debug-panel">
-      <summary className="chatbot-debug-summary">
-        <span>activité</span>
-        <DebugPill>{debug.queue ? `file ${debug.queue}` : null}</DebugPill>
-        <DebugPill>{debug.route ? `route ${debug.route}` : null}</DebugPill>
-        <DebugPill>{debug.answerMode ? `mode ${debug.answerMode}` : null}</DebugPill>
-        <DebugPill>{debug.outputMode ? `shape ${debug.outputMode}` : null}</DebugPill>
-        <DebugPill>{debug.depth ? `depth ${debug.depth}` : null}</DebugPill>
-        <DebugPill>{debug.confidence ? `confidence ${debug.confidence}` : null}</DebugPill>
-        <DebugPill>{debug.knowledgeMode ? `knowledge ${debug.knowledgeMode}` : null}</DebugPill>
-        <DebugPill>{debug.wikiDoc ? `wiki ${debug.wikiDoc}` : null}</DebugPill>
-        <DebugPill>{debug.tools?.length ? `tools ${toolCount}` : null}</DebugPill>
-        <DebugPill>{filteredToolCount ? `filtered ${filteredToolCount}` : null}</DebugPill>
-        <DebugPill>{debug.leanContext ? `lean ${debug.leanContext}` : null}</DebugPill>
-        <DebugPill>{debug.theme ? `theme ${debug.theme}` : null}</DebugPill>
-        <DebugPill>{debug.data ? `data ${debug.data}` : null}</DebugPill>
-        <DebugPill>{debug.evidencePlan ? `plan ${debug.evidencePlan}` : null}</DebugPill>
-        <DebugPill>{debug.blocks?.length ? `blocks ${debug.blocks.length}` : null}</DebugPill>
-        <DebugPill>{debug.topics?.length ? `topics ${debug.topics.length}` : null}</DebugPill>
-        <DebugPill>{debug.signals || null}</DebugPill>
+    <details className="chatbot-activity">
+      <summary className="chatbot-activity-summary">
+        <span className={`chatbot-activity-summary-dot ${isActive ? "is-active" : ""}`} aria-hidden="true" />
+        <span>{summaryLabel}</span>
+        <span className="chatbot-activity-chevron" aria-hidden="true" />
       </summary>
-
-      <DebugSection title="Summary">
-        <div className="chatbot-debug-row">
-          <DebugPill>{debug.knowledge ? `knowledge ${debug.knowledge}` : null}</DebugPill>
-          <DebugPill>{debug.localDoc ? `local doc ${debug.localDoc}` : null}</DebugPill>
-          <DebugPill>{debug.wikiDoc ? `wiki doc ${debug.wikiDoc}` : null}</DebugPill>
-          <DebugPill>{debug.githubDoc ? `github doc ${debug.githubDoc}` : null}</DebugPill>
-          <DebugPill>{debug.githubLatestDoc ? `latest ${debug.githubLatestDoc}` : null}</DebugPill>
-        </div>
-      </DebugSection>
-
-      <DebugSection title="Decision">
-        <div className="chatbot-debug-row">
-          <DebugPill muted>{debug.intentPolicy}</DebugPill>
-          <DebugPill muted>{debug.farmPlan}</DebugPill>
-          <DebugPill muted>{debug.evidenceMode ? `evidence mode ${debug.evidenceMode}` : null}</DebugPill>
-          <DebugPill muted>{debug.evidenceShape ? `evidence shape ${debug.evidenceShape}` : null}</DebugPill>
-        </div>
-        <div className="chatbot-debug-row">
-          <DebugPill>{debug.evidenceNeeds?.length ? `needs ${debug.evidenceNeeds.join(", ")}` : null}</DebugPill>
-          <DebugPill>{debug.evidenceRequired?.length ? `required ${debug.evidenceRequired.join(", ")}` : null}</DebugPill>
-          <DebugPill>{debug.toolsFiltered?.length ? `filtered tools ${debug.toolsFiltered.join(", ")}` : null}</DebugPill>
-          <DebugPill>{debug.tools?.length ? `active tools ${debug.tools.join(", ")}` : null}</DebugPill>
-        </div>
-      </DebugSection>
-
-      <DebugSection title="Evidence plan">
-        <div className="chatbot-debug-row">
-          <DebugPill>{debug.evidenceTargets?.length ? `market ${debug.evidenceTargets.join(", ")}` : null}</DebugPill>
-          <DebugPill>{debug.evidenceKinds?.length ? `kinds ${debug.evidenceKinds.join(", ")}` : null}</DebugPill>
-          <DebugPill>{debug.evidenceSources?.length ? `sources ${debug.evidenceSources.join(" || ")}` : null}</DebugPill>
-          <DebugPill>{debug.leanContext ? `lean ${debug.leanContext}` : null}</DebugPill>
-        </div>
-        <div className="chatbot-debug-row">
-          <DebugPill muted>{debug.sections?.length ? `sections ${debug.sections.join(", ")}` : null}</DebugPill>
-          <DebugPill muted>{debug.blocks?.length ? `blocks ${debug.blocks.join(", ")}` : null}</DebugPill>
-          <DebugPill muted>{debug.topics?.length ? `topics ${debug.topics.join(" | ")}` : null}</DebugPill>
-          <DebugPill muted>{debug.signals ? `signals ${debug.signals}` : null}</DebugPill>
-        </div>
-      </DebugSection>
-
-      <DebugSection title="Timing">
-        <div className="chatbot-debug-row">
-          <DebugPill>{debug.queue ? `file ${debug.queue}` : null}</DebugPill>
-          <DebugPill muted>{debug.timing}</DebugPill>
-          <DebugPill muted>{debug.generation}</DebugPill>
-          <DebugPill muted>{debug.model}</DebugPill>
-        </div>
-      </DebugSection>
-
-      <DebugSection title="Raw steps">
+      <div className="chatbot-activity-timeline">
+        {steps.map((step) => <ActivityStep key={step.id} step={step} />)}
+      </div>
+      <details className="chatbot-technical-details">
+        <summary>Technical details</summary>
         <ol className="chatbot-debug-steps">
           {debug.raw.map((status, statusIndex) => (
             <li key={`${messageIndex}-status-${statusIndex}`} className="chatbot-debug-step">
@@ -282,7 +302,7 @@ export default function ChatbotDebugPanel({ statusLog, messageIndex }) {
             </li>
           ))}
         </ol>
-      </DebugSection>
+      </details>
     </details>
   );
 }

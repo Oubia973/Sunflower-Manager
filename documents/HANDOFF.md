@@ -1,6 +1,6 @@
 # Frontend handoff
 
-Updated: 2026-09-17
+Updated: 2026-09-19
 
 ## Role
 
@@ -25,10 +25,13 @@ The chatbot refresh is presentation-focused:
 - assistant replies no longer boxed as generic bubbles;
 - user messages remain visually distinct;
 - centered rounded composer;
+- compact auto-growing composer: one line by default, up to three lines while composing;
 - improved mobile full-screen layout;
 - conversation hook/API behavior intentionally unchanged.
 
-Local pending change: the chatbot now has a bottom-right resize handle for mouse and touch. Its dimensions are constrained to the current viewport; no backend/API change is involved. Visual validation on desktop and an actual touch device remains required.
+Local pending change: chatbot stream statuses are now condensed into one discreet gray English line before the assistant answer; it shows the current step while active and expands on demand to reveal the full timeline (analysis, farm data, sources, prepared tools/data, response). Friendly details and the active/completed state remain frontend-derived from the existing stream contract; raw statuses are still available under "Technical details". Focused tests, lint and the production build pass; visual desktop/mobile validation remains required.
+
+Local pending change: the chatbot now has a bottom-right resize handle for mouse and touch. Resizing keeps the modal's top-left corner anchored while the right and bottom edges move. A header button toggles full screen and restores the previous size/position on exit. Dimensions remain constrained to the current viewport; no backend/API change is involved. Visual validation on desktop and an actual touch device remains required.
 
 ## Daily production preferences
 
