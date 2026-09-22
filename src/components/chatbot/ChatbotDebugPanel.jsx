@@ -273,8 +273,8 @@ function ActivityStep({ step }) {
   );
 }
 
-export default function ChatbotDebugPanel({ statusLog, messageIndex, isActive = false }) {
-  if (!statusLog?.length) return null;
+export default function ChatbotDebugPanel({ statusLog, messageIndex, isActive = false, showWhenEmpty = false }) {
+  if (!statusLog?.length && !showWhenEmpty) return null;
   const debug = parseDebugStatus(statusLog);
   const steps = buildActivitySteps(statusLog, isActive);
   const currentStep = steps[steps.length - 1];
@@ -292,7 +292,7 @@ export default function ChatbotDebugPanel({ statusLog, messageIndex, isActive = 
       <div className="chatbot-activity-timeline">
         {steps.map((step) => <ActivityStep key={step.id} step={step} />)}
       </div>
-      <details className="chatbot-technical-details">
+      {debug.raw.length ? <details className="chatbot-technical-details">
         <summary>Technical details</summary>
         <ol className="chatbot-debug-steps">
           {debug.raw.map((status, statusIndex) => (
@@ -302,7 +302,7 @@ export default function ChatbotDebugPanel({ statusLog, messageIndex, isActive = 
             </li>
           ))}
         </ol>
-      </details>
+      </details> : null}
     </details>
   );
 }

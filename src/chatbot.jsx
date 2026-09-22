@@ -17,6 +17,7 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
     isSubscriber,
     loading,
     messages,
+    reportAnswer,
     sendMessage,
     setInput,
   } = useChatbotConversation({ API_URL, farmId, options, tryChecked, tryitPayload, currentPage, username });
@@ -219,11 +220,25 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
         <div className="chatbot-body" ref={bodyRef} onScroll={handleBodyScroll}>
           {messages.map((message, index) => (
             <div key={`${message.role}-${index}`} className={`chatbot-message chatbot-message-${message.role}`}>
-              <ChatbotDebugPanel
-                statusLog={message.statusLog}
-                messageIndex={index}
-                isActive={loading && index === messages.length - 1}
-              />
+              <div className="chatbot-activity-row">
+                <ChatbotDebugPanel
+                  statusLog={message.statusLog}
+                  messageIndex={index}
+                  isActive={loading && index === messages.length - 1}
+                  showWhenEmpty={Boolean(message.responseId)}
+                />
+                {message.role === "assistant" && message.responseId && !(loading && index === messages.length - 1) ? (
+                  <button type="button" className="chatbot-feedback-button" onClick={() => reportAnswer(message.responseId)}
+                    disabled={message.feedbackState === "sending" || message.feedbackState === "sent"}
+                    title={message.feedbackState === "sent" ? "Reported" : "Report a bad answer"}
+                    aria-label={message.feedbackState === "sent" ? "Answer reported" : "Report this answer"}>
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M7 14V3H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2ZM7 14l4.1 6.1a2 2 0 0 0 3.6-1.5l-.6-4.6h5.1a2 2 0 0 0 1.9-2.6l-2.2-7A2 2 0 0 0 17 3H7" />
+                    </svg>
+                    <span>{message.feedbackState === "sent" ? "Reported" : message.feedbackState === "error" ? "Retry bad answer" : "Bad answer"}</span>
+                  </button>
+                ) : null}
+              </div>
               <ChatbotMarkdown content={message.content} role={message.role} />
             </div>
           ))}

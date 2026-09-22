@@ -89,6 +89,7 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
 
   function appendFinal(payload) {
     if (payload?.answer != null) replaceAnswerText(payload.answer);
+    if (payload?.responseId) setMessages((prev) => prev.map((message, index) => index === prev.length - 1 ? { ...message, responseId: payload.responseId } : message));
     if (payload?.chatbotUsed != null) {
       const newUsed = payload.chatbotUsed;
       setChatbotUsed(newUsed);
@@ -244,6 +245,21 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
     }
   }
 
+  async function reportAnswer(responseId) {
+    const target = messages.find((message) => message.responseId === responseId);
+    if (!target || (target.feedbackState && target.feedbackState !== "error")) return;
+    setMessages((prev) => prev.map((message) => message.responseId === responseId ? { ...message, feedbackState: "sending" } : message));
+    try {
+      const response = await fetch((API_URL || "") + "/chatbot/feedback", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ responseId }),
+      });
+      if (!response.ok) throw new Error("Feedback failed");
+      setMessages((prev) => prev.map((message) => message.responseId === responseId ? { ...message, feedbackState: "sent" } : message));
+    } catch {
+      setMessages((prev) => prev.map((message) => message.responseId === responseId ? { ...message, feedbackState: "error" } : message));
+    }
+  }
+
   function handleKeyDown(e) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -280,6 +296,7 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
     isSubscriber,
     loading,
     messages,
+    reportAnswer,
     sendMessage,
     setInput,
   };

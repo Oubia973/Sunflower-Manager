@@ -1,6 +1,6 @@
 # Frontend handoff
 
-Updated: 2026-09-19
+Updated: 2026-09-22
 
 ## Role
 
@@ -16,6 +16,8 @@ Short checkpoint between ChatGPT web and Codex/local. Keep only current frontend
 - Existing code contains historical large/mixed-purpose files; improve structure progressively rather than with a broad cleanup refactor.
 
 ## Chatbot UI
+
+Local pending change: completed assistant answers now offer a discreet thumbs-down icon labeled "Bad answer" beside "Answer steps". The sibling backend issues a response ID and records one question/answer pair per ID in rotating `log/ai/bad/bad.jsonl`. Frontend lint/build and backend syntax checks pass; end-to-end local browser/API validation and runtime activation remain outstanding. Reports are retained for 24 hours in server memory, so an old open conversation cannot submit after a backend restart.
 
 PR #1 is merged on `main`.
 
