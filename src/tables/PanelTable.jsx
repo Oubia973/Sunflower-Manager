@@ -19,7 +19,7 @@ import ExpandTable from "./Expand";
 import ActivityTable from "./Activity";
 import MarketTable from "./Market";
 import FactionsTable from "./Factions";
-import TopListsTable from "./TopListsLazy";
+import ListsSwitch from "./ListsSwitch";
 import BuyNodesTable from "./BuyNodes";
 import AuctionsTable from "./Auctions";
 import LavaPitsTable from "./LavaPits";
@@ -45,7 +45,7 @@ export default function PanelTable() {
   if (selectedInv === "activity") return <ActivityTable />;
   if (selectedInv === "market") return <MarketTable />;
   if (selectedInv === "factions") return <FactionsTable />;
-  if (selectedInv === "toplists") return <TopListsTable />;
+  if (selectedInv === "toplists") return <ListsSwitch />;
   if (selectedInv === "buynodes") return <BuyNodesTable />;
   if (selectedInv === "lavapits") return <LavaPitsTable />;
   if (selectedInv === "rngprediction") return <RngPredictionTable />;

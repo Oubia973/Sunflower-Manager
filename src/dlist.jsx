@@ -31,6 +31,7 @@ export default function DList({
     className = "",
     menuClassName = "",
     helpId = "",
+    ariaLabel = "",
 }) {
     const rootRef = useRef(null);
     const btnRef = useRef(null);
@@ -480,7 +481,7 @@ export default function DList({
                     {title}
                 </div>
             )}
-            <button ref={btnRef} type="button" className="cd-btn" onClick={toggleMenu} style={btnStyle} data-help-id={helpId ? `${helpId}-button` : undefined}>
+            <button ref={btnRef} type="button" className="cd-btn" onClick={toggleMenu} style={btnStyle} aria-label={ariaLabel || undefined} data-help-id={helpId ? `${helpId}-button` : undefined}>
                 <span className="cd-left">
                     {triggerIcon}
                     {!iconOnly ? <span className="cd-text">{triggerContent}</span> : null}

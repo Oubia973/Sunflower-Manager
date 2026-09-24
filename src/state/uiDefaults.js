@@ -27,6 +27,7 @@ import {
 export const uiDefaults = {
   interfaceMode: "classic",
   selectedInv: "home",
+  listsMode: "classic",
   selectedHomeMode: "current",
   selectedHomePriceMode: "prod",
   selectedCurr: "SFL",

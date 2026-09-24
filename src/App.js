@@ -18,6 +18,7 @@ import { useAppVersionRefresh } from './hooks/useAppVersionRefresh.js';
 
 import { AppCtx } from "./context/AppCtx";
 import PanelTable from "./tables/PanelTable";
+import ListsModeSwitch from "./tables/ListsModeSwitch";
 import HeaderTrades from "./components/HeaderTrades";
 import AutoRefreshProgress from "./components/AutoRefreshProgress";
 import TryProfileSummaryModal from "./components/TryProfileSummaryModal.jsx";
@@ -1542,6 +1543,7 @@ function App() {
                   helpId="page-selector"
                   className={selectedInv === "market" ? "header-market-select" : "header-page-select"}
                   width={130} height={25} maxListHeight={null} />
+                {selectedInv === "toplists" && <ListsModeSwitch mode={ui.listsMode || "classic"} onChange={(mode) => setUIField("listsMode", mode)} />}
                 {(sectionsLoading || headerRequestLoading) ? (
                   <img src={imgsyncing} alt="Loading sections" className="itico header-loading-indicator" style={{ width: 14, height: 14, opacity: 0.9 }} />
                 ) : null}
