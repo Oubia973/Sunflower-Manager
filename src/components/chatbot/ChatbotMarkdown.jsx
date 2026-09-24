@@ -13,6 +13,18 @@ const CHATBOT_CURRENCY_ICONS = [
 
 const currencyIconMap = new Map(CHATBOT_CURRENCY_ICONS.map((entry) => [entry.name.toLowerCase(), entry]));
 
+function ChatbotItem({ name, src, iconOnly }) {
+  const [imageFailed, setImageFailed] = React.useState(false);
+  React.useEffect(() => setImageFailed(false), [src]);
+  if (imageFailed) return name;
+  return (
+    <span className="chatbot-item-name">
+      <img src={normalizeServerImageUrl(src)} alt="" className="chatbot-item-icon" title={name} onError={() => setImageFailed(true)} />
+      {iconOnly ? null : name}
+    </span>
+  );
+}
+
 function collapseCurrencySynonyms(text) {
   return String(text || "").replace(/\b(FLOWER|SFL)\b(?:\s*[/\\|,-]\s*\b(FLOWER|SFL)\b)+/gi, "FLOWER");
 }
@@ -59,10 +71,12 @@ function renderTextWithItemIcons(text, role, keyPrefix) {
     const iconSrc = src || currencyItem?.img || "";
     if (iconSrc) {
       parts.push(
-        <span className="chatbot-item-name" key={`${keyPrefix}-item-${markerIndex}-${name || marker}`}>
-          <img src={normalizeServerImageUrl(iconSrc)} alt="" className="chatbot-item-icon" title={name || marker} />
-          {isIconOnly || currencyItem?.iconOnly ? null : (name || marker)}
-        </span>
+        <ChatbotItem
+          key={`${keyPrefix}-item-${markerIndex}-${name || marker}`}
+          name={currencyItem?.title || name}
+          src={iconSrc}
+          iconOnly={isIconOnly || currencyItem?.iconOnly}
+        />
       );
     } else {
       parts.push(name || marker);
@@ -109,7 +123,7 @@ function renderInlineMarkdown(text, role, keyPrefix) {
   // Example that now works: **Recommandation :** Plantez du **[[item:Pepper|...]]** (Piment)
   // The regex matches the SHORTEST span between ** markers (non-greedy *?).
   const parts = [];
-  const tokenPattern = /(```[\s\S]*?```|`[^`]+`|\*\*[\s\S]*?\*\*|__[\s\S]*?__|\*[\s\S]*?\*|_[\s\S]*?_)/g;
+  const tokenPattern = /(```[\s\S]*?```|`[^`]+`|\*\*[\s\S]*?\*\*|__[\s\S]*?__|\[\[item:[^\]]+\]\]|\*[\s\S]*?\*|_[\s\S]*?_)/g;
   let lastIndex = 0;
   let match;
   let tokenIndex = 0;
@@ -125,7 +139,7 @@ function renderInlineMarkdown(text, role, keyPrefix) {
     }
     
     const token = match[0];
-    
+
     // Handle code blocks (triple backtick)
     if (token.startsWith("```") && token.endsWith("```")) {
       const inner = token.slice(3, -3);
@@ -135,6 +149,9 @@ function renderInlineMarkdown(text, role, keyPrefix) {
     else if (token.startsWith("`") && token.endsWith("`")) {
       const inner = token.slice(1, -1);
       parts.push(<code className="chatbot-inline-code" key={`${keyPrefix}-code-${tokenIndex}`}>{inner}</code>);
+    }
+    else if (token.startsWith("[[item:")) {
+      parts.push(<React.Fragment key={`${keyPrefix}-item-${tokenIndex}`}>{renderTextWithItemIcons(token, role, `${keyPrefix}-item-${tokenIndex}`)}</React.Fragment>);
     }
     // Handle bold **...**
     else if (token.startsWith("**") && token.endsWith("**")) {

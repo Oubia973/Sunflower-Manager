@@ -1,6 +1,6 @@
 # Frontend handoff
 
-Updated: 2026-09-22
+Updated: 2026-09-23
 
 ## Role
 
@@ -16,6 +16,9 @@ Short checkpoint between ChatGPT web and Codex/local. Keep only current frontend
 - Existing code contains historical large/mixed-purpose files; improve structure progressively rather than with a broad cleanup refactor.
 
 ## Chatbot UI
+
+Local pending change: item markers now keep the backend-supplied canonical name visible if their image fails to load. The frontend does not need an item table for these markers. Focused renderer tests, lint and build pass; browser and Android visual checks remain open. The matching backend change supplies root-relative image paths. Its structured model stream is now opt-in only because real answers became too short; the previous text stream was restored by restarting only the worker at 21:34 on 23 September. The localized-name dictionary conversion was removed because it cannot reliably identify arbitrary translated names.
+Follow-up: Markdown now treats a complete `[[item:...|/icon/..._name.png]]` marker as one token before parsing underscores as emphasis. This fixes raw icon paths showing in assistant answers. Focused renderer test covers bold and plain markers with underscored image filenames; local browser check remains open.
 
 Local pending change: completed assistant answers now offer a discreet thumbs-down icon labeled "Bad answer" beside "Answer steps". The sibling backend issues a response ID and records one question/answer pair per ID in rotating `log/ai/bad/bad.jsonl`. Frontend lint/build and backend syntax checks pass; end-to-end local browser/API validation and runtime activation remain outstanding. Reports are retained for 24 hours in server memory, so an old open conversation cannot submit after a backend restart.
 
