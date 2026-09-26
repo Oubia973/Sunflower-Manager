@@ -1,0 +1,41 @@
+.trynft-panel-layout {
+  min-width: 0;
+}
+
+.trynft-panel-divider {
+  position: relative;
+  flex: 0 0 10px;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+
+.trynft-panel-divider.is-row { cursor: col-resize; }
+.trynft-panel-divider.is-column { cursor: row-resize; }
+
+.trynft-panel-divider::after {
+  content: "";
+  position: absolute;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.trynft-panel-divider.is-row::after {
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 2px;
+}
+
+.trynft-panel-divider.is-column::after {
+  left: 0;
+  right: 0;
+  top: 4px;
+  height: 2px;
+}
+
+.trynft-panel-divider:hover::after,
+.trynft-panel-divider:active::after,
+.trynft-panel-divider:focus-visible::after {
+  background: rgba(255, 214, 160, 0.9);
+}

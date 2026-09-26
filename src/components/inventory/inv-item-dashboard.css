@@ -16,6 +16,8 @@
 .inv-item-graph-plot { margin-top:7px; }
 .inv-item-graph-plot svg { display:block; width:100%; height:144px; background:linear-gradient(#281c16,#1b1512); border:1px solid rgba(221,169,100,.18); border-radius:5px; }
 .inv-item-graph-grid { stroke:rgba(221,169,100,.25); stroke-width:1; }
+.inv-item-graph-label { fill:#f3dcc0; font-size:11px; paint-order:stroke; stroke:#211812; stroke-width:3px; stroke-linejoin:round; }
+.inv-item-graph-point { fill:#ffe1aa; stroke:#211812; stroke-width:1.5; }
 .inv-item-graph-line { fill:none; stroke:#edbc73; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; vector-effect:non-scaling-stroke; }
 .inv-item-graph-plot > div { display:flex; justify-content:space-between; margin-top:3px; color:#9d9185; font-size:10px; }
 .inv-item-full-graph { margin-top:7px; }

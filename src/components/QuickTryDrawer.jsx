@@ -1,18 +1,18 @@
+import QuickSkillBudget from "./trynft/QuickSkillBudget.jsx";
+import { getSkillLevelColor } from "./trynft/skillLevelColor.js";
+import { withTrysetTables } from "./trynft/trysetTables.js";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx.js";
 import { fetchJson } from "../services/apiClient.js";
-import { getOrCreateDeviceId, mergeFarmStateDeep, unpackFarmPayloadTables } from "../fct.js";
-import { imgna, normalizeServerImagesDeep } from "../constants/images.js";
+import { getOrCreateDeviceId, applyFarmPayloadTableDeltas, mergeFarmStateDeep, unpackFarmPayloadTables } from "../fct.js";
+import { imgconfirm, imgna, normalizeServerImagesDeep } from "../constants/images.js";
 import {
-  buildCanonicalTryitSnapshot,
   buildPackedTryitSnapshot,
   hasTryitPayloadContent,
   isValidTryitConfig,
   syncTryitStateAcrossFarmState,
-  writeTryitSnapshot,
 } from "../tryitStorage.js";
 import { getQuickTryKnownHashes } from "../utils/quickTryHashes.js";
-import { mergeExplicitSkillLevels } from "../utils/quickTrySnapshot.js";
 import { collectKnownProjectionHashes } from "../utils/farmState.js";
 
 const TABLE_LABELS = {
@@ -27,7 +27,6 @@ const TABLE_LABELS = {
 };
 
 const TABLE_ORDER = ["nft", "nftw", "buildng", "bud", "shrine", "skill", "skilllgc"];
-const APPLY_DELAY_MS = 650;
 const QUICK_TRY_POSITION_KEY = "sunflower-manager:quick-try-position";
 const QUICK_TRY_PANEL_POSITION_KEY = "sunflower-manager:quick-try-panel-position";
 const QUICK_TRY_PANEL_SIZE_KEY = "sunflower-manager:quick-try-panel-size";
@@ -51,17 +50,6 @@ function clampQuickTryPanelSize(size) {
   return {
     width: Math.min(Math.max(QUICK_TRY_PANEL_MIN_WIDTH, Number(size?.width) || QUICK_TRY_PANEL_MIN_WIDTH), maxWidth),
     height: Math.min(Math.max(QUICK_TRY_PANEL_MIN_HEIGHT, Number(size?.height) || QUICK_TRY_PANEL_MIN_HEIGHT), maxHeight),
-  };
-}
-
-function withTryTables(farmState = {}) {
-  const extra = farmState?.tryNftData;
-  if (!extra || typeof extra !== "object") return farmState || {};
-  return {
-    ...(farmState || {}),
-    skillUpgrade: extra?.skillUpgrade || farmState?.skillUpgrade || {},
-    itables: { ...(farmState?.itables || {}), ...(extra?.itables || {}) },
-    boostables: { ...(extra?.boostables || {}), ...(farmState?.boostables || {}) },
   };
 }
 
@@ -103,11 +91,13 @@ export default function QuickTryDrawer({
   knownTableHashes = {},
 }) {
   const {
-    data: { dataSet, dataSetFarm },
+    data: { dataSet },
+    trysetDraft,
     config: { API_URL, tryitConfig },
     ui: { TryChecked, selectedTrySeason, selectedInv },
     actions: { handleRefreshfTNFT, setUIField },
   } = useAppCtx();
+  const dataSetFarm = trysetDraft.state;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [tableFilter, setTableFilter] = useState("all");
@@ -119,28 +109,22 @@ export default function QuickTryDrawer({
   const [panelSize, setPanelSize] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
-  // Keep edits visible in this drawer without publishing an incomplete
-  // recalculation to the rest of the application.
-  const [pendingTryState, setPendingTryState] = useState(null);
   const latestStateRef = useRef(null);
-  const applyTimerRef = useRef(null);
   const requestIdRef = useRef(0);
   const abortRef = useRef(null);
-  const pendingSkillLevelsRef = useRef({});
   const dragRef = useRef(null);
   const resizeRef = useRef(null);
   const didDragRef = useRef(false);
   const panelRef = useRef(null);
   const validConfig = isValidTryitConfig(tryitConfig);
   const farmId = String(dataSet?.options?.farmId || dataSetFarm?.frmid || "");
-  const hasBoostData = !!withTryTables(dataSetFarm)?.boostables;
+  const hasBoostData = !!withTrysetTables(dataSetFarm)?.boostables;
 
   useEffect(() => {
-    latestStateRef.current = withTryTables(dataSetFarm);
+    latestStateRef.current = withTrysetTables(dataSetFarm);
   }, [dataSetFarm]);
 
   useEffect(() => () => {
-    if (applyTimerRef.current) clearTimeout(applyTimerRef.current);
     abortRef.current?.abort?.();
   }, []);
 
@@ -197,7 +181,7 @@ export default function QuickTryDrawer({
   }, [open]);
 
   const entries = useMemo(() => {
-    const boosts = withTryTables(pendingTryState || dataSetFarm)?.boostables || {};
+    const boosts = withTrysetTables(dataSetFarm)?.boostables || {};
     const normalizedQuery = query.trim().toLowerCase();
     return TABLE_ORDER.flatMap((tableName) => Object.entries(boosts?.[tableName] || {}).map(([name, item]) => ({
       tableName,
@@ -209,22 +193,18 @@ export default function QuickTryDrawer({
       .filter((entry) => tableFilter === "all" || entry.tableName === tableFilter)
       .filter((entry) => !changedOnly || entry.tryValue !== entry.activeValue)
       .filter((entry) => !normalizedQuery || `${entry.name} ${entry.item?.boost || ""}`.toLowerCase().includes(normalizedQuery));
-  }, [dataSetFarm, pendingTryState, query, tableFilter, changedOnly]);
+  }, [dataSetFarm, query, tableFilter, changedOnly]);
 
   const changedCount = useMemo(() => {
-    const boosts = withTryTables(pendingTryState || dataSetFarm)?.boostables || {};
+    const boosts = withTrysetTables(dataSetFarm)?.boostables || {};
     return TABLE_ORDER.reduce((count, tableName) => count + Object.values(boosts?.[tableName] || {})
       .filter((item) => getTryValue(tableName, item) !== getActiveValue(tableName, item)).length, 0);
-  }, [dataSetFarm, pendingTryState]);
-
-  const buildQuickTrySnapshot = (state) => mergeExplicitSkillLevels(
-    buildCanonicalTryitSnapshot(state, tryitConfig) || {},
-    pendingSkillLevelsRef.current,
-  );
+  }, [dataSetFarm]);
 
   const applyState = async (state, requestId, queuedSnapshot) => {
-    const snapshot = queuedSnapshot || buildQuickTrySnapshot(state);
-    if (!hasTryitPayloadContent(snapshot)) return;
+    const snapshot = queuedSnapshot || trysetDraft.snapshot;
+    if (!trysetDraft.begin()) return;
+    if (!hasTryitPayloadContent(snapshot)) { trysetDraft.finish(); return; }
     abortRef.current?.abort?.();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -240,7 +220,7 @@ export default function QuickTryDrawer({
           },
           username: dataSet?.options?.username || state?.username || "",
           simulatedSeason: selectedTrySeason,
-          include: [...new Set(Array.isArray(currentSections) ? currentSections : [])],
+          include: [...new Set([...(Array.isArray(currentSections) ? currentSections : []), "boosts", "inventory", "trynftpage", "cook", "cropmachine"])],
           page: selectedInv || "trynft",
           knownHashes: getQuickTryKnownHashes(knownHashes, currentSections),
           knownProjectionHashes: collectKnownProjectionHashes(latestStateRef.current || state),
@@ -264,22 +244,28 @@ export default function QuickTryDrawer({
           return sendTryRequest({ tryitarrays: snapshot, tryitMode: "snapshot" });
         }
       };
-      const payload = await sendSnapshot();
+      let payload = await sendSnapshot();
+      let delta = applyFarmPayloadTableDeltas(state, unpackFarmPayloadTables(payload), knownTableHashes, tryitConfig);
+      if (delta.rejectedPaths.length) {
+        payload = await sendTryRequest({ tryitarrays: snapshot, tryitMode: "snapshot", knownHashes: {}, knownTableHashes: {}, knownProjectionHashes: {} });
+        delta = applyFarmPayloadTableDeltas(state, unpackFarmPayloadTables(payload), {}, tryitConfig);
+        if (delta.rejectedPaths.length) throw new Error("Incompatible partial Tryset response");
+      }
       if (requestId !== requestIdRef.current) return;
-      const responseState = withTryTables(normalizeServerImagesDeep(unpackFarmPayloadTables(payload)));
+      const responseState = withTrysetTables(normalizeServerImagesDeep(delta.payload));
       const latestState = latestStateRef.current || state;
       const merged = syncTryitStateAcrossFarmState(
         mergeFarmStateDeep(latestState, responseState, tryitConfig),
         tryitConfig,
-        buildCanonicalTryitSnapshot(latestState, tryitConfig)
+        snapshot
       );
       latestStateRef.current = merged;
-      pendingSkillLevelsRef.current = {};
-      setPendingTryState(null);
+      if (!trysetDraft.finish(snapshot)) return;
       if (!TryChecked) setUIField("TryChecked", true);
       handleRefreshfTNFT(dataSet, merged, { persistTrySnapshot: false, markTryitSynced: true });
       setStatus("done");
     } catch (applyError) {
+      trysetDraft.finish(null, applyError?.status === 429 ? "Wait a few seconds" : "Recalculation failed. Please retry Apply.");
       if (requestId !== requestIdRef.current || applyError?.code === "REQUEST_CANCELLED") return;
       setStatus("error");
       if (applyError?.status === 429) setError("Wait a few seconds");
@@ -287,46 +273,28 @@ export default function QuickTryDrawer({
     }
   };
 
-  const queueApply = (nextState, snapshot) => {
-    const requestId = ++requestIdRef.current;
-    if (applyTimerRef.current) clearTimeout(applyTimerRef.current);
-    setStatus("pending");
-    applyTimerRef.current = setTimeout(() => {
-      applyState(nextState, requestId, snapshot);
-    }, APPLY_DELAY_MS);
-  };
-
   const commitEntry = (entry, nextValue) => {
-    if (!validConfig) return;
-    const current = JSON.parse(JSON.stringify(latestStateRef.current || withTryTables(dataSetFarm) || {}));
+    if (!validConfig || trysetDraft.applying) return;
+    const current = JSON.parse(JSON.stringify(dataSetFarm));
     const table = current?.boostables?.[entry.tableName];
     if (!table?.[entry.name]) return;
     if (entry.tableName === "skill") {
       const maxLevel = Math.max(1, Number(table[entry.name]?.maxLevel || 1));
       const level = Math.max(0, Math.min(maxLevel, Math.floor(Number(nextValue) || 0)));
       table[entry.name] = { ...table[entry.name], leveltry: level, tryit: level };
-      pendingSkillLevelsRef.current = {
-        ...pendingSkillLevelsRef.current,
-        [entry.name]: level,
-      };
+
     } else {
       table[entry.name] = { ...table[entry.name], tryit: Number(nextValue) > 0 ? 1 : 0 };
     }
     const synced = syncTryitStateAcrossFarmState(current, tryitConfig);
-    latestStateRef.current = synced;
-    setPendingTryState(synced);
-    const snapshot = buildQuickTrySnapshot(synced);
-    if (snapshot) writeTryitSnapshot(snapshot, farmId);
-    queueApply(synced, snapshot);
+    trysetDraft.stage(dataSetFarm, synced);
   };
 
   if (!farmId || !validConfig) return null;
 
-  const statusLabel = status === "pending" ? "Changes…"
-    : status === "applying" ? "Applying…"
-      : status === "loading" ? "Loading…"
-      : status === "done" ? "Up to date"
-        : status === "error" ? error : "Auto";
+  const statusLabel = trysetDraft.applying ? "Applying..."
+    : trysetDraft.error || (status === "error" ? error : "")
+      || (status === "loading" ? "Loading..." : trysetDraft.dirty ? "Not applied" : "Up to date");
 
   const handleDragStart = (event, target = "button") => {
     if ((target === "button" && open) || event.button > 0) return;
@@ -448,7 +416,7 @@ export default function QuickTryDrawer({
             setError("");
             try {
               const loadedState = await onEnsureData();
-              latestStateRef.current = withTryTables(loadedState || latestStateRef.current || {});
+              latestStateRef.current = withTrysetTables(loadedState || latestStateRef.current || {});
               setStatus("idle");
             } catch {
               setStatus("error");
@@ -488,7 +456,12 @@ export default function QuickTryDrawer({
               <strong>Quick Tryset</strong>
               <span className={`quick-try-status is-${status}`}>{statusLabel}</span>
             </div>
+            <div className="quick-try-header-actions">
+              <button type="button" className={`button quick-try-apply ${trysetDraft.dirty ? "tryset-refresh-halo" : "tryset-refresh-idle"}`} aria-label="Apply Tryset" title={trysetDraft.applying ? "Applying..." : "Apply Tryset"} disabled={!trysetDraft.dirty || trysetDraft.applying} onClick={() => applyState(dataSetFarm, ++requestIdRef.current, trysetDraft.snapshot)}>
+                <img src={imgconfirm} alt="" className="resico" />
+              </button>
             <button type="button" className="quick-try-close" onClick={() => setOpen(false)} aria-label="Close">×</button>
+            </div>
           </header>
           <div className="quick-try-tools">
             <input
@@ -500,11 +473,12 @@ export default function QuickTryDrawer({
             />
             <select value={tableFilter} onChange={(event) => setTableFilter(event.target.value)} aria-label="Category">
               <option value="all">All</option>
-              {TABLE_ORDER.filter((tableName) => withTryTables(dataSetFarm)?.boostables?.[tableName]).map((tableName) => (
+              {TABLE_ORDER.filter((tableName) => withTrysetTables(dataSetFarm)?.boostables?.[tableName]).map((tableName) => (
                 <option key={tableName} value={tableName}>{TABLE_LABELS[tableName]}</option>
               ))}
             </select>
           </div>
+          <QuickSkillBudget state={dataSetFarm} API_URL={API_URL} enabled={tableFilter === "skill"} />
           <label className="quick-try-changed-filter" title="Show only changes from the Active set">
             <input type="checkbox" checked={changedOnly} onChange={(event) => setChangedOnly(event.target.checked)} />
             Changed <span>{changedCount}</span>
@@ -514,26 +488,26 @@ export default function QuickTryDrawer({
               const isSkill = entry.tableName === "skill";
               const currentValue = entry.tryValue;
               return (
-                <div className={`quick-try-row ${currentValue !== entry.activeValue ? "is-changed" : ""}`} key={`${entry.tableName}:${entry.name}`}>
+                <div className={`quick-try-row ${trysetDraft.isPending(entry.tableName, entry.name) ? "tryset-pending" : ""}`} key={`${entry.tableName}:${entry.name}`}>
                   <img
                     src={entry.item?.img || getQuickTryFallbackImage(entry)}
                     alt=""
                     loading="lazy"
                     onError={(event) => handleQuickTryImageError(event, entry)}
                   />
-                  <button type="button" className="quick-try-name" onClick={() => !isSkill && commitEntry(entry, currentValue ? 0 : 1)}>
+                  <button type="button" className="quick-try-name" disabled={trysetDraft.applying} onClick={() => !isSkill && commitEntry(entry, currentValue ? 0 : 1)}>
                     <span>{entry.name}</span>
                     <small>{entry.item?.boost || TABLE_LABELS[entry.tableName]}</small>
                   </button>
                   {isSkill ? (
                     <div className="quick-try-level">
-                      <button type="button" onClick={() => commitEntry(entry, currentValue - 1)} disabled={currentValue <= 0}>−</button>
-                      <b>{currentValue}</b>
-                      <button type="button" onClick={() => commitEntry(entry, currentValue + 1)} disabled={currentValue >= Math.max(1, Number(entry.item?.maxLevel || 1))}>+</button>
+                      <button type="button" onClick={() => commitEntry(entry, currentValue - 1)} disabled={trysetDraft.applying || currentValue <= 0}>−</button>
+                      <b style={{ color: getSkillLevelColor(currentValue) }}>{currentValue}</b>
+                      <button type="button" onClick={() => commitEntry(entry, currentValue + 1)} disabled={trysetDraft.applying || currentValue >= Math.max(1, Number(entry.item?.maxLevel || 1))}>+</button>
                     </div>
                   ) : (
                     <label className="quick-try-switch">
-                      <input type="checkbox" checked={currentValue > 0} onChange={(event) => commitEntry(entry, event.target.checked ? 1 : 0)} />
+                      <input type="checkbox" disabled={trysetDraft.applying} checked={currentValue > 0} onChange={(event) => commitEntry(entry, event.target.checked ? 1 : 0)} />
                       <span />
                     </label>
                   )}

@@ -4,7 +4,9 @@ import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { format, parseISO } from 'date-fns';
 import DList from "./dlist.jsx";
-import { imgsfl, imgusdc, imgwinterPath, imgspringPath, imgsummerPath, imgautumnPath, imgna, imglightning, normalizeServerImageUrl } from "./constants/images.js";
+import { imgsfl, imgusdc, imgna, imglightning, normalizeServerImageUrl } from "./constants/images.js";
+import { SEASON_STYLES, getSeasonAtMonday } from "./utils/graphSeasons.js";
+import { singleItemExtremaPlugin } from "./components/inventory/singleItemExtremaPlugin.js";
 
 Chart.register(...registerables);
 const BOOST_PRICE_UNIT_OPTIONS = [
@@ -12,33 +14,6 @@ const BOOST_PRICE_UNIT_OPTIONS = [
   { value: "usdc", label: "USDC", iconSrc: imgusdc },
 ];
 
-const SEASON_ORDER = ["spring", "summer", "autumn", "winter"];
-const SEASON_STYLES = {
-  spring: {
-    icon: imgspringPath,
-    fillStart: "rgba(104, 179, 91, 0.18)",
-    fillEnd: "rgba(104, 179, 91, 0.04)",
-    line: "rgba(104, 179, 91, 0.34)",
-  },
-  summer: {
-    icon: imgsummerPath,
-    fillStart: "rgba(230, 185, 59, 0.18)",
-    fillEnd: "rgba(230, 185, 59, 0.04)",
-    line: "rgba(230, 185, 59, 0.34)",
-  },
-  autumn: {
-    icon: imgautumnPath,
-    fillStart: "rgba(205, 120, 54, 0.18)",
-    fillEnd: "rgba(205, 120, 54, 0.04)",
-    line: "rgba(205, 120, 54, 0.34)",
-  },
-  winter: {
-    icon: imgwinterPath,
-    fillStart: "rgba(87, 168, 224, 0.18)",
-    fillEnd: "rgba(87, 168, 224, 0.04)",
-    line: "rgba(87, 168, 224, 0.34)",
-  },
-};
 const seasonImageCache = {};
 
 function withAlpha(color, alpha, fallback = "rgba(95, 219, 255, 1)") {
@@ -111,14 +86,6 @@ function getStartOfMonday(dateValue) {
   const offset = day === 0 ? -6 : 1 - day;
   date.setDate(date.getDate() + offset);
   return date;
-}
-
-function getSeasonAtMonday(cursorMs, currentSeason, currentMondayMs) {
-  const normalizedSeason = SEASON_ORDER.includes(currentSeason) ? currentSeason : "spring";
-  const baseIndex = SEASON_ORDER.indexOf(normalizedSeason);
-  const weekOffset = Math.round((cursorMs - currentMondayMs) / (7 * 24 * 60 * 60 * 1000));
-  const seasonIndex = ((baseIndex + weekOffset) % SEASON_ORDER.length + SEASON_ORDER.length) % SEASON_ORDER.length;
-  return SEASON_ORDER[seasonIndex];
 }
 
 function getSeasonImage(iconSrc) {
@@ -214,7 +181,7 @@ const mondayMidnightLinePlugin = {
   },
 };
 
-Chart.register(mondayMidnightLinePlugin);
+Chart.register(mondayMidnightLinePlugin, singleItemExtremaPlugin);
 
 const categoryGroups = {
   "crops": ["crop"],
@@ -826,6 +793,10 @@ function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, sel
             intersect: false,
           },
           plugins: {
+            singleItemExtrema: {
+              formatValue: frmtNb,
+              unit: vals === "price" ? (selectedCategory === "boost" ? (boostPriceUnit === "flower" ? "Flower" : "USDC") : "SFL") : "",
+            },
             mondayMidnightLine: {
               currentSeason,
             },
@@ -853,6 +824,7 @@ function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, sel
     chartRef.current.options.scales.y.max = undefined;
     chartRef.current.options.scales.quantity.display = false;
     chartRef.current.options.plugins.mondayMidnightLine.currentSeason = currentSeason;
+    chartRef.current.options.plugins.singleItemExtrema.unit = vals === "price" ? (selectedCategory === "boost" ? (boostPriceUnit === "flower" ? "Flower" : "USDC") : "SFL") : "";
     chartRef.current.options.plugins.tooltip.callbacks.title = tooltipTitle;
     chartRef.current.options.plugins.tooltip.callbacks.label = tooltipLabel;
     chartRef.current.data.datasets.forEach((dataset, index) => {

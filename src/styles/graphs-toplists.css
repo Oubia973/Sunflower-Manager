@@ -516,33 +516,29 @@
   width: 22px;
   height: 22px;
   padding: 0;
-  border: 1px solid #4d3933;
+  border: 1px solid var(--control-border);
   border-radius: 4px;
-  background: #3a2924;
-  color: #f5e6d8;
-  font-size: 16px;
   font-weight: 700;
   line-height: 1;
-  cursor: pointer;
-}
-
-.trynft-skill-level-button:hover:not(:disabled) {
-  background: #584038;
-}
-
-.trynft-skill-level-button:disabled {
-  cursor: default;
-  opacity: 0.45;
 }
 
 .trynft-skill-level-input {
-  width: 40px;
+  width: 24px;
   height: 22px;
+  padding: 0;
   box-sizing: border-box;
   text-align: center;
-  background-color: #2a1d1a;
-  border: 1px solid #4d3933;
+  background-color: var(--control-surface);
+  border: 1px solid var(--control-border);
   font-weight: 700;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.trynft-skill-level-input::-webkit-inner-spin-button,
+.trynft-skill-level-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .tryset-refresh-halo {

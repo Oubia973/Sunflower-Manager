@@ -80,6 +80,7 @@ import { createUIHandlers } from './handlers/uiHandlers.js';
 import { createOptionHandlers } from './handlers/optionHandlers.js';
 import { createTooltipHandlers, refreshOpenTooltip } from './handlers/tooltipHandlers.js';
 import { useUIState as useUIStateHook } from './hooks/useUIState.js';
+import useTrysetDraft from './components/trynft/useTrysetDraft.js';
 import { useTryitSync } from './hooks/useTryitSync.js';
 import { useAdminVIP } from './hooks/useAdminVIP.js';
 import { useNotifications } from './hooks/useNotifications.js';
@@ -274,6 +275,8 @@ function App() {
   useEffect(() => {
     processPendingTryitSnapshot(dataSetFarm);
   }, [dataSetFarm, processPendingTryitSnapshot]);
+
+  const trysetDraft = useTrysetDraft(dataSetFarm, tryitConfig);
 
   // ========== Create Services ==========
   const pushService = useMemo(() => createPushService(API_URL), []);
@@ -1293,7 +1296,7 @@ function App() {
     imgcrop, imgwood, imgstone, imgsaltfarm, imgbeehive, imgcow, imgsheep, imgflowerbed, imgchkn, imgpet,
     imgcrustacean, imgexchng, imgExchng, imgprodit, imgbuyit, imgna, imgrod]);
 
-  const ctx = useMemo(() => ({ data, config, ui, actions, img }), [data, config, ui, actions, img]);
+  const ctx = useMemo(() => ({ data, config, ui, actions, img, trysetDraft }), [data, config, ui, actions, img, trysetDraft]);
 
   // ========== Effects ==========
   useEffect(() => {

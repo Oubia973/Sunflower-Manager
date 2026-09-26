@@ -1,3 +1,18 @@
+.App {
+  --table-row-hover-tint: rgba(247, 221, 180, .10);
+}
+
+/* Overlay the row's existing backgrounds without changing its data colours. */
+@media (hover: hover) and (pointer: fine) {
+  table > tbody > tr:hover {
+    --table-row-hover-shadow: inset 0 0 0 999px var(--table-row-hover-tint, rgba(247, 221, 180, .10));
+  }
+
+  table > tbody > tr:hover > :is(td, th) {
+    box-shadow: var(--table-row-hover-shadow);
+  }
+}
+
 .table-container {
   overflow-x: auto;
   max-width: 100%;

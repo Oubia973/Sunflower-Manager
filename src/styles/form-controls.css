@@ -79,6 +79,43 @@ input[type="checkbox"].checkbox-disabled {
   pointer-events: none;
 }
 
+/* Radio groups retain native single-choice and keyboard behavior. */
+:where(input[type="radio"]:not(.MuiSwitchBase-input)) {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  width: 15px;
+  height: 15px;
+  margin: 0 4px 0 0;
+  border: 1px solid var(--control-border);
+  border-radius: 50%;
+  background: var(--control-surface);
+  vertical-align: middle;
+  flex: 0 0 auto;
+}
+
+:where(input[type="radio"]:not(.MuiSwitchBase-input)):checked {
+  border-color: var(--control-accent);
+}
+
+:where(input[type="radio"]:not(.MuiSwitchBase-input)):checked::after {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--control-accent);
+  content: "";
+}
+
+input[type="radio"]:disabled {
+  border-color: var(--control-disabled-border);
+  background: var(--control-disabled-surface);
+}
+
+input[type="radio"]:disabled:checked::after {
+  background: var(--control-disabled-accent);
+}
+
 :where(input:is([type="text"], [type="search"], [type="email"], [type="url"], [type="password"], [type="number"]):not(.MuiInputBase-input), textarea:not(.MuiInputBase-input)) {
   border: 1px solid var(--control-border);
   border-radius: 5px;
@@ -98,8 +135,13 @@ input[type="checkbox"].checkbox-disabled {
 }
 
 /* MUI switches share the same accent while retaining their local dimensions. */
+.MuiSwitch-root .MuiSwitch-switchBase {
+  color: var(--control-text);
+}
+
 .MuiSwitch-root .MuiSwitch-track {
   background-color: var(--control-border);
+  opacity: 1;
 }
 
 .MuiSwitch-root .MuiSwitch-switchBase.Mui-checked {
@@ -108,7 +150,91 @@ input[type="checkbox"].checkbox-disabled {
 
 .MuiSwitch-root .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track {
   background-color: var(--control-accent);
+  opacity: .5;
 }
+
+.MuiSwitch-root .MuiSwitch-switchBase.Mui-disabled .MuiSwitch-thumb {
+  background-color: var(--control-disabled-border);
+}
+
+.MuiSwitch-root .MuiSwitch-switchBase.Mui-checked.Mui-disabled .MuiSwitch-thumb {
+  background-color: var(--control-disabled-accent);
+}
+
+.MuiSwitch-root .MuiSwitch-switchBase.Mui-disabled + .MuiSwitch-track {
+  background-color: var(--control-disabled-surface);
+  opacity: 1;
+}
+
+.MuiSwitch-root .MuiSwitch-switchBase.Mui-focusVisible .MuiSwitch-thumb {
+  outline: 2px solid var(--control-focus);
+  outline-offset: 2px;
+}
+
+.quick-try-switch input:disabled + span {
+  background: var(--control-disabled-surface);
+}
+
+.quick-try-switch input:disabled + span::after {
+  background: var(--control-disabled-border);
+}
+
+.quick-try-switch input:checked:disabled + span::after {
+  background: var(--control-disabled-accent);
+}
+
+/* Shared counter appearance; compact variants keep their local dimensions. */
+.counter-input {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+  background: var(--control-surface);
+  color: var(--control-text);
+  font-size: 14px;
+}
+
+.counter-input button {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  line-height: 1.2;
+}
+
+.counter-input-value {
+  min-width: 20px;
+  text-align: center;
+}
+
+.counter-input button, .quick-try-level button, .trynft-skill-level-button {
+  background: var(--control-surface);
+  color: var(--control-accent);
+  border-color: var(--control-border);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.counter-input button:hover:not(:disabled), .quick-try-level button:hover:not(:disabled), .trynft-skill-level-button:hover:not(:disabled) {
+  background: var(--control-border);
+  color: var(--control-text);
+}
+
+.counter-input button:focus-visible, .quick-try-level button:focus-visible, .trynft-skill-level-button:focus-visible {
+  outline: 2px solid var(--control-focus);
+  outline-offset: -2px;
+}
+
+.counter-input button:disabled, .quick-try-level button:disabled, .trynft-skill-level-button:disabled {
+  background: var(--control-disabled-surface);
+  color: var(--control-disabled-accent);
+  border-color: var(--control-disabled-border);
+  cursor: not-allowed;
+}
+
+.counter-input.is-disabled { color: var(--control-muted); }
+.quick-try-level b { color: var(--control-accent); }
 
 /* One scrollbar palette across scroll containers. Intentional hidden bars stay hidden. */
 * {

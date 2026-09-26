@@ -54,9 +54,31 @@ The export now has a 1,000 matching-farm cap. Search responses include the limit
 
 Production report after deployment: the initial Active farms catalog returned HTTP 504 and the page stayed on Loading. The sibling backend now replies `INDEX_PREPARING` after 15 seconds while its reader continues validating the SQLite bundle, and the frontend retries the catalog automatically. A ten-minute reader watchdog remains. Targeted frontend lint, backend syntax and diff checks pass; this fix has not been deployed or checked on PC Web.
 
-## Inv modern preview
+## Inv modern interface
 
-Local pending preview: `src/tables/InvReadable.jsx` now reuses the complete classic Inv table after the reduced table removed important columns and color cues. All existing columns, visibility choices, row density, value colors, totals, filters, actions, calculations and tooltips therefore remain. The preview gives the complete table a scoped warm dark theme with clearer header, alternating compact rows, category separators, subtle metric backgrounds and row hover; the item icon opens an overlay mini dashboard with an on-demand Market price graph (24h/7d/31d), summary metrics and calculation tooltips. Classic and preview Inv tooltip cells now use CSS hover instead of the shared JavaScript hover class, so the background follows the pointer and restores after a click; the mini dashboard metrics use the same approach. The full Market graph requests only the active category and caches visited tabs. Sibling backend `/getHT`, `/getHN`, `/getHO` accept optional validated category/item filters; old unfiltered calls retain their response. The mini dashboard requests one item. Preview requires both `REACT_APP_INV_MODERN=1` and the global Modern interface switch; ignored `.env.development.local` enables it locally. Targeted frontend/backend tests, lint, syntax and frontend build pass. Browser visual, real graph data and real farm comparison checks remain open; backend restart needed to serve new filters. No restart, commit or deploy.
+The full Market graph now shows in-plot Min/Max labels, dashed levels, curve markers and min-to-max percentage whenever exactly one item series is visible. Sold-quantity bars do not count as items or contribute to extrema. Values follow the displayed time range and the active unit; zero/nonpositive minima show N/A for percentage. Browser visual validation remains open.
+
+The item mini graph now marks each visible Monday at 00:00 UTC with a vertical season-colored line and season icon. Palette and weekly season rotation are shared with the full Market graph. The full graph's existing date-boundary behavior is retained. Focused UTC/DST tests cover the mini graph markers; browser visual validation remains open.
+
+The item mini graph now displays Min/Max prices directly inside the plot, with dashed levels and marked curve points. The in-graph percentage is the min-to-max amplitude `(max - min) / min`, updated with the selected period; constant prices share one Min/Max label and show 0%. Browser visual validation remains open.
+
+Shared table presentation: row hover is now centralized in `src/styles/tables.css` for table body cells on devices with a fine pointer. A translucent inset shadow preserves existing cell backgrounds and value colors; Inv retains stronger tooltip-cell feedback. Removed duplicate Inv and Crop Machine row hover styles. Lint/build pass; browser checks across the site's tables remain open. No commit or deploy.
+
+Local pending change: `src/tables/InvReadable.jsx` reuses the complete classic Inv table with a scoped warm dark theme and an item mini dashboard containing an on-demand Market price graph (24h/7d/31d), metrics and calculation tooltips. Existing columns, visibility choices, density, colors, totals, filters, actions and calculations remain. The full Market graph requests only the active category and caches visited tabs; the dashboard requests one item. Sibling backend `/getHT`, `/getHN`, `/getHO` support optional validated category/item filters while retaining unfiltered calls. Inv now follows only the global Modern/Classic interface switch, like Animals and Crop Machine. The build flag and its test/configuration references were removed; the ignored development-local file containing only that flag was deleted. Frontend lint, focused routing/table tests (3 tests) and production build pass. Browser visual, real graph data and farm comparison checks remain open. No restart, commit or deploy.
+
+## Shared Tryset draft
+
+Local pending change: Quick Tryset and TryNFT now edit one shared in-memory draft. Quick no longer automatically recalculates or saves each click. Its Apply control uses the same confirmation icon as TryNFT, without text, immediately left of Close in the header. Apply in either interface persists the configuration only after a successful recalculation; failures retain the draft and the previous applied configuration. Amber markers identify unapplied choices, and Apply is disabled when clean and uses the existing halo when pending. Farm refreshes reapply the stored configuration and retain only explicit draft changes, preventing unrelated zero values from being saved. Both Apply paths expand partial table responses and retry with full tables only for incompatible delta bases; Quick retains its packed requests. Lint and 17 focused tests pass, including both interface directions, failed Apply, zero-valued refreshes and delta fallback. Production build passes; desktop/mobile visual and real backend Apply validation remain open. No commit or deploy.
+
+Follow-up: unified table supplementation for Quick, TryNFT and the shared draft. Current reduced TryNFT projections now fill missing rows/fields while canonical table values retain priority, including numeric zero; outdated projections are ignored. This prevents the reduced TryNFT table (without `pcosttry`) from masking fresh crop costs used by Inv after Quick Apply. Lint and 22 focused tests pass, including Kuebiko activation with both full and delta responses. Production build passes; real backend/browser Kuebiko verification remains open. No backend change, commit or deploy.
+
+Quick skill level numbers now reuse the same color function as TryNFT: 0 gray, 1 green, 2 blue, 3+ gold. Pending amber markers remain independent. Lint and focused React tests pass; real browser visual validation remains open.
+
+Quick Tryset Skills now displays a compact remaining Points / Shards line with green/blue balances and red negative values. It uses the same request builder and `/getskillbudgetcalc` calculation as TryNFT, with 400 ms debounce, cancellation and loading placeholders for changed skill levels; no Tryset Apply/save is triggered. The budget is displayed only in the Skills filter. Lint, 23 focused tests and production build pass; browser visual and real endpoint validation remain open.
+
+## TryNFT panel sizing
+
+Local pending change: a discreet divider between Resources and Boosts adjusts their widths side by side or their heights when stacked. Mouse/touch pointer capture and keyboard arrows resize within 20-80%; double-click restores equal panels. Each orientation retains its own split while TryNFT stays open. Single-panel views keep the full area. Frontend lint, production build and diff checks pass; browser rendering and mouse/touch validation remain open. No commit or deploy.
 
 ## Daily production preferences
 
@@ -68,7 +90,11 @@ The merged branch passed the full GitHub CI chain: runtime audit, tracked-creden
 
 ## Working rules
 
-Local pending theme change: native checkboxes, text inputs, MUI switches and scrollbars now share colors from `src/styles/form-controls.css`; unchecked and disabled checkbox states use the brown/gold theme, including legacy read-only status boxes. Component layout rules remain local. Frontend lint and production build pass; browser visual review is pending. No commit or deploy.
+Counter follow-up: shared CounterInput styling moved from inline white/gray styles to `form-controls.css`, alongside Quick Try and skill-level +/- button colors. Buttons reflect existing inactive/min/max guards through their disabled state. Lint passes; browser visual review remains pending.
+
+Radio button follow-up: native single-choice options now use the shared dark brown surface and gold selected dot, with muted theme colors when disabled. Browser visual review remains pending.
+
+Local pending theme change: native checkboxes, text inputs, MUI switches and scrollbars now share colors from `src/styles/form-controls.css`; unchecked and disabled checkbox states use the brown/gold theme, including legacy read-only status boxes. Switch tracks and thumbs now include themed inactive, active, disabled and keyboard-focus states; the UI mode switch's remaining gray override was removed. Component layout rules remain local. Frontend lint and production build pass; browser visual review is pending. No commit or deploy.
 
 - Use `AGENTS.md` for local-vs-GitHub boundaries and validation expectations.
 - Use `PROJECT_CONTEXT.md` for frontend/backend ownership and runtime paths.

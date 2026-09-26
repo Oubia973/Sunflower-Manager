@@ -1,11 +1,22 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
 import { AppCtx } from "../../context/AppCtx.js";
 import { fetchJson } from "../../services/apiClient.js";
 import InvItemDashboard from "./InvItemDashboard.jsx";
-import { buildMiniGraphPoints } from "./InvItemDashboard.jsx";
+import { buildMiniGraphPoints, MiniPriceGraph } from "./InvItemDashboard.jsx";
 
 jest.mock("../../services/apiClient.js", () => ({ fetchJson: jest.fn() }));
+
+test.each([
+  [[2, 3, 2.5], ["Min 2 SFL", "Max 3 SFL", "Min to max: 50.0%"]],
+  [[2, 2], ["Min / Max 2 SFL", "Min to max: 0.0%"]],
+])("graph displays extrema and their difference inside the SVG for %j", (prices, labels) => {
+  const html = renderToStaticMarkup(<MiniPriceGraph points={prices.map((price, index) => ({ price, time: 1_790_000_000_000 + index * 3_600_000 }))} />);
+  const svg = html.slice(html.indexOf("<svg"), html.indexOf("</svg>"));
+  labels.forEach((label) => expect(svg).toContain(label));
+  expect(svg).not.toContain("NaN");
+});
 
 test("item graph keeps only valid ordered prices for the selected item", () => {
   const points = buildMiniGraphPoints([

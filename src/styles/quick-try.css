@@ -336,19 +336,11 @@
   width: 21px;
   height: 21px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--control-border);
   border-radius: 5px;
-  color: #fff;
-  background: #3d2d25;
-  cursor: pointer;
-}
-
-.quick-try-level button:disabled {
-  opacity: 0.35;
 }
 
 .quick-try-level b {
-  color: #ffe486;
   font-size: 10px;
 }
 
@@ -415,3 +407,38 @@
     transition: none;
   }
 }
+
+/* Pending choices differ from the last successfully applied Tryset. */
+.tryset-pending { background: rgba(224, 163, 49, 0.2) !important; outline: 1px solid rgba(239, 179, 66, 0.8); border-radius: 4px; }
+input.tryset-pending { box-shadow: 0 0 0 5px rgba(224, 163, 49, 0.25); }
+.tryset-pending-row > td { box-shadow: inset 0 0 0 1px rgba(239, 179, 66, 0.55); }
+.quick-try .button:disabled { opacity: 0.45; cursor: default; animation: none; }
+@media (prefers-reduced-motion: reduce) { .tryset-refresh-halo { animation: none; } }
+
+.quick-try-header > .quick-try-header-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.quick-try-header .quick-try-apply {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  margin: 0;
+}
+
+.quick-try-skill-budget {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 7px;
+  padding: 4px 7px;
+  font-size: 10px;
+  color: #bfb2a3;
+  background: rgba(255, 220, 110, 0.05);
+}
+.quick-try-skill-budget strong { font-size: 12px; font-variant-numeric: tabular-nums; }

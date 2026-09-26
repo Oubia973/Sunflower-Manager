@@ -111,7 +111,6 @@
 .hide-crop-name .cm-comparison-table .cm-crop-column { width:52px; text-align:center; }
 .hide-crop-name .cm-crop-choice { justify-content:center; }
 .cm-comparison-table tbody tr:nth-child(even) th, .cm-comparison-table tbody tr:nth-child(even) td { background-color:rgba(205,148,82,.03); }
-.cm-comparison-table tbody tr:hover th, .cm-comparison-table tbody tr:hover td { background-color:rgba(255,200,91,.07); }
 .cm-comparison-table tbody tr.is-inactive { opacity:.48; }
 .cm-comparison-table tbody tr.is-inactive:hover { opacity:.78; }
 .cm-comparison-table tbody tr.is-unavailable { opacity:.54; filter:saturate(.58); }

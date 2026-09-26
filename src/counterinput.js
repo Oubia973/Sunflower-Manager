@@ -28,30 +28,6 @@ function CounterInput({ value, onChange, min = 0, max = 99, activate = true }) {
     }
     return maxValue;
   };
-  const btnStyle = {
-    padding: "0px 0px",
-    border: "none",
-    background: activate ? '#ffffffff' : '#7a7a7a',
-    cursor: "pointer",
-    fontSize: "14px",
-  };
-
-  const containerStyle = {
-    display: "inline-flex",
-    alignItems: "center",
-    border: "1px solid #ccc",
-    borderRadius: "8px",
-    overflow: "hidden",
-    fontFamily: "sans-serif",
-  };
-
-  const valueStyle = {
-    padding: "0px 0px",
-    minWidth: "20px",
-    textAlign: "center",
-    fontSize: "14px",
-  };
-
   const decrement = () => {
     if (activate && currentValue > minValue) onChange(getPrevValue());
   };
@@ -61,10 +37,10 @@ function CounterInput({ value, onChange, min = 0, max = 99, activate = true }) {
   };
 
   return (
-    <div style={containerStyle}>
-      <button style={btnStyle} onClick={decrement}>−</button>
-      <div style={valueStyle}>{displayValue}</div>
-      <button style={btnStyle} onClick={increment}>+</button>
+    <div className={`counter-input${activate ? "" : " is-disabled"}`}>
+      <button type="button" disabled={!activate || currentValue <= minValue} onClick={decrement}>−</button>
+      <div className="counter-input-value">{displayValue}</div>
+      <button type="button" disabled={!activate || currentValue >= maxValue} onClick={increment}>+</button>
     </div>
   );
 }

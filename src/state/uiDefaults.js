@@ -25,7 +25,7 @@ import {
  * Default UI state values.
  */
 export const uiDefaults = {
-  interfaceMode: "classic",
+  interfaceMode: "compact",
   selectedInv: "home",
   listsMode: "classic",
   selectedHomeMode: "current",

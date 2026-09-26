@@ -1,9 +1,13 @@
+import { buildSkillBudgetRequestState } from "./components/trynft/skillBudgetRequest.js";
+import { getSkillLevelColor } from "./components/trynft/skillLevelColor.js";
+import { withTrysetTables } from "./components/trynft/trysetTables.js";
 import React, { useEffect, useRef, useState } from 'react';
+import './components/trynft/panel-resize.css';
 import { useAppCtx } from "./context/AppCtx";
 import { Switch, FormControlLabel, CircularProgress } from '@mui/material';
 import CounterInput from "./counterinput.js";
 import DList from "./dlist.jsx";
-import { frmtNb, ColorValue, mergeFarmStateDeep, getOrCreateDeviceId, unpackFarmPayloadTables } from './fct.js';
+import { frmtNb, ColorValue, applyFarmPayloadTableDeltas, mergeFarmStateDeep, getOrCreateDeviceId, unpackFarmPayloadTables } from './fct.js';
 import Help from './fhelp.js';
 import TryProfileShareBar from "./components/TryProfileShareBar.jsx";
 import TryProfileSummaryModal from "./components/TryProfileSummaryModal.jsx";
@@ -12,8 +16,7 @@ import { getScopeTablesFromPayload } from "./tryProfileShare.js";
 import { fetchJson } from "./services/apiClient.js";
 import { buildSupplyTooltipContract } from "./tooltip/supplyTooltipContract.js";
 import { buildBoostTooltipContract } from "./tooltip/boostTooltipContract.js";
-import { readTryitSnapshot, writeTryitSnapshot, buildCanonicalTryitSnapshot, applyTryitSnapshotToFarmState, syncTryitStateAcrossFarmState, hasTryitPayloadContent, isValidTryitConfig } from "./tryitStorage.js";
-import { collectChangedSkillLevels, mergeExplicitSkillLevels } from "./utils/quickTrySnapshot.js";
+import { syncTryitStateAcrossFarmState, hasTryitPayloadContent, isValidTryitConfig } from "./tryitStorage.js";
 import {
   computeProfileSummaryPayload,
   buildBoostDisplayMaps,
@@ -197,14 +200,6 @@ function formatSkillRankEffects(effect) {
   }
 }
 
-function getSkillLevelColor(level) {
-  const safeLevel = Math.max(0, Math.floor(Number(level) || 0));
-  if (safeLevel === 0) return "#8d8d8d";
-  if (safeLevel === 1) return "#7ee787";
-  if (safeLevel === 2) return "#79c0ff";
-  return "#e3c55b";
-}
-
 function getInitialTryNftTableFlexDirection() {
   if (typeof window === "undefined") return "row";
   return window.innerWidth < 800 ? "column" : "row";
@@ -256,31 +251,6 @@ function buildTryRefreshSignature(state, selectedSeason = "") {
   return parts.join("|");
 }
 
-function buildSkillBudgetRequestState(state = {}) {
-  const activeLevels = {};
-  const selectedLevels = {};
-  const signatureParts = [];
-  Object.entries(state?.boostables?.skill || {})
-    .sort(([a], [b]) => a.localeCompare(b))
-    .forEach(([name, skill]) => {
-      const activeLevel = Math.max(0, Math.floor(Number(skill?.level || 0)));
-      const selectedLevel = Math.max(0, Math.floor(Number(skill?.leveltry ?? skill?.level ?? 0)));
-      if (activeLevel > 0) activeLevels[name] = activeLevel;
-      if (activeLevel > 0 || selectedLevel > 0) selectedLevels[name] = selectedLevel;
-      signatureParts.push(`${name}:${activeLevel}:${selectedLevel}`);
-    });
-  const availablePoints = Number(state?.skillUpgrade?.availablePoints || 0);
-  const availableShards = Number(state?.skillUpgrade?.shards || 0);
-  signatureParts.push(`budget:${availablePoints}:${availableShards}`);
-  return {
-    activeLevels,
-    selectedLevels,
-    availablePoints,
-    availableShards,
-    signature: signatureParts.join("|"),
-  };
-}
-
 function ModalTNFT({ onClose }) {
   const {
     data: { dataSet, dataSetFarm, priceData },
@@ -295,35 +265,11 @@ function ModalTNFT({ onClose }) {
       handleRefreshfTNFT,
     },
     config: { API_URL, tryitConfig },
+    trysetDraft,
   } = useAppCtx();
   const frmid = String(dataSet?.options?.farmId || dataSetFarm?.frmid || "");
   const deepClone = (obj) => JSON.parse(JSON.stringify(obj || {}));
   const hasTryitConfig = isValidTryitConfig(tryitConfig);
-  const withTryNftTables = (farmState = {}) => {
-    const tryNftData = farmState?.tryNftData;
-    if (!tryNftData || typeof tryNftData !== "object") return farmState || {};
-    return {
-      ...(farmState || {}),
-      skillUpgrade: (
-        tryNftData?.skillUpgrade && typeof tryNftData.skillUpgrade === "object"
-          ? tryNftData.skillUpgrade
-          : farmState?.skillUpgrade
-      ) || {},
-      trySummary: (
-        tryNftData?.trySummary && typeof tryNftData.trySummary === "object"
-          ? tryNftData.trySummary
-          : farmState?.trySummary
-      ) || {},
-      itables: {
-        ...(farmState?.itables || {}),
-        ...(tryNftData?.itables || {}),
-      },
-      boostables: {
-        ...(tryNftData?.boostables || {}),
-        ...(farmState?.boostables || {}),
-      },
-    };
-  };
   const preserveTryFlags = (nextState, sourceState) => {
     const target = deepClone(nextState || {});
     const source = sourceState || {};
@@ -363,47 +309,27 @@ function ModalTNFT({ onClose }) {
     });
     return target;
   };
-  const buildHydratedTryState = (farmState = dataSetFarm) => {
-    const baseState = deepClone(withTryNftTables(farmState));
-    if (!hasTryitConfig) return baseState;
-    const snapshot = readTryitSnapshot(frmid);
-    if (!snapshot || Object.keys(snapshot).length < 1) return baseState;
-    return applyTryitSnapshotToFarmState(baseState, snapshot, tryitConfig);
-  };
-  const buildActiveTryState = (farmState = dataSetFarm) => deepClone(withTryNftTables(farmState));
-  const persistTryState = (nextState, previousState = {}) => {
-    if (!hasTryitConfig) return;
-    const snapshot = mergeExplicitSkillLevels(
-      buildCanonicalTryitSnapshot(nextState, tryitConfig) || {},
-      collectChangedSkillLevels(previousState, nextState)
-    );
-    if (!hasTryitPayloadContent(snapshot)) {
-      console.error("TRYIT snapshot write skipped: no explicit tryit fields found in TryNFT state.");
-      return;
-    }
-    writeTryitSnapshot(snapshot, frmid);
-  };
-  const [dataSetLocal, setdataSetLocal] = useState(() => buildHydratedTryState());
+  const buildActiveTryState = (farmState = dataSetFarm) => deepClone(withTrysetTables(farmState));
+  const [dataSetLocal, setdataSetLocal] = useState(() => trysetDraft.state);
   const boostTooltipIndex = dataSetLocal?.tryNftData?.tooltipData?.boostIndex || dataSetLocal?.tooltipData?.boostIndex || {};
   const dataSetLocalRef = useRef(dataSetLocal);
   dataSetLocalRef.current = dataSetLocal;
-  const commitTryState = (nextState, refreshOptions, { preserveResetPending = false } = {}) => {
+  const commitTryState = (nextState, _refreshOptions, { preserveResetPending = false } = {}) => {
+    if (trysetDraft.applying) return;
     if (!preserveResetPending) {
       resetToActivePendingRef.current = false;
     }
-    isUserEditingRef.current = true;
     const syncedState = hasTryitConfig
       ? syncTryitStateAcrossFarmState(nextState, tryitConfig)
       : nextState;
     const previousState = dataSetLocalRef.current || {};
     dataSetLocalRef.current = syncedState;
-    persistTryState(syncedState, previousState);
+    trysetDraft.stage(previousState, syncedState);
     setdataSetLocal(syncedState);
-    handleRefreshfTNFT(dataSet, syncedState, refreshOptions);
+
   };
   const activeBaselineRef = useRef(buildActiveTryState());
   const resetToActivePendingRef = useRef(false);
-  const isUserEditingRef = useRef(false);
   const hasTryNftTables = !!dataSetLocal?.boostables && !!dataSetLocal?.itables?.it;
   const [TotalCostDisplay, setTotalCostDisplay] = useState("market");
   const [tooltipData, setTooltipData] = useState(null);
@@ -420,6 +346,28 @@ function ModalTNFT({ onClose }) {
   };
   const [tableFlexDirection, setTableFlexDirection] = useState(() => getInitialTryNftTableFlexDirection());
   const [tableView, setTableView] = useState('both');
+  const [panelSplits, setPanelSplits] = useState({ row: 50, column: 50 });
+  const panelLayoutRef = useRef(null);
+  const panelDragRef = useRef(null);
+  const panelSplit = panelSplits[tableFlexDirection];
+  const updatePanelSplit = (value) => {
+    setPanelSplits(previous => ({ ...previous, [tableFlexDirection]: Math.min(80, Math.max(20, value)) }));
+  };
+  const movePanelDivider = (event) => {
+    const drag = panelDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const bounds = panelLayoutRef.current?.getBoundingClientRect();
+    const size = tableFlexDirection === 'row' ? bounds?.width : bounds?.height;
+    if (!size || size <= 10) return;
+    const position = tableFlexDirection === 'row' ? event.clientX : event.clientY;
+    updatePanelSplit(drag.split + ((position - drag.position) / (size - 10)) * 100);
+  };
+  const stopPanelResize = (event) => {
+    panelDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
   const [showHelp, setShowHelp] = useState(false);
   const [isApplyingTryset, setIsApplyingTryset] = useState(false);
   const [isClosingTryset, setIsClosingTryset] = useState(false);
@@ -453,34 +401,36 @@ function ModalTNFT({ onClose }) {
     return TryChecked ? name + "try" : name;
   }
   const closeModal = async () => {
-    if (applyingTrysetRef.current || closingTrysetRef.current) return;
+    if (trysetDraft.applying || applyingTrysetRef.current || closingTrysetRef.current) return;
     closingTrysetRef.current = true;
     setIsClosingTryset(true);
-    await onClose(dataSet, dataSetLocalRef.current);
+    await onClose(dataSet, dataSetFarm);
   };
   useEffect(() => {
     if (!dataSetFarm || Object.keys(dataSetFarm).length < 1) return;
-    if (isUserEditingRef.current) return;
+
     const activeState = buildActiveTryState(dataSetFarm);
-    const nextState = buildHydratedTryState(dataSetFarm);
+    const nextState = trysetDraft.state;
     dataSetLocalRef.current = nextState;
     setdataSetLocal(nextState);
     activeBaselineRef.current = activeState;
-    setRefreshBaselineSig(buildTryRefreshSignature(nextState, selectedTrySeason));
-    setShowTryRefreshHalo(false);
-  }, [dataSetFarm, frmid, tryitConfig]);
+    if (!trysetDraft.dirty) {
+      setRefreshBaselineSig(buildTryRefreshSignature(nextState, selectedTrySeason));
+      setShowTryRefreshHalo(false);
+    }
+  }, [dataSetFarm, frmid, tryitConfig, trysetDraft.state]);
   useEffect(() => {
     if (!refreshBaselineSig && currentRefreshSig) {
       setRefreshBaselineSig(currentRefreshSig);
     }
-  }, [refreshBaselineSig, currentRefreshSig]);
+  }, [refreshBaselineSig, currentRefreshSig, trysetDraft.dirty]);
   useEffect(() => {
     if (!refreshBaselineSig || !currentRefreshSig) {
       setShowTryRefreshHalo(false);
       return;
     }
-    setShowTryRefreshHalo(currentRefreshSig !== refreshBaselineSig);
-  }, [refreshBaselineSig, currentRefreshSig]);
+    setShowTryRefreshHalo(trysetDraft.dirty || currentRefreshSig !== refreshBaselineSig);
+  }, [refreshBaselineSig, currentRefreshSig, trysetDraft.dirty]);
   useEffect(() => {
     const backendSummary = dataSetLocal?.trySummary?.skills;
     if (!backendSummary || currentRefreshSig !== refreshBaselineSig) return;
@@ -755,12 +705,14 @@ function ModalTNFT({ onClose }) {
     const forceActiveTryRefresh = resetToActivePendingRef.current === true;
     if (
       !forceActiveTryRefresh
+      && !trysetDraft.dirty
       && requestedRefreshSig
       && requestedRefreshSig === refreshBaselineSigRef.current
     ) {
       setShowTryRefreshHalo(false);
       return true;
     }
+    if (!trysetDraft.begin()) return false;
     applyingTrysetRef.current = true;
     setIsApplyingTryset(true);
     try {
@@ -768,7 +720,7 @@ function ModalTNFT({ onClose }) {
         console.log("Tryit config missing");
         return false;
       }
-      const tryitSnapshot = forceActiveTryRefresh ? {} : (buildCanonicalTryitSnapshot(cur, tryitConfig) || {});
+      const tryitSnapshot = trysetDraft.snapshot;
       if (!forceActiveTryRefresh && !hasTryitPayloadContent(tryitSnapshot)) {
         console.error("TRYIT refresh blocked: no explicit tryit fields found in TryNFT state.");
         return false;
@@ -783,7 +735,7 @@ function ModalTNFT({ onClose }) {
         username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
         simulatedSeason: selectedTrySeason,
         tryitarrays: tryitSnapshot,
-        tryitMode: forceActiveTryRefresh ? "active" : "snapshot",
+        tryitMode: "snapshot",
         // Crop Machine owns derived Active/Try timing projections (mtime,
         // mtimetry and perCrop). Refresh them with the Tryset so shrine and
         // collectible speed changes are visible immediately on that page.
@@ -801,12 +753,18 @@ function ModalTNFT({ onClose }) {
       //const tableKeys = Object.keys(tables);
       //const entries = tableKeys.reduce((n, k) => n + (Array.isArray(tables[k]) ? tables[k].length : 0), 0);
       //console.log("settry req ko:", (bodyStr.length / 1024).toFixed(2), "tables:", tableKeys.length, "entries:", entries);
-      const payload = await fetchJson(API_URL, "/settry", {
+      let payload = await fetchJson(API_URL, "/settry", {
         method: 'POST',
         body: headers,
         timeoutMs: 30_000,
       });
-        const responseData = withTryNftTables(unpackFarmPayloadTables(payload));
+        let delta = applyFarmPayloadTableDeltas(cur, unpackFarmPayloadTables(payload), headers.knownTableHashes, tryitConfig);
+        if (delta.rejectedPaths.length) {
+          payload = await fetchJson(API_URL, "/settry", { method: "POST", timeoutMs: 30000, body: { ...headers, knownHashes: {}, knownTableHashes: {} } });
+          delta = applyFarmPayloadTableDeltas(cur, unpackFarmPayloadTables(payload), {}, tryitConfig);
+          if (delta.rejectedPaths.length) throw new Error("Incompatible partial Tryset response");
+        }
+        const responseData = withTrysetTables(delta.payload);
         const latestRefreshSig = buildTryRefreshSignature(
           dataSetLocalRef.current,
           selectedTrySeasonRef.current
@@ -816,15 +774,17 @@ function ModalTNFT({ onClose }) {
           return false;
         }
         const mergedRaw = preserveTryFlags(mergeFarmStateDeep(cur, responseData, tryitConfig), cur);
-        const mergedData = syncTryitStateAcrossFarmState(mergedRaw, tryitConfig);
+        const mergedData = syncTryitStateAcrossFarmState(mergedRaw, tryitConfig, tryitSnapshot);
         dataSetLocalRef.current = mergedData;
         setdataSetLocal(mergedData);
         resetToActivePendingRef.current = false;
+        if (!trysetDraft.finish(tryitSnapshot)) return false;
         handleRefreshfTNFT(dataSet, mergedData, { persistTrySnapshot: false });
         setRefreshBaselineSig(buildTryRefreshSignature(mergedData, selectedTrySeason));
         setShowTryRefreshHalo(false);
         return true;
     } catch (error) {
+      trysetDraft.finish(null, error?.status === 429 ? "Wait a few seconds" : "Recalculation failed. Please retry Apply.");
       if (error?.status === 429) {
         console.log('Too many requests, wait a few seconds');
       } else {
@@ -832,6 +792,7 @@ function ModalTNFT({ onClose }) {
       }
       return false;
     } finally {
+      trysetDraft.finish();
       applyingTrysetRef.current = false;
       setIsApplyingTryset(false);
     }
@@ -1235,7 +1196,7 @@ function ModalTNFT({ onClose }) {
         const isTieredNode = (item === "Wood" || item === "Stone" || item === "Iron" || item === "Gold");
         const spotBreakdown = getSpotBreakdown(cobj, TryChecked);
         return (
-          <tr key={index}>
+          <tr key={index} className={Object.entries(tryitConfig?.itemTables || {}).some(([payloadKey, cfg]) => (cfg.sources || []).includes("itables.it") && trysetDraft.isPending(payloadKey, item)) ? "tryset-pending-row" : ""}>
             <td style={{ display: 'none' }}>{ido}</td>
             <td id="iccolumn"><i><img src={ico} alt={''} className="itico" title={item} /></i></td>
             {/* <td className="tditem">{item}</td> */}
@@ -1262,7 +1223,7 @@ function ModalTNFT({ onClose }) {
                 checked={ibuyit === 1}
                 onChange={handleUIChange}
               /> */}
-              <input type="checkbox" checked={Number(ibuyit || 0) === 1} onChange={() => handleBuyitChange(item)} />
+              <input type="checkbox" disabled={trysetDraft.applying} checked={Number(ibuyit || 0) === 1} onChange={() => handleBuyitChange(item)} />
             </td>
             <td className="tdcenter tooltipcell"
               onClick={(e) => handleTooltip(item, "dailysfl", (TryChecked ? "trynft" : ""), e)} style={{ ...cellDSflStyle }}>{parseFloat(xdsfl).toFixed(2)}</td>
@@ -1274,7 +1235,7 @@ function ModalTNFT({ onClose }) {
                 onChange={value => handleSpottryChange(item, value, "")}
                 min={0}
                 max={99}
-                activate={TryChecked}
+                activate={TryChecked && !trysetDraft.applying}
               />
             </td>
             {isTieredNode ? <td className="tdcenter">
@@ -1283,7 +1244,7 @@ function ModalTNFT({ onClose }) {
                 onChange={value => handleSpottryChange(item, value, "2")}
                 min={0}
                 max={99}
-                activate={TryChecked}
+                activate={TryChecked && !trysetDraft.applying}
               />
             </td> : null}
             {isTieredNode ? <td className="tdcenter">
@@ -1292,7 +1253,7 @@ function ModalTNFT({ onClose }) {
                 onChange={value => handleSpottryChange(item, value, "3")}
                 min={0}
                 max={99}
-                activate={TryChecked}
+                activate={TryChecked && !trysetDraft.applying}
               />
             </td> : null}
           </tr>
@@ -1314,7 +1275,7 @@ function ModalTNFT({ onClose }) {
               <th>Harvest</th>
               <th>%</th>
               <th>Buy
-                {/* <div><input type="checkbox" checked={iTotBuyCheck} onChange={() => handleBuyitTotalChange(item)} /></div> */}
+                {/* <div><input type="checkbox" disabled={trysetDraft.applying} checked={iTotBuyCheck} onChange={() => handleBuyitTotalChange(item)} /></div> */}
               </th>
               <th>Daily<div>{imgSFL}</div></th>
               <th>%</th>
@@ -1458,7 +1419,7 @@ function ModalTNFT({ onClose }) {
                 <i><img src={value?.img || imgna} alt={''} className="nftico" /></i>
               </td>
               <td className="tdcenter">
-                <input type="checkbox" checked={!!compost[item]?.tryit} onChange={() => handleTryitChange(item, compost, "compost", "itables")} />
+                <input className={trysetDraft.isPending("xcomposttry", item) ? "tryset-pending" : ""} type="checkbox" disabled={trysetDraft.applying} checked={!!compost[item]?.tryit} onChange={() => handleTryitChange(item, compost, "compost", "itables")} />
               </td>
               <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{value?.boost || ""}</td>
             </tr>
@@ -1494,7 +1455,7 @@ function ModalTNFT({ onClose }) {
             <td className="tditemright">{item}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={value.img} alt={''} className="nftico" /></i></td>
             <td className="tdcenter">
-              <input type="checkbox" checked={nft[item].tryit} onChange={() => handleTryitChange(item, nft, "nft")} />
+              <input className={trysetDraft.isPending("nft", item) ? "tryset-pending" : ""} type="checkbox" disabled={trysetDraft.applying} checked={nft[item].tryit} onChange={() => handleTryitChange(item, nft, "nft")} />
             </td>
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={!!value.isactive} readOnly />
@@ -1517,7 +1478,7 @@ function ModalTNFT({ onClose }) {
             <td className="tditemright">{itemw}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={valuew.img} alt={''} className="nftico" /></i></td>
             <td className="tdcenter">
-              <input type="checkbox" checked={nftw[itemw].tryit} onChange={() => handleTryitChange(itemw, nftw, "nftw")} />
+              <input className={trysetDraft.isPending("nftw", itemw) ? "tryset-pending" : ""} type="checkbox" disabled={trysetDraft.applying} checked={nftw[itemw].tryit} onChange={() => handleTryitChange(itemw, nftw, "nftw")} />
             </td>
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={!!valuew.isactive} readOnly />
@@ -1540,7 +1501,7 @@ function ModalTNFT({ onClose }) {
             <td className="tditemright">{itemb}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={valueb.img} alt={''} className="nftico" /></i></td>
             <td className="tdcenter">
-              <input type="checkbox" checked={buildng[itemb].tryit} onChange={() => handleTryitChange(itemb, buildng, "buildng")} />
+              <input className={trysetDraft.isPending("buildng", itemb) ? "tryset-pending" : ""} type="checkbox" disabled={trysetDraft.applying} checked={buildng[itemb].tryit} onChange={() => handleTryitChange(itemb, buildng, "buildng")} />
             </td>
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={!!valueb.isactive} readOnly />
@@ -1602,13 +1563,13 @@ function ModalTNFT({ onClose }) {
         const rankEffects = formatSkillRankEffects(values?.rankEffect);
         const tryLevel = getSkillLevel(values, true);
         const maxSkillLevel = Math.max(1, Number(values?.maxLevel || 1));
-        const skillControlsDisabled = !!values?.disabled;
+        const skillControlsDisabled = trysetDraft.applying || !!values?.disabled;
         NFT.push(
           <tr key={items}>
             <td className="tditemright" style={cellStyle}>{items}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={values.img} alt={''} className="nftico" /></i></td>
             <td className="tdcenter">
-              <div className="trynft-skill-level-control">
+              <div className={`trynft-skill-level-control ${trysetDraft.isPending("skill", items) ? "tryset-pending" : ""}`}>
                 <button
                   type="button"
                   className="trynft-skill-level-button"
@@ -1693,7 +1654,7 @@ function ModalTNFT({ onClose }) {
             <td className="tditemright" style={cellStyle}>{items}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={values.img} alt={''} className="nftico" /></i></td>
             <td className="tdcenter">
-              <input type="checkbox" checked={skilllgc[items].tryit} onChange={() => handleTryitChange(items, skilllgc, "skilllgc")} />
+              <input className={trysetDraft.isPending("skilllgc", items) ? "tryset-pending" : ""} type="checkbox" disabled={trysetDraft.applying} checked={skilllgc[items].tryit} onChange={() => handleTryitChange(items, skilllgc, "skilllgc")} />
             </td>
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={!!values.isactive} readOnly />
@@ -1711,7 +1672,7 @@ function ModalTNFT({ onClose }) {
             <td className="tditemright">{itembd}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={valuebd.img} alt={''} className="nftico" /></i></td>
             <td className="tdcenter">
-              <input type="checkbox" checked={bud[itembd].tryit} onChange={() => handleTryitChange(itembd, bud, "bud")} />
+              <input className={trysetDraft.isPending("bud", itembd) ? "tryset-pending" : ""} type="checkbox" disabled={trysetDraft.applying} checked={bud[itembd].tryit} onChange={() => handleTryitChange(itembd, bud, "bud")} />
             </td>
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={!!valuebd.isactive} readOnly />
@@ -1731,7 +1692,7 @@ function ModalTNFT({ onClose }) {
             <td className="tditemright">{itemb}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={valueb.img} alt={''} className="nftico" /></i></td>
             <td className="tdcenter">
-              <input type="checkbox" checked={shrine[itemb].tryit} onChange={() => handleTryitChange(itemb, shrine, "shrine")} />
+              <input className={trysetDraft.isPending("shrine", itemb) ? "tryset-pending" : ""} type="checkbox" disabled={trysetDraft.applying} checked={shrine[itemb].tryit} onChange={() => handleTryitChange(itemb, shrine, "shrine")} />
             </td>
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={!!valueb.isactive} readOnly />
@@ -1872,19 +1833,20 @@ function ModalTNFT({ onClose }) {
             <button
               onClick={closeModal}
               className={`button ${isClosingTryset ? "is-wait" : ""}`}
-              disabled={isApplyingTryset || isClosingTryset}>
+              disabled={trysetDraft.applying || isClosingTryset}>
               <img src={imgcancel} alt="" className="resico" />
             </button>
             <button
               onClick={Refresh}
-              className={`button ${showTryRefreshHalo ? "tryset-refresh-halo" : "tryset-refresh-idle"} ${isApplyingTryset ? "is-wait" : ""}`}
-              disabled={isApplyingTryset || isClosingTryset}>
+              className={`button ${(trysetDraft.dirty || showTryRefreshHalo) ? "tryset-refresh-halo" : "tryset-refresh-idle"} ${isApplyingTryset ? "is-wait" : ""}`}
+              disabled={trysetDraft.applying || isClosingTryset || !(trysetDraft.dirty || showTryRefreshHalo)} aria-label="Apply Tryset">
               <img src={imgconfirm} title="Apply Tryset" alt="" className="resico" />
             </button>
-            <button onClick={Reset} title="Reset to active set" className="button">
+            {trysetDraft.error && <span role="alert">{trysetDraft.error}</span>}
+            <button disabled={trysetDraft.applying} onClick={Reset} title="Reset to active set" className="button">
               <img src={imgrefresh} alt="" className="resico" />
             </button>
-            <button onClick={SetZero} title="Disable all NFT/Skill boosts" className="button">
+            <button disabled={trysetDraft.applying} onClick={SetZero} title="Disable all NFT/Skill boosts" className="button">
               <img src={imgnoboosttry} alt="" className="resico" />
             </button>
             <button onClick={handleButtonHelpClick} title="Help" className="button"><img src={imgna} alt="" className="itico" /></button>
@@ -2007,21 +1969,58 @@ function ModalTNFT({ onClose }) {
         {!hasTryNftTables ? (
           <div style={{ padding: '12px 8px' }}>Loading TryNFT tables...</div>
         ) : (
-          <div style={tableStyle}>
+          <div ref={panelLayoutRef} className="trynft-panel-layout" style={tableStyle}>
             {(tableView === 'both' || tableView === 'left') && (
               <div style={{
-                flex: 1,
+                flex: tableView === 'both' ? `${panelSplit} 1 0px` : 1,
                 overflow: 'auto',
+                minWidth: 0,
                 minHeight: 0,
                 display: tableView === 'right' ? 'none' : 'block'
               }}>
                 <table>{buildContent(dataSetLocal?.itables?.it)}</table>
               </div>
             )}
+            {tableView === 'both' && (
+              <div
+                className={`trynft-panel-divider is-${tableFlexDirection}`}
+                role="separator"
+                tabIndex={0}
+                aria-label="Resize resources and boosts"
+                aria-orientation={tableFlexDirection === 'row' ? 'vertical' : 'horizontal'}
+                aria-valuemin={20}
+                aria-valuemax={80}
+                aria-valuenow={Math.round(panelSplit)}
+                onPointerDown={(event) => {
+                  if (event.button !== 0) return;
+                  event.preventDefault();
+                  event.currentTarget.focus();
+                  panelDragRef.current = {
+                    pointerId: event.pointerId,
+                    position: tableFlexDirection === 'row' ? event.clientX : event.clientY,
+                    split: panelSplit,
+                  };
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+                onPointerMove={movePanelDivider}
+                onPointerUp={stopPanelResize}
+                onPointerCancel={stopPanelResize}
+                onLostPointerCapture={() => { panelDragRef.current = null; }}
+                onDoubleClick={() => updatePanelSplit(50)}
+                onKeyDown={(event) => {
+                  const decrease = tableFlexDirection === 'row' ? 'ArrowLeft' : 'ArrowUp';
+                  const increase = tableFlexDirection === 'row' ? 'ArrowRight' : 'ArrowDown';
+                  if (![decrease, increase, 'Home', 'End'].includes(event.key)) return;
+                  event.preventDefault();
+                  updatePanelSplit(event.key === 'Home' ? 20 : event.key === 'End' ? 80 : panelSplit + (event.key === decrease ? -2 : 2));
+                }}
+              />
+            )}
             {(tableView === 'both' || tableView === 'right') && (
               <div style={{
-                flex: 1,
+                flex: tableView === 'both' ? `${100 - panelSplit} 1 0px` : 1,
                 overflow: 'auto',
+                minWidth: 0,
                 minHeight: 0,
                 display: tableView === 'left' ? 'none' : 'block'
               }}>
