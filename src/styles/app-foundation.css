@@ -29,29 +29,6 @@ body {
   box-sizing: border-box;
 }
 
-/* Shared scrollbar theme: every current and future scroll container uses the
-   same appearance. Components may still deliberately hide their scrollbar. */
-* {
-  scrollbar-color: #7a7a7a #1d1d1d !important;
-}
-
-*::-webkit-scrollbar {
-  width: 6px !important;
-  height: 6px !important;
-}
-
-*::-webkit-scrollbar-thumb {
-  background-color: #7a7a7a !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-}
-
-*::-webkit-scrollbar-track,
-*::-webkit-scrollbar-corner {
-  background-color: #1d1d1d !important;
-  border-radius: 0 !important;
-}
-
 .App-header {
   background-color: #1a1d22;
   /* min-height: 60vh; */
@@ -735,18 +712,6 @@ input[disabled] {
   padding: 5px;
   border-radius: 5px;
   z-index: 999999;
-}
-
-.checkbox-disabled {
-  pointer-events: none;
-  opacity: 0.7;
-  background-color: #ffffff;
-  border-color: #d3d3d3;
-}
-
-input[type="checkbox"].checkbox-disabled:checked {
-  background-color: #d3d3d3;
-  border-color: #d3d3d3;
 }
 
 .selectccol {

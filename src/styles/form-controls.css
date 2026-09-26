@@ -1,0 +1,132 @@
+:root {
+  --control-surface: #21150f;
+  --control-border: #815638;
+  --control-text: #fff3df;
+  --control-muted: #bba18f;
+  --control-accent: #d79a43;
+  --control-disabled-surface: #2b1d15;
+  --control-disabled-border: #69503c;
+  --control-disabled-accent: #9b7044;
+  --control-focus: #f6bc68;
+  --control-scroll-track: #21150f;
+  --control-scroll-thumb: #8d603d;
+}
+
+/* Shared native controls. Layout and sizing remain with each component. */
+input[type="checkbox"], input[type="radio"] {
+  accent-color: var(--control-accent);
+  cursor: pointer;
+}
+
+/* Native checkboxes need their own paint to keep the unchecked fill dark. */
+:where(input[type="checkbox"]:not(.MuiSwitchBase-input):not(.quick-try-switch input)) {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  width: 15px;
+  height: 15px;
+  margin: 0 4px 0 0;
+  border: 1px solid var(--control-border);
+  border-radius: 3px;
+  background: var(--control-surface);
+  vertical-align: middle;
+  flex: 0 0 auto;
+}
+
+:where(input[type="checkbox"]:not(.MuiSwitchBase-input):not(.quick-try-switch input)):checked {
+  border-color: var(--control-accent);
+  background: var(--control-accent);
+}
+
+:where(input[type="checkbox"]:not(.MuiSwitchBase-input):not(.quick-try-switch input)):checked::after {
+  width: 7px;
+  height: 4px;
+  border: solid var(--control-surface);
+  border-width: 0 0 2px 2px;
+  content: "";
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+:where(input[type="checkbox"]:not(.MuiSwitchBase-input):not(.quick-try-switch input)):indeterminate::after {
+  width: 7px;
+  height: 2px;
+  background: var(--control-accent);
+  content: "";
+}
+
+input[type="checkbox"]:disabled, input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
+/* Both real disabled inputs and legacy read-only status checkboxes. */
+input[type="checkbox"]:is(:disabled, .checkbox-disabled) {
+  border-color: var(--control-disabled-border);
+  background: var(--control-disabled-surface);
+  cursor: not-allowed;
+}
+
+input[type="checkbox"]:is(:disabled, .checkbox-disabled):checked {
+  border-color: var(--control-disabled-accent);
+  background: var(--control-disabled-accent);
+}
+
+input[type="checkbox"]:is(:disabled, .checkbox-disabled):checked::after {
+  border-color: var(--control-disabled-surface);
+}
+
+input[type="checkbox"].checkbox-disabled {
+  pointer-events: none;
+}
+
+:where(input:is([type="text"], [type="search"], [type="email"], [type="url"], [type="password"], [type="number"]):not(.MuiInputBase-input), textarea:not(.MuiInputBase-input)) {
+  border: 1px solid var(--control-border);
+  border-radius: 5px;
+  background-color: var(--control-surface);
+  color: var(--control-text);
+  caret-color: var(--control-accent);
+}
+
+:where(input:is([type="text"], [type="search"], [type="email"], [type="url"], [type="password"], [type="number"]):not(.MuiInputBase-input), textarea:not(.MuiInputBase-input))::placeholder {
+  color: var(--control-muted);
+  opacity: 1;
+}
+
+:where(input, textarea, .MuiSwitch-root):focus-visible {
+  outline: 2px solid var(--control-focus);
+  outline-offset: 2px;
+}
+
+/* MUI switches share the same accent while retaining their local dimensions. */
+.MuiSwitch-root .MuiSwitch-track {
+  background-color: var(--control-border);
+}
+
+.MuiSwitch-root .MuiSwitch-switchBase.Mui-checked {
+  color: var(--control-accent);
+}
+
+.MuiSwitch-root .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track {
+  background-color: var(--control-accent);
+}
+
+/* One scrollbar palette across scroll containers. Intentional hidden bars stay hidden. */
+* {
+  scrollbar-color: var(--control-scroll-thumb) var(--control-scroll-track) !important;
+}
+
+*::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--control-scroll-thumb) !important;
+  border: 0 !important;
+  border-radius: 3px !important;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background-color: var(--control-scroll-track) !important;
+}

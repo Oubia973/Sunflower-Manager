@@ -3,6 +3,7 @@ import { useAppCtx } from "../context/AppCtx";
 
 import HomeTable from "./Home";
 import InvTable from "./Inv";
+import InvReadableTable from "./InvReadable";
 import CookTable from "./Cook";
 import FishTable from "./Fish";
 import ChapterTable from "./Chapter";
@@ -28,9 +29,10 @@ import SupplyTable from "./Supply";
 
 export default function PanelTable() {
   const { ui: { selectedInv, interfaceMode } } = useAppCtx();
+  const modernInvEnabled = process.env.REACT_APP_INV_MODERN === "1";
 
   if (selectedInv === "home") return <HomeTable />;
-  if (selectedInv === "inv") return <InvTable />;
+  if (selectedInv === "inv") return modernInvEnabled && interfaceMode === "compact" ? <InvReadableTable /> : <InvTable />;
   if (selectedInv === "cook") return <CookTable />;
   if (selectedInv === "fish") return <FishTable />;
   if (selectedInv === "chapter") return <ChapterTable />;

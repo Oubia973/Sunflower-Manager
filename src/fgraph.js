@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Graph from './graph.js';
 import DList from "./dlist.jsx";
 import { imgna, imgcancel, normalizeServerImagesDeep, normalizeServerImageUrl } from "./constants/images.js";
@@ -136,6 +136,7 @@ function buildQuantityItemOptions(rows, graphMetaById) {
 }
 
 function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username }) {
+  const sharedGraphCacheRef = useRef(new Map());
   const GRAPH_CATEGORY_KEYS = ["all", "crops", "wood minerals", "fruits honey", "animals", "pets", "boost"];
   const [chartData, setChartData] = useState([]);
   const [sharedChartDataRaw, setSharedChartDataRaw] = useState([]);
@@ -192,11 +193,19 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
     const nextId = String(itemId ?? "");
     if (nextId) setSelectedQuantityItemId(nextId);
   };
-  async function ReqGraph(fetchMode = "shared") {
+  async function ReqGraph(fetchMode = "shared", signal) {
     try {
       const boostCacheKey = `${String(graphtype || "")}|${String(Graphstartdate || "")}`;
       if (fetchMode === "boost" && Array.isArray(boostDataCache?.[boostCacheKey])) {
         setBoostChartData(boostDataCache[boostCacheKey]);
+        return;
+      }
+      const category = selectedCategory === "boost" ? "all" : selectedCategory;
+      const sharedCacheKey = `${boostCacheKey}|${category}`;
+      if (fetchMode === "shared" && sharedGraphCacheRef.current.has(sharedCacheKey)) {
+        const cached = sharedGraphCacheRef.current.get(sharedCacheKey);
+        setSharedChartDataRaw(cached.raw);
+        setSharedChartData(cached.sampled);
         return;
       }
       setGraphLoadingCount((prev) => prev + 1);
@@ -247,9 +256,12 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
           frmid: frmid,
           username: username,
           xsource: graphtype,
+          ...(fetchMode === "shared" ? { xgraphcategory: category } : {}),
         },
         timeoutMs: 30_000,
+        signal,
       });
+        if (signal?.aborted) return;
         const sampledRows = (fetchMode === "boost")
           ? (Array.isArray(responseData) ? responseData : [])
           : downsampleGraphResponse(responseData, Graphstartdate);
@@ -260,6 +272,7 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
         } else {
           setSharedChartDataRaw(Array.isArray(responseData) ? responseData : []);
           setSharedChartData(sampledRows);
+          sharedGraphCacheRef.current.set(sharedCacheKey, { raw: Array.isArray(responseData) ? responseData : [], sampled: sampledRows });
         }
 
         const localMeta = extractGraphMetaFromFarmState(dataSetFarm);
@@ -275,7 +288,9 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
               username: username
             },
             body: { ids: idsToFetch },
+            signal,
           });
+            if (signal?.aborted) return;
             const fetched = (payload && typeof payload === "object" && payload.items && typeof payload.items === "object")
               ? normalizeServerImagesDeep(payload.items)
               : {};
@@ -285,14 +300,17 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
         }
         setGraphMetaById(nextMeta);
     } catch (error) {
-      console.log(`Error : ${error}`);
+      if (!signal?.aborted) console.log(`Error : ${error}`);
     } finally {
       setGraphLoadingCount((prev) => Math.max(0, prev - 1));
     }
   }
   useEffect(() => {
-    ReqGraph("shared");
-  }, [Graphstartdate, graphtype]);
+    if (selectedCategory === "boost") return undefined;
+    const controller = new AbortController();
+    ReqGraph("shared", controller.signal);
+    return () => controller.abort();
+  }, [Graphstartdate, graphtype, selectedCategory]);
 
   useEffect(() => {
     if (selectedCategory !== "boost") return;

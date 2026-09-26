@@ -7,12 +7,15 @@ import DList from "../dlist.jsx";
 import { imgshovel, imgwinterPath, imgspringPath, imgsummerPath, imgautumnPath, imgconfirm, imgbee, imglove as imgloveIcon, imghappiness03 as imghappiness03Icon, imgfullmoon as imgfullmoonIcon, imgpriceUp, imgpriceDown, imgsaltfarm, imgprod, imgarrowLeft } from "../constants/images.js";
 import { selectCurrentProjection } from "../utils/farmState.js";
 import { buildBoostTooltipContract } from "../tooltip/boostTooltipContract.js";
+import InvItemDashboard from "../components/inventory/InvItemDashboard.jsx";
+import "../styles/inv-readable.css";
 
 var xBurning = [];
 xBurning.burn = [];
 xBurning.burntry = [];
 
-export default function InvTable() {
+export default function InvTable({ dashboardPreview = false }) {
+    const [dashboardItem, setDashboardItem] = useState("");
     const [buyRefreshOnCd, setBuyRefreshOnCd] = useState(false);
     const [showTryRefreshHalo, setShowTryRefreshHalo] = useState(false);
     const [buyRefreshBaselineSig, setBuyRefreshBaselineSig] = useState("");
@@ -206,7 +209,8 @@ export default function InvTable() {
         var totNifty = 0;
         var totOS = 0;
         let invIndex = 0;
-        const inventoryItemsCrop = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "crop");
+        const openDashboard = dashboardPreview ? setDashboardItem : null;
+        const inventoryItemsCrop = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, openDashboard, "crop");
         totTimeCrp = inventoryItemsCrop.totTimeCrp;
         totCost = inventoryItemsCrop.totCost;
         totShop = inventoryItemsCrop.totShop;
@@ -231,7 +235,7 @@ export default function InvTable() {
             tprctN: tprctcN,
             tprctO: tprctcO,
         }) : ("");
-        const inventoryItemsRes = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "mineral", "gem", "wood", "oil", "salt");
+        const inventoryItemsRes = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, openDashboard, "mineral", "gem", "wood", "oil", "salt");
         totTimeRs = inventoryItemsRes.totTimeRs;
         totCost = inventoryItemsRes.totCost;
         totShop = inventoryItemsRes.totShop;
@@ -254,7 +258,7 @@ export default function InvTable() {
             tprctN: tprctcN,
             tprctO: tprctcO,
         }) : ("");
-        const inventoryItemsAnml = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "animal", "honey", "flower");
+        const inventoryItemsAnml = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, openDashboard, "animal", "honey", "flower");
         //totTimeRs = inventoryItemsAnml.totTimeRs;
         totCost = inventoryItemsAnml.totCost;
         totShop = inventoryItemsAnml.totShop;
@@ -277,7 +281,7 @@ export default function InvTable() {
             tprctN: tprctcN,
             tprctO: tprctcO,
         }) : ("");
-        const inventoryItemsFruit = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "fruit", "mushroom");
+        const inventoryItemsFruit = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, openDashboard, "fruit", "mushroom");
         totCost = inventoryItemsFruit.totCost;
         totShop = inventoryItemsFruit.totShop;
         totTrader = inventoryItemsFruit.totTrader;
@@ -372,7 +376,7 @@ export default function InvTable() {
         const totTime = convTime(totTimeCrp);
         const tableContent = (
             <>
-                <table className="table">
+                <table className={dashboardPreview ? "table inv-table inv-preview-table" : "table inv-table"}>
                     <thead>
                         <tr>
                             <th className="th-icon">   </th>
@@ -455,8 +459,8 @@ export default function InvTable() {
                             </th>) : ("")}
                             {xListeCol[4][1] === 1 ? (<th className="thcenter">Betty</th>) : ("")}
                             {xListeCol[5][1] === 1 ? (<th className="thcenter">Ratio<div>{imgCoins}/{imgSFL}</div></th>) : ("")}
-                            {xListeCol[6][1] === 1 ? (<th className="thtrad" style={{ "--thtrad-bg": `url(${process.env.PUBLIC_URL}/icon/ui/graph.png)` }} onClick={() => handleTraderClick()}><div className="overlay-trad"></div><span className="thtrad-label">Market</span></th>) : ("")}
-                            {xListeCol[17][1] === 1 && xListeCol[5][1] === 1 ? (<th className="thcenter tooltipcell" style={{ fontSize: `10px` }}
+                            {xListeCol[6][1] === 1 ? (<th className="thtrad inv-preview-market-head" style={{ "--thtrad-bg": `url(${process.env.PUBLIC_URL}/icon/ui/graph.png)` }} onClick={() => handleTraderClick()}><div className="overlay-trad"></div><span className="thtrad-label">Market</span></th>) : ("")}
+                            {xListeCol[17][1] === 1 && xListeCol[5][1] === 1 ? (<th className="thcenter tooltipcell inv-preview-profit-head" style={{ fontSize: `10px` }}
                                 onClick={(e) => handleTooltip("coef", "th", "", e)}>Profit<div>%</div></th>) : ("")}
                             {xListeCol[7][1] === 1 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
                                 onClick={(e) => handleTooltip("withdraw", "th", "", e)} >Withdraw</th>) : ("")}
@@ -466,7 +470,7 @@ export default function InvTable() {
                             {xListeCol[10][1] === 1 && xListeCol[9][1] === 1 && xListeCol[6][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
                             {xListeCol[9][1] === 1 ? (<th className="thos" onClick={() => handleOSClick()}><div className="overlay-os"></div> </th>) : ("")}
                             {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
-                            {xListeCol[19]?.[1] === 1 ? (<th className="thcenter">
+                            {xListeCol[19]?.[1] === 1 ? (<th className="thcenter inv-preview-change-head">
                                 <DList
                                     name="selectedPChange"
                                     title="Chng%"
@@ -509,11 +513,11 @@ export default function InvTable() {
                     <MenuItem value="max">Higher</MenuItem>
                   </Select></FormControl></div>
                   </th>) : ("")} */}
-                            {xListeCol[15][1] === 1 ? (<th className="thcenter">
+                            {xListeCol[15][1] === 1 ? (<th className="thcenter inv-preview-daily-head">
                                 <div>Daily {imgSFL}</div>
                                 <div><img src={imgexchng} alt={''} title="Marketplace" style={{ width: '20px', height: '20px' }} /></div>
                             </th>) : ("")}
-                            {xListeCol[20]?.[1] === 1 ? (<th className="thcenter tooltipcell"
+                            {xListeCol[20]?.[1] === 1 ? (<th className="thcenter tooltipcell inv-preview-hourly-head"
                                 onClick={(e) => handleTooltip("gainh", "th", "", e)}>Gain/h</th>) : ("")}
                             {xListeCol[16][1] === 1 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
                                 onClick={(e) => handleTooltip("dailymax", "th", "", e)}>DailyMax<div style={{ fontSize: "10px" }}>average</div></th>) : ("")}
@@ -551,6 +555,8 @@ export default function InvTable() {
                         {showBuildings ? BldItems : null}
                     </tbody>
                 </table>
+                {dashboardPreview && dashboardItem && it[dashboardItem] &&
+                    <InvItemDashboard name={dashboardItem} item={it[dashboardItem]} onClose={() => setDashboardItem("")} />}
             </>
         );
         invIndex++;
@@ -558,7 +564,7 @@ export default function InvTable() {
     }
     return <div>Loading inventory data...</div>;
 }
-function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, ...itemCats) {
+function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, onOpenDashboard, ...itemCats) {
     const {
         data: { dataSet, dataSetFarm, priceData },
         ui: {
@@ -1008,11 +1014,13 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                 tltpDBurn = "dailyBurn";
             }
             return (
-                <tr key={`inv-${item}-${xIndex}`}>
+                <tr key={`inv-${item}-${xIndex}`} className={firstind ? "inv-preview-category-start" : undefined}>
                     {/* {xListeCol[0][1] === 1 ? (<td style={cellStyle}>
                             {PBar(itemQuantity, previousQuantity, maxh, 0)}
                         </td>) : ("")} */}
-                    <td id="iccolumn" style={cellStyle}><i><img src={ico} alt={''} className="itico" /></i></td>
+                    <td id="iccolumn" style={cellStyle}><i>{onOpenDashboard ?
+                        <button type="button" className="inv-item-open" onClick={() => onOpenDashboard(item)} aria-label={`Open ${item} details`} title={`Open ${item} details`}><img src={ico} alt="" className="itico" /></button> :
+                        <img src={ico} alt="" className="itico" />}</i></td>
                     <td style={cellStyle}>
                         {xSeasonImg.map((value, index) => {
                             if (value !== "") { return (<span key={index}><i>{xSeasonImg[index]}</i></span>) }
@@ -1075,9 +1083,9 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                     </td>) : ("")}
                     {xListeCol[4][1] === 1 ? (<td className="tdcenter" style={cellStyle}>{pShop > 0 ? frmtNb(pShop) : ""}</td>) : ("")}
                     {xListeCol[5][1] === 1 ? (<td className="tdcenterbrd" style={cellCoinRatioStyle}>{xcoinsRatio > 0 ? frmtNb(xcoinsRatio) : ""}</td>) : ("")}
-                    {xListeCol[6][1] === 1 ? (<td className={(parseFloat(pTrad).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd') + " tooltipcell"}
+                    {xListeCol[6][1] === 1 ? (<td className={(parseFloat(pTrad).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd') + " tooltipcell inv-preview-market-cell"}
                         onClick={(e) => handleTooltip(item, "market", marketDataTooltip, e)} style={cellStyle} title={titleTrad} >{puTrad !== 0 ? frmtNb(pTrad) : ""}{ximgtrd}</td>) : ("")}
-                    {xListeCol[17][1] === 1 && xListeCol[5][1] === 1 ? (<td style={{ ...cellStyle, color: colorT, textAlign: 'center', fontSize: '10px' }}
+                    {xListeCol[17][1] === 1 && xListeCol[5][1] === 1 ? (<td className={`tooltipcell inv-preview-profit-cell ${pTrad > 0 && profiPercent > 0 ? "inv-preview-positive" : pTrad > 0 && profiPercent < 0 ? "inv-preview-negative" : ""}`} style={{ ...cellStyle, color: colorT, textAlign: 'center', fontSize: '10px' }}
                         onClick={(e) => handleTooltip(item, "coef", coefT, e)}>{pTrad > 0 ? coefT : ""}</td>) : ("")}
                     {xListeCol[7][1] === 1 ? (<td className="quantity" style={{ ...cellStyle }}>{parseFloat((iQuant) * 0.7).toFixed(2)}</td>) : ("")}
                     {xListeCol[10][1] === 1 && xListeCol[8][1] === 1 && xListeCol[6][1] === 1 ? (<td className={prctN > -20 ? 'tdpdiffgrn tooltipcell' : 'tdpdiff tooltipcell'} style={cellStyle}
@@ -1092,7 +1100,7 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                         onClick={(event) => handleTradeListClick(inputValue, ido, "OS")} style={cellStyle} title={titleOS}>{puOS !== 0 ? frmtNb(pOS) : ""}</td>) : ("")}
                     {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<td className="tooltipcell" style={{ ...cellStyle, color: colorO, textAlign: 'center', fontSize: '8px' }}
                         onClick={(e) => handleTooltip(item, "coef", coefO, e)}>{coefO > 0 ? coefO : ""}</td>) : ("")}
-                    {xListeCol[19]?.[1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, fontSize: "11px", color: colorPChange }}>{imgpriceChange}{txtpriceChange}</td>) : ("")}
+                    {xListeCol[19]?.[1] === 1 ? (<td className={`tdcenter inv-preview-change-cell ${hasPriceChange && Number(priceChange) > 0 ? "inv-preview-positive" : hasPriceChange && Number(priceChange) < 0 ? "inv-preview-negative" : ""}`} style={{ ...cellStyle, fontSize: "11px", color: colorPChange }}>{imgpriceChange}{txtpriceChange}</td>) : ("")}
                     {xListeCol[11][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }} onClick={(e) => handleTooltip(item, "boostdetails", buildBoostTooltipContract(boostTooltipIndex, item, cobj, TryChecked ? "try" : "active", "yield"), e)}>
                         {parseFloat(imyield).toFixed(2)}</td>) : ("")}
                     {xListeCol[12][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 225, 183)` }} onClick={(e) => handleTooltip(item, "harvest", 0, e)}>
@@ -1102,10 +1110,10 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                     {xListeCol[18][1] === 1 ? (<td id={`timer-${xIndex}`} className="tdcenterbrd" style={cellStyle}>{(i2bharvest > 0 || item === "Honey" || item === "Salt" ? selectedReady === "when" ?
                         (<span>{readyTimestamp ? formatdate(readyTimestamp) : ''}{' '}{ximgrdy}</span>) : timerElement : "")}</td>) : ("")}
                     {xListeCol[14][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{BBprod > 0 ? parseFloat(BBprod).toFixed(2) : ""}</td>) : ("")}
-                    {xListeCol[15][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, ...cellDSflStyle }}
+                    {xListeCol[15][1] === 1 ? (<td className={`tdcenter tooltipcell inv-preview-daily-cell ${Dsfl > 0 ? "inv-preview-positive" : Dsfl < 0 ? "inv-preview-negative" : ""}`} style={{ ...cellStyle, ...cellDSflStyle }}
                         title={titleDsfl} onClick={(e) => handleTooltip(item, "dailysfl", costp, e)}>
                         {parseFloat(Dsfl).toFixed(2)}</td>) : ("")}
-                    {xListeCol[20]?.[1] === 1 ? (<td className="tdcenter tooltipcell"
+                    {xListeCol[20]?.[1] === 1 ? (<td className={`tdcenter tooltipcell inv-preview-hourly-cell ${gainH > 0 ? "inv-preview-positive" : gainH < 0 ? "inv-preview-negative" : ""}`}
                         onClick={(e) => handleTooltip(item, "gainh", gainHTooltip, e)}
                         style={{ ...cellStyle, color: ColorValue(gainH, 0, 1) }}>
                         {parseFloat(gainH).toFixed(2)}</td>) : ("")}

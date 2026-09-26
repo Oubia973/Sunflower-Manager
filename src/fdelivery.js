@@ -879,9 +879,6 @@ function ModalDlvr({
               color="primary"
               size="small"
               sx={{
-                '& .MuiSwitch-track': {
-                  backgroundColor: 'gray',
-                },
                 transform: 'translate(10%, 0%)',
               }}
             />

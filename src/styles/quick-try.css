@@ -295,7 +295,7 @@
   position: absolute;
   inset: 0;
   border-radius: 12px;
-  background: #4a423e;
+  background: var(--control-border);
   transition: background 120ms ease;
 }
 
@@ -306,18 +306,23 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #d8cfca;
+  background: var(--control-text);
   content: "";
   transition: transform 120ms ease;
 }
 
 .quick-try-switch input:checked + span {
-  background: #8b6723;
+  background: var(--control-accent);
 }
 
 .quick-try-switch input:checked + span::after {
   transform: translateX(12px);
-  background: #ffe486;
+  background: var(--control-text);
+}
+
+.quick-try-switch input:focus-visible + span {
+  outline: 2px solid var(--control-focus);
+  outline-offset: 2px;
 }
 
 .quick-try-level {

@@ -1899,9 +1899,6 @@ function ModalTNFT({ onClose }) {
                     color="primary"
                     size="small"
                     sx={{
-                      '& .MuiSwitch-track': {
-                        backgroundColor: 'rgba(140, 140, 140, 0.7)',
-                      },
                     }}
                   />
                 }

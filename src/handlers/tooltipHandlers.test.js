@@ -25,3 +25,35 @@ test('does not refresh when the opening cell is no longer rendered', () => {
   const anchor = document.createElement('button');
   expect(refreshOpenTooltip({ anchor, x: 1, y: 2 })).toBe(false);
 });
+
+test('inventory hover is left to CSS while other tooltip cells retain delegated hover', () => {
+  const hovered = { current: null };
+  const handlers = createTooltipHandlers(jest.fn(), hovered);
+  const otherCell = document.createElement('td');
+  otherCell.className = 'tooltipcell';
+  const inventory = document.createElement('table');
+  inventory.className = 'inv-table';
+  const inventoryCell = document.createElement('td');
+  inventoryCell.className = 'tooltipcell';
+  inventory.appendChild(inventoryCell);
+  const dashboard = document.createElement('div');
+  dashboard.className = 'inv-item-dashboard';
+  const dashboardCell = document.createElement('button');
+  dashboardCell.className = 'tooltipcell';
+  dashboard.appendChild(dashboardCell);
+  document.body.append(otherCell, inventory, dashboard);
+
+  handlers.handleTooltipCellMouseOver({ target: otherCell });
+  expect(otherCell.classList.contains('tooltipcell-hover')).toBe(true);
+  handlers.handleTooltipCellMouseOver({ target: inventoryCell });
+  expect(otherCell.classList.contains('tooltipcell-hover')).toBe(false);
+  expect(inventoryCell.classList.contains('tooltipcell-hover')).toBe(false);
+  expect(hovered.current).toBeNull();
+
+  handlers.handleTooltipCellMouseOver({ target: dashboardCell });
+  expect(dashboardCell.classList.contains('tooltipcell-hover')).toBe(false);
+
+  otherCell.remove();
+  inventory.remove();
+  dashboard.remove();
+});

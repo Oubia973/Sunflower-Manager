@@ -66,6 +66,10 @@ export function createTooltipHandlers(setTooltipData, hoveredTooltipCellRef) {
   function handleTooltipCellMouseOver(event) {
     const cell = event.target?.closest?.('.tooltipcell') || null;
     if (!cell) return;
+    if (cell.closest('.inv-table, .inv-item-dashboard')) {
+      clearHoveredTooltipCell();
+      return;
+    }
     setHoveredTooltipCell(cell);
   }
 

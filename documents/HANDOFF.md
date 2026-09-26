@@ -1,6 +1,6 @@
 # Frontend handoff
 
-Updated: 2026-09-24
+Updated: 2026-09-26
 
 ## Role
 
@@ -54,6 +54,10 @@ The export now has a 1,000 matching-farm cap. Search responses include the limit
 
 Production report after deployment: the initial Active farms catalog returned HTTP 504 and the page stayed on Loading. The sibling backend now replies `INDEX_PREPARING` after 15 seconds while its reader continues validating the SQLite bundle, and the frontend retries the catalog automatically. A ten-minute reader watchdog remains. Targeted frontend lint, backend syntax and diff checks pass; this fix has not been deployed or checked on PC Web.
 
+## Inv modern preview
+
+Local pending preview: `src/tables/InvReadable.jsx` now reuses the complete classic Inv table after the reduced table removed important columns and color cues. All existing columns, visibility choices, row density, value colors, totals, filters, actions, calculations and tooltips therefore remain. The preview gives the complete table a scoped warm dark theme with clearer header, alternating compact rows, category separators, subtle metric backgrounds and row hover; the item icon opens an overlay mini dashboard with an on-demand Market price graph (24h/7d/31d), summary metrics and calculation tooltips. Classic and preview Inv tooltip cells now use CSS hover instead of the shared JavaScript hover class, so the background follows the pointer and restores after a click; the mini dashboard metrics use the same approach. The full Market graph requests only the active category and caches visited tabs. Sibling backend `/getHT`, `/getHN`, `/getHO` accept optional validated category/item filters; old unfiltered calls retain their response. The mini dashboard requests one item. Preview requires both `REACT_APP_INV_MODERN=1` and the global Modern interface switch; ignored `.env.development.local` enables it locally. Targeted frontend/backend tests, lint, syntax and frontend build pass. Browser visual, real graph data and real farm comparison checks remain open; backend restart needed to serve new filters. No restart, commit or deploy.
+
 ## Daily production preferences
 
 Local pending changes move the existing Daily calculation controls from General into the previously empty Production tab, with grouped labels and inline explanations. A default-on `allowPartialNodePlanting` preference lets users keep proportional partial-node production or require full-node harvests. The backend now exposes planting rounds separately from equivalent harvests so a fractional `1.47` output with a 3-hour grow time reports two rounds and a 6-hour final harvest instead of shortening the second cycle.
@@ -63,6 +67,8 @@ Focused frontend tooltip tests, frontend lint, production build, and focused bac
 The merged branch passed the full GitHub CI chain: runtime audit, tracked-credential check, lint, tests, production web build, Capacitor sync and Android debug APK build.
 
 ## Working rules
+
+Local pending theme change: native checkboxes, text inputs, MUI switches and scrollbars now share colors from `src/styles/form-controls.css`; unchecked and disabled checkbox states use the brown/gold theme, including legacy read-only status boxes. Component layout rules remain local. Frontend lint and production build pass; browser visual review is pending. No commit or deploy.
 
 - Use `AGENTS.md` for local-vs-GitHub boundaries and validation expectations.
 - Use `PROJECT_CONTEXT.md` for frontend/backend ownership and runtime paths.
