@@ -28,6 +28,7 @@ import CookCostTooltipDetails from './CookCostTooltipDetails.jsx';
 import BoostTooltipDetails from './BoostTooltipDetails.jsx';
 import RngRealizedTooltipDetails from './RngRealizedTooltipDetails.jsx';
 import RngItemSummaryTooltipDetails from './RngItemSummaryTooltipDetails.jsx';
+import ItemDashboardTooltipDetails from '../components/inventory/ItemDashboardTooltipDetails.jsx';
 import {
     resolveDailyProfitContract,
     resolveMarketComparisonContract,
@@ -113,7 +114,7 @@ const mergeRootTables = (...roots) => {
     return out;
 };
 
-const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSetFarm, bdrag = true, forTry }) => {
+const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSetFarm, bdrag = true, forTry, inactive = false }) => {
     const invPageData = selectCurrentProjection(dataSetFarm, "invData") || {};
     const cookPageData = selectCurrentProjection(dataSetFarm, "cookData") || {};
     const mapPageData = selectCurrentProjection(dataSetFarm, "mapData") || {};
@@ -269,6 +270,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     const [tooltipSeason, setTooltipSeason] = useState(initialTooltipSeason);
 
     const handleBackdropDown = (e) => {
+        if (inactive || context === "itemdashboard") return;
         if (e.target === wrapperRef.current) startClose();
     };
     const getClientPos = (e) => {
@@ -338,6 +340,28 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         setPos(clamp(nx, ny));
     };
     const handleMouseUp = () => setDragging(false);
+    const dashboardDragPointer = useRef(null);
+    const startDashboardDrag = (event) => {
+        if (context !== "itemdashboard" || event.button !== 0) return;
+        if (!event.target.closest(".inv-item-dashboard > header") || event.target.closest("button, input, select, a")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const position = safeClamp(pos.x, pos.y);
+        offset.current = { x: event.clientX - position.x, y: event.clientY - position.y };
+        dashboardDragPointer.current = event.pointerId;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        setDragging(true);
+    };
+    const moveDashboardDrag = (event) => {
+        if (dashboardDragPointer.current !== event.pointerId) return;
+        setPos(clamp(event.clientX - offset.current.x, event.clientY - offset.current.y));
+    };
+    const stopDashboardDrag = (event) => {
+        if (dashboardDragPointer.current !== event.pointerId) return;
+        dashboardDragPointer.current = null;
+        setDragging(false);
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    };
     const { x: sx, y: sy } = useMemo(() => clamp(pos.x, pos.y), [pos, containerSize, tooltipSize]);
     const openTooltip = () => {
         setIsClosing(false);
@@ -351,6 +375,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         setTimeout(onClose, 300);
     };
     const handleClickOutside = (event) => {
+        if (inactive || context === "itemdashboard") return;
         if (justOpened) return;
         if (!event.target.closest(".tooltip")) {
             closeModal();
@@ -373,7 +398,15 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         return () => {
             window.removeEventListener('click', handleClickOutside);
         };
-    }, [justOpened]);
+    }, [justOpened, inactive, context]);
+    useEffect(() => {
+        if (inactive || context === "itemdashboard") return undefined;
+        const onKeyDown = (event) => {
+            if (event.key === "Escape") setIsClosing(true);
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [inactive, context]);
     useEffect(() => {
         if (!isOpen || !justOpened) return;
         const dx = (tooltipSize.w || 0) / 2;
@@ -405,11 +438,11 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         return () => el.removeEventListener("transitionend", onEnd);
     }, [isClosing, onClose]);
     useEffect(() => {
-        if (!bdrag) return;
+        if (!bdrag && context !== "itemdashboard") return;
         if (dragging) document.body.classList.add("no-select");
         else document.body.classList.remove("no-select");
         return () => document.body.classList.remove("no-select");
-    }, [dragging, bdrag]);
+    }, [dragging, bdrag, context]);
     useEffect(() => {
         return () => {
             Object.values(compoCloseTimersRef.current).forEach((id) => clearTimeout(id));
@@ -916,6 +949,9 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         if (context === "dailyBurn") {
             txt = <DailyBurnTooltipDetails contract={value} />;
         }
+        if (context === "itemdashboard") {
+            txt = <ItemDashboardTooltipDetails key={item} name={item} source={value?.source} onClose={onClose} inactive={inactive} />;
+        }
     } catch (error) {
         console.log("tooltip: ", error);
     }
@@ -939,7 +975,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             onMouseUp={bdrag ? handleMouseUp : undefined}
             onTouchEnd={bdrag ? handleMouseUp : undefined}>
             <div ref={tooltipRef}
-                className={`tooltip ${!bdrag ? "scrollable" : ""} ${context === "trades" ? "tooltip-trades-mode" : ""} ${(context === "deliverycost" || context === "deliverybountycost") ? "tooltip-delivery-mode" : ""} ${(context === "rngrealized" || context === "rngsummary") ? "tooltip-rng-mode" : ""}`}
+                onPointerDown={context === "itemdashboard" ? startDashboardDrag : undefined}
+                onPointerMove={context === "itemdashboard" ? moveDashboardDrag : undefined}
+                onPointerUp={context === "itemdashboard" ? stopDashboardDrag : undefined}
+                onPointerCancel={context === "itemdashboard" ? stopDashboardDrag : undefined}
+                onLostPointerCapture={context === "itemdashboard" ? () => { dashboardDragPointer.current = null; setDragging(false); } : undefined}
+                className={`tooltip ${!bdrag ? "scrollable" : ""} ${context === "itemdashboard" ? `tooltip-item-dashboard${dragging ? " is-dragging" : ""}` : ""} ${context === "trades" ? "tooltip-trades-mode" : ""} ${(context === "deliverycost" || context === "deliverybountycost") ? "tooltip-delivery-mode" : ""} ${(context === "rngrealized" || context === "rngsummary") ? "tooltip-rng-mode" : ""}`}
                 onMouseDown={(e) => {
                     e.stopPropagation();
                     if (!bdrag || isDeliveryTooltip) return;

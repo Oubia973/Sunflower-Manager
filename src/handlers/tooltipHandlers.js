@@ -25,6 +25,7 @@ export function createTooltipHandlers(setTooltipData, hoveredTooltipCellRef) {
       if (context === 'trades') bdrag = false;
       if (context === 'username') bdrag = false;
       if (context === 'askIA') bdrag = false;
+      if (context === 'itemdashboard') bdrag = false;
 
       setTooltipData({
         x: clientX,
@@ -33,6 +34,7 @@ export function createTooltipHandlers(setTooltipData, hoveredTooltipCellRef) {
         context,
         value,
         bdrag,
+        dashboardFarm: event?.dashboardFarm || null,
         anchor: event?.currentTarget || null,
       });
     } catch (error) {

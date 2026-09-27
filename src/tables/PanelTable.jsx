@@ -30,7 +30,7 @@ import SupplyTable from "./Supply";
 export default function PanelTable() {
   const { ui: { selectedInv, interfaceMode } } = useAppCtx();
 
-  if (selectedInv === "home") return <HomeTable />;
+  if (selectedInv === "home") return <HomeTable modern={interfaceMode === "compact"} />;
   if (selectedInv === "inv") return interfaceMode === "compact" ? <InvReadableTable /> : <InvTable />;
   if (selectedInv === "cook") return <CookTable />;
   if (selectedInv === "fish") return <FishTable />;

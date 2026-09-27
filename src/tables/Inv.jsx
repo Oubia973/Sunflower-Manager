@@ -7,7 +7,6 @@ import DList from "../dlist.jsx";
 import { imgshovel, imgwinterPath, imgspringPath, imgsummerPath, imgautumnPath, imgconfirm, imgbee, imglove as imgloveIcon, imghappiness03 as imghappiness03Icon, imgfullmoon as imgfullmoonIcon, imgpriceUp, imgpriceDown, imgsaltfarm, imgprod, imgarrowLeft } from "../constants/images.js";
 import { selectCurrentProjection } from "../utils/farmState.js";
 import { buildBoostTooltipContract } from "../tooltip/boostTooltipContract.js";
-import InvItemDashboard from "../components/inventory/InvItemDashboard.jsx";
 import "../styles/inv-readable.css";
 
 var xBurning = [];
@@ -15,7 +14,6 @@ xBurning.burn = [];
 xBurning.burntry = [];
 
 export default function InvTable({ dashboardPreview = false }) {
-    const [dashboardItem, setDashboardItem] = useState("");
     const [buyRefreshOnCd, setBuyRefreshOnCd] = useState(false);
     const [showTryRefreshHalo, setShowTryRefreshHalo] = useState(false);
     const [buyRefreshBaselineSig, setBuyRefreshBaselineSig] = useState("");
@@ -209,7 +207,10 @@ export default function InvTable({ dashboardPreview = false }) {
         var totNifty = 0;
         var totOS = 0;
         let invIndex = 0;
-        const openDashboard = dashboardPreview ? setDashboardItem : null;
+        const openDashboard = dashboardPreview ? (name, event) => {
+            event.stopPropagation();
+            handleTooltip(name, "itemdashboard", { source: "inv" }, event);
+        } : null;
         const inventoryItemsCrop = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, openDashboard, "crop");
         totTimeCrp = inventoryItemsCrop.totTimeCrp;
         totCost = inventoryItemsCrop.totCost;
@@ -555,8 +556,6 @@ export default function InvTable({ dashboardPreview = false }) {
                         {showBuildings ? BldItems : null}
                     </tbody>
                 </table>
-                {dashboardPreview && dashboardItem && it[dashboardItem] &&
-                    <InvItemDashboard name={dashboardItem} item={it[dashboardItem]} onClose={() => setDashboardItem("")} />}
             </>
         );
         invIndex++;
@@ -1019,7 +1018,7 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                             {PBar(itemQuantity, previousQuantity, maxh, 0)}
                         </td>) : ("")} */}
                     <td id="iccolumn" style={cellStyle}><i>{onOpenDashboard ?
-                        <button type="button" className="inv-item-open" onClick={() => onOpenDashboard(item)} aria-label={`Open ${item} details`} title={`Open ${item} details`}><img src={ico} alt="" className="itico" /></button> :
+                        <button type="button" className="inv-item-open" onClick={(event) => onOpenDashboard(item, event)} aria-label={`Open ${item} details`} title={`Open ${item} details`}><img src={ico} alt="" className="itico" /></button> :
                         <img src={ico} alt="" className="itico" />}</i></td>
                     <td style={cellStyle}>
                         {xSeasonImg.map((value, index) => {

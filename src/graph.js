@@ -795,7 +795,8 @@ function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, sel
           plugins: {
             singleItemExtrema: {
               formatValue: frmtNb,
-              unit: vals === "price" ? (selectedCategory === "boost" ? (boostPriceUnit === "flower" ? "Flower" : "USDC") : "SFL") : "",
+              unit: vals === "price" ? (selectedCategory === "boost" && boostPriceUnit !== "flower" ? "USDC" : "Flower") : "",
+              unitIcon: vals === "price" && (selectedCategory !== "boost" || boostPriceUnit === "flower") ? imgsfl : "",
             },
             mondayMidnightLine: {
               currentSeason,
@@ -824,7 +825,8 @@ function Graph({ data, quantityData = [], vals, dataSetFarm, graphMeta = {}, sel
     chartRef.current.options.scales.y.max = undefined;
     chartRef.current.options.scales.quantity.display = false;
     chartRef.current.options.plugins.mondayMidnightLine.currentSeason = currentSeason;
-    chartRef.current.options.plugins.singleItemExtrema.unit = vals === "price" ? (selectedCategory === "boost" ? (boostPriceUnit === "flower" ? "Flower" : "USDC") : "SFL") : "";
+    chartRef.current.options.plugins.singleItemExtrema.unit = vals === "price" ? (selectedCategory === "boost" && boostPriceUnit !== "flower" ? "USDC" : "Flower") : "";
+    chartRef.current.options.plugins.singleItemExtrema.unitIcon = vals === "price" && (selectedCategory !== "boost" || boostPriceUnit === "flower") ? imgsfl : "";
     chartRef.current.options.plugins.tooltip.callbacks.title = tooltipTitle;
     chartRef.current.options.plugins.tooltip.callbacks.label = tooltipLabel;
     chartRef.current.data.datasets.forEach((dataset, index) => {

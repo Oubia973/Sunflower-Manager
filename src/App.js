@@ -14,6 +14,9 @@ import { Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, UpdatedSince, getOrCreateDeviceId } from './fct.js';
 import { promptPass, promptInfo, promptConfirm, promptChoice, promptInput } from './promptW';
 import { fetchJson } from './services/apiClient.js';
+import { createItemDashboardCache } from './components/inventory/itemDashboardCache.js';
+import { useItemDashboardLayers } from './components/inventory/useItemDashboardLayers.js';
+import { normalizeServerImagesDeep } from './constants/images.js';
 import { useAppVersionRefresh } from './hooks/useAppVersionRefresh.js';
 
 import { AppCtx } from "./context/AppCtx";
@@ -167,7 +170,7 @@ function App() {
   const [sectionsMeta, setSectionsMeta] = useState(null);
   const [sectionsMetaError, setSectionsMetaError] = useState("");
   const [listingsData, setlistingsData] = useState([]);
-  const [tooltipData, setTooltipData] = useState(null);
+  const { tooltipData, setTooltipData, dashboardData, showTooltip, closeDashboard } = useItemDashboardLayers();
   const [activeTimers] = useState([]);
   const [, setSectionsLoadingState] = useState(false);
   const [deliveriesData, setdeliveriesData] = useState([]);
@@ -312,7 +315,7 @@ function App() {
   const optionHandlers = createOptionHandlers(dataSet, setOptions, handleNotificationToggle);
   const { handleOptionChange, setOptionField } = optionHandlers;
 
-  const tooltipHandlers = createTooltipHandlers(setTooltipData, hoveredTooltipCellRef);
+  const tooltipHandlers = createTooltipHandlers(showTooltip, hoveredTooltipCellRef);
   const { handleTooltip, handleTooltipCellMouseOver, handleTooltipCellMouseOut, clearHoveredTooltipCell } = tooltipHandlers;
 
   useEffect(() => {
@@ -323,20 +326,22 @@ function App() {
 
   useEffect(() => {
     setTooltipData(null);
+    closeDashboard();
     if (hoveredTooltipCellRef.current) {
       hoveredTooltipCellRef.current.classList.remove('tooltipcell-hover');
       hoveredTooltipCellRef.current = null;
     }
-  }, [selectedInv]);
+  }, [selectedInv, closeDashboard, dataSet?.options?.farmId]);
 
   useEffect(() => {
     if (!showfDlvr && !showfTNFT) return;
     setTooltipData(null);
+    closeDashboard();
     if (hoveredTooltipCellRef.current) {
       hoveredTooltipCellRef.current.classList.remove('tooltipcell-hover');
       hoveredTooltipCellRef.current = null;
     }
-  }, [showfDlvr, showfTNFT]);
+  }, [showfDlvr, showfTNFT, closeDashboard]);
 
   // ========== Storage Hook ==========
   const { setCookie, loadCookie, lastID, setLastID } = useStorage(
@@ -1279,14 +1284,32 @@ function App() {
 
   const config = useMemo(() => ({ API_URL, tryitConfig }), [API_URL, tryitConfig]);
 
+  const itemDashboardCache = useRef(createItemDashboardCache());
+  const itemDashboardScope = useMemo(() => ({}), [dataSetFarm, dataSet.options, ui.selectedTrySeason, tryitConfig]);
+  const loadItemDashboardData = useCallback((name) => itemDashboardCache.current(itemDashboardScope, name, async () => {
+    const farm = dataSetFarmRef.current || {};
+    const payload = await fetchJson(API_URL, "/getItemDashboard", {
+      method: "POST",
+      body: {
+        item: name,
+        frmid: farm.frmid || dataSet.options.farmId,
+        options: dataSet.options,
+        deviceId: deviceIdRef.current,
+        selectedTrySeason: String(ui.selectedTrySeason || "all").toLowerCase(),
+        ...getTryitRequestPayload(farm),
+      },
+    });
+    return normalizeServerImagesDeep(payload);
+  }), [itemDashboardScope, dataSet.options, ui.selectedTrySeason, getTryitRequestPayload]);
+
   const actions = useMemo(() => ({
     handleUIChange, handleOptionChange, setUIField, setOptionField,
     syncAuctionNotifSelection: scheduleAuctionNotifSelectionSync,
     handleTooltip, handleHomeClic, handleTraderClick, handleNiftyClick, handleOSClick,
-    handleTradeListClick, handleRefreshfTNFT, handleSetHrvMax, handleInvBuyRefresh
+    handleTradeListClick, handleRefreshfTNFT, handleSetHrvMax, handleInvBuyRefresh, loadItemDashboardData
   }), [handleUIChange, handleOptionChange, setUIField, setOptionField, scheduleAuctionNotifSelectionSync,
     handleTooltip, handleHomeClic, handleTraderClick, handleNiftyClick, handleOSClick,
-    handleTradeListClick, handleRefreshfTNFT, handleSetHrvMax, handleInvBuyRefresh]);
+    handleTradeListClick, handleRefreshfTNFT, handleSetHrvMax, handleInvBuyRefresh, loadItemDashboardData]);
 
   const img = useMemo(() => ({
     imgsfl, imgSFL, imgcoins, imgCoins, imgxp, imgrdy, imgwinter, imgspring,
@@ -1844,16 +1867,28 @@ function App() {
         {sharedTryProfile && (
           <TryProfileSummaryModal profile={sharedTryProfile} onClose={handleCloseTryProfileSummary} />
         )}
+        {dashboardData && (
+          <AppCtx.Provider value={ctx}>
+            <div className="item-dashboard-layer">
+              <Tooltip key={`${dataSet.options.farmId}:${dashboardData.item}`} onClose={closeDashboard}
+                clickPosition={dashboardData} item={dashboardData.item} context="itemdashboard" value={dashboardData.value}
+                dataSet={dataSet} dataSetFarm={dataSetFarm} bdrag={false} forTry={TryChecked}
+                interfaceMode={ui.interfaceMode} inactive={!!tooltipData} />
+            </div>
+          </AppCtx.Provider>
+        )}
         {tooltipData && (
+          <AppCtx.Provider value={ctx}>
           <Tooltip onClose={() => setTooltipData(null)} clickPosition={tooltipData}
             item={tooltipData.item} context={tooltipData.context} value={tooltipData.value}
-            dataSet={dataSet} dataSetFarm={dataSetFarm} bdrag={tooltipData.bdrag} forTry={TryChecked}
+            dataSet={dataSet} dataSetFarm={tooltipData.dashboardFarm || dataSetFarm} bdrag={tooltipData.bdrag} forTry={TryChecked}
             cropMachineUi={{
               selectedSeeds: ui.selectedSeedsCM,
               customSeeds: ui.customSeedCM,
               selectedCrops: ui.toCM,
             }}
             interfaceMode={ui.interfaceMode} />
+          </AppCtx.Provider>
         )}
       </div>
     </>

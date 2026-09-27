@@ -118,7 +118,9 @@ test("explains a fruit tree cost as a lifecycle instead of merging harvests and 
   expect(html).toContain("Tree setup cost");
   expect(html).toContain("Production over tree lifetime");
   expect(html).toContain("Harvests per tree");
-  expect(html).toContain("Yield per harvest/node");
+  expect(html).toContain("Average per node");
+  expect(html).toContain('/ <img class="modern-tooltip__token"');
+  expect(html).toContain('alt="fruit"');
   expect(html).toContain("apple.png");
   expect(html).toContain("Allocated production cost");
   expect(html).not.toContain("Harvests per seed");

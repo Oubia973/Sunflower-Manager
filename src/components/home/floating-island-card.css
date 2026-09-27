@@ -1,0 +1,13 @@
+.home-floating-island { margin-top: 6px; width: 100%; display: flex; flex-direction: column; gap: 3px; }
+.home-floating-island-heading { display: flex; align-items: center; justify-content: center; gap: 3px; }
+.home-floating-island .home-power-skill-time { font-size: 10px; line-height: 1.1; white-space: nowrap; text-align: center; }
+.home-floating-island-game { display: inline-flex; align-items: center; gap: 1px; }
+.home-floating-island-game .home-power-skill-icon { width: 14px; height: 14px; }
+.home-floating-island-game-status { width: 8px; height: 8px; object-fit: contain; }
+.home-floating-island.is-ready .home-power-skill-time { color: #70db91; }
+.home-floating-island.is-ready .home-power-skill-bar-fill { background: linear-gradient(90deg, #57ba6f 0%, #8ce39a 100%); }
+.home-floating-island .home-power-skill-bar-fill.is-indeterminate { opacity: .45; animation: floating-island-pulse 1.5s ease-in-out infinite alternate; }
+@keyframes floating-island-pulse { to { opacity: .9; } }
+@media (prefers-reduced-motion: reduce) {
+  .home-floating-island .home-power-skill-bar-fill.is-indeterminate { animation: none; }
+}
