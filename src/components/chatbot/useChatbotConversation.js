@@ -3,22 +3,26 @@ import { createChatbotStreamParser, STREAM_FINAL_PREFIX, STREAM_STATUS_PREFIX } 
 
 const QUESTION_COOLDOWN_SECONDS = 15;
 
-function getUtcDayKey() {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
-}
-
 export default function useChatbotConversation({ API_URL, farmId, options, tryChecked, tryitPayload, currentPage, username }) {
   const isSubscriber = !!options?.isAbo;
-  const storageKey = `sflman_chatbot_used:${String(farmId || username || "global").trim()}`;
+  const farmKey = String(farmId || username || "global").trim();
+  const modelStorageKey = `sflman_chatbot_model:${farmKey}`;
   const [messages, setMessages] = useState([
     { role: "assistant", content: "Hi, ask me a question about your farm or the game mechanics." },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [dailyLimit, setDailyLimit] = useState(5);
-  const [chatbotUsed, setChatbotUsed] = useState(() => readChatbotUsedFromStorage().count);
+  const [tokenLimit, setTokenLimit] = useState(0);
+  const [tokenUsed, setTokenUsed] = useState(0);
+  const [selectedModel, setSelectedModelState] = useState(() => {
+    try {
+      const stored = String(localStorage.getItem(modelStorageKey) || "").toLowerCase();
+      if (stored === "luna" && isSubscriber) return "luna";
+      if (stored === "qwen") return "qwen";
+    } catch {}
+    return "qwen";
+  });
   const bodyRef = useRef(null);
   const bodyAutoScrollRef = useRef(true);
   const streamBufferRef = useRef("");
@@ -27,29 +31,10 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
   const streamRenderedTextRef = useRef("");
   const streamNeedsFlushRef = useRef(false);
 
-  function readChatbotUsedFromStorage() {
-    if (isSubscriber) return { count: 0, date: "" };
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (!stored) return { count: 0, date: "" };
-      const parsed = JSON.parse(stored);
-      if (parsed?.date !== getUtcDayKey()) return { count: 0, date: "" };
-      return { count: Number(parsed?.count || 0), date: parsed.date };
-    } catch {
-      return { count: 0, date: "" };
-    }
-  }
-
-  function writeChatbotUsedToStorage(value, date = getUtcDayKey()) {
-    if (isSubscriber) return;
-    try {
-      localStorage.setItem(storageKey, JSON.stringify({
-        count: Number(value || 0),
-        date,
-      }));
-    } catch {
-      // Ignore localStorage errors.
-    }
+  function setSelectedModel(model) {
+    const next = model === "luna" && isSubscriber ? "luna" : "qwen";
+    setSelectedModelState(next);
+    try { localStorage.setItem(modelStorageKey, next); } catch {}
   }
 
   function clearStreamTimer() {
@@ -90,12 +75,9 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
   function appendFinal(payload) {
     if (payload?.answer != null) replaceAnswerText(payload.answer);
     if (payload?.responseId) setMessages((prev) => prev.map((message, index) => index === prev.length - 1 ? { ...message, responseId: payload.responseId } : message));
-    if (payload?.chatbotUsed != null) {
-      const newUsed = payload.chatbotUsed;
-      setChatbotUsed(newUsed);
-      writeChatbotUsedToStorage(newUsed, payload.chatbotUsedDate || getUtcDayKey());
-    }
-    if (payload?.dailyLimit != null) setDailyLimit(payload.dailyLimit);
+    if (payload?.tokenUsed != null) setTokenUsed(Number(payload.tokenUsed || 0));
+    if (payload?.tokenLimit != null) setTokenLimit(Number(payload.tokenLimit || 0));
+    if (payload?.selectedModel) setSelectedModelState(payload.selectedModel === "luna" && isSubscriber ? "luna" : "qwen");
   }
 
   function appendAnswerText(text) {
@@ -175,16 +157,13 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
           tryitMode: tryitPayload?.tryitMode || "active",
           uiContext: { currentPage: currentPage || "home", trysetEnabled: !!tryChecked },
           stream: true,
+          model: selectedModel,
         }),
       });
       if (!response.ok || !response.body) {
         const responseData = await response.json().catch(() => ({}));
-        if (responseData.dailyLimit != null) {
-          setDailyLimit(responseData.dailyLimit);
-          const newUsed = responseData.dailyUsed || 0;
-          setChatbotUsed(newUsed);
-          writeChatbotUsedToStorage(newUsed, responseData.dailyUsedDate || getUtcDayKey());
-        }
+        if (responseData.tokenUsed != null) setTokenUsed(Number(responseData.tokenUsed || 0));
+        if (responseData.tokenLimit != null) setTokenLimit(Number(responseData.tokenLimit || 0));
         setMessages((prev) => [
           ...prev.slice(0, -1),
           { role: "assistant", content: responseData.limitMessage || responseData.error || "Grubnuk is not here for now" },
@@ -287,9 +266,9 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
 
   return {
     bodyRef,
-    chatbotUsed,
     cooldown,
-    dailyLimit,
+    tokenLimit,
+    tokenUsed,
     handleBodyScroll,
     handleKeyDown,
     input,
@@ -298,6 +277,8 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
     messages,
     reportAnswer,
     sendMessage,
+    selectedModel,
+    setSelectedModel,
     setInput,
   };
 }
