@@ -592,10 +592,12 @@
 .chatbot-quota-wrap { position: relative; flex: 0 0 auto; }
 .chatbot-token-quota { white-space: nowrap; border: 1px solid rgba(218, 174, 104, .28); border-radius: 7px; background: rgba(131, 88, 38, .16); color: #e7cfaa; padding: 5px 7px; font: inherit; font-size: 11px; cursor: pointer; }
 .chatbot-token-quota:hover, .chatbot-token-quota:focus-visible { border-color: #c69a5c; }
-.chatbot-quota-tooltip { position: absolute; z-index: 30; top: calc(100% + 8px); right: 0; width: 240px; padding: 12px; border: 1px solid rgba(218, 174, 104, .35); border-radius: 10px; background: #241d17; color: #f0e4d1; box-shadow: 0 12px 32px rgba(0, 0, 0, .45); font-size: 11px; cursor: default; }
+.chatbot-quota-tooltip { position: absolute; z-index: 30; top: calc(100% + 8px); right: 0; width: min(290px, calc(100vw - 32px)); padding: 12px; border: 1px solid rgba(218, 174, 104, .35); border-radius: 10px; background: #241d17; color: #f0e4d1; box-shadow: 0 12px 32px rgba(0, 0, 0, .45); font-size: 11px; cursor: default; }
 .chatbot-quota-tooltip strong { display: block; margin-bottom: 8px; font-size: 12px; }
+.chatbot-quota-section { border-top: 1px solid rgba(218, 174, 104, .15); padding: 7px 0 3px; }
+.chatbot-quota-section.is-selected { color: #e8b76f; }
+.chatbot-quota-heading { display: flex; justify-content: space-between; gap: 12px; }
 .chatbot-quota-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; }
-.chatbot-quota-row.is-selected { color: #e8b76f; }
 .chatbot-quota-tooltip small { display: block; margin-top: 7px; opacity: .65; }
 @media (max-width: 520px) {
   .chatbot-model-label { display: none; }

@@ -1,6 +1,6 @@
 # Frontend handoff
 
-Chatbot quota UI (2026-09-29): The header now uses a compact selected-model counter with click details for Qwen and Luna. The backend `/chatbot/quota` response now returns separate model usage and limits matching `/chatbot` enforcement. Frontend lint/build and backend syntax/diff checks pass. Browser interaction and live API validation remain open; no restart, commit, push or deployment.
+Chatbot quota UI (2026-09-29): The compact header counter shows remaining tokens for the selected model; lifetime Qwen shows unlimited plus tokens used in the rolling 7-day window. Click details follow the current backend `/chatbot/quota` contract: Qwen rolling 7-day free balance plus paid credits, lifetime Qwen usage, Luna paid credits. Frontend lint/build and diff check pass. Browser interaction and live API validation remain open; no restart, commit, push or deployment.
 
 Updated: 2026-09-29
 

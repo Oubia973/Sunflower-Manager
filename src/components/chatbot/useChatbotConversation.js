@@ -25,8 +25,6 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
     }
     return "qwen";
   });
-  const tokenUsed = modelQuotas?.[selectedModel]?.tokenUsed ?? 0;
-  const tokenLimit = modelQuotas?.[selectedModel]?.tokenLimit ?? 0;
   const bodyRef = useRef(null);
   const bodyAutoScrollRef = useRef(true);
   const streamBufferRef = useRef("");
@@ -99,8 +97,9 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
     if (payload?.tokenUsed != null || payload?.tokenLimit != null) {
       const model = payload.selectedModel === "luna" && isSubscriber ? "luna" : selectedModel;
       setModelQuotas((current) => ({ ...current, [model]: {
+        ...current?.[model],
         tokenUsed: Number(payload.tokenUsed ?? current?.[model]?.tokenUsed ?? 0),
-        tokenLimit: Number(payload.tokenLimit ?? current?.[model]?.tokenLimit ?? 0),
+        tokenLimit: payload.tokenLimit ?? current?.[model]?.tokenLimit ?? null,
       } }));
     }
     if (payload?.tokenUsed != null) setQuotaRevision((revision) => revision + 1);
@@ -191,10 +190,12 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
         const responseData = await response.json().catch(() => ({}));
         if (responseData.tokenUsed != null || responseData.tokenLimit != null) {
           setModelQuotas((current) => ({ ...current, [selectedModel]: {
+            ...current?.[selectedModel],
             tokenUsed: Number(responseData.tokenUsed ?? current?.[selectedModel]?.tokenUsed ?? 0),
-            tokenLimit: Number(responseData.tokenLimit ?? current?.[selectedModel]?.tokenLimit ?? 0),
+            tokenLimit: responseData.tokenLimit ?? current?.[selectedModel]?.tokenLimit ?? null,
           } }));
         }
+        if (response.status === 429) setQuotaRevision((revision) => revision + 1);
         setMessages((prev) => [
           ...prev.slice(0, -1),
           { role: "assistant", content: responseData.limitMessage || responseData.error || "Grubnuk is not here for now" },
@@ -298,8 +299,6 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
   return {
     bodyRef,
     cooldown,
-    tokenLimit,
-    tokenUsed,
     modelQuotas,
     handleBodyScroll,
     handleKeyDown,
