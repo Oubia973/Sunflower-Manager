@@ -1,5 +1,9 @@
 # Frontend handoff
 
+Chatbot quota percentages (2026-09-30): Capped Qwen/Luna counters and tooltip balances display percent remaining; lifetime Qwen stays unlimited and still shows actual rolling 7-day tokens used. Frontend lint/build and diff check pass; browser rendering remains open. No commit, push or deployment.
+
+Chatbot access (2026-09-30): The App header button and modal are no longer gated on `isAboFarm`; free farms can open Qwen. Model and token-credit restrictions remain in the chatbot/backend. Frontend lint/build and diff check pass; browser interaction and live API validation remain open. No commit, push or deployment.
+
 Chatbot quota UI (2026-09-29): The compact header counter shows remaining tokens for the selected model; lifetime Qwen shows unlimited plus tokens used in the rolling 7-day window. Click details follow the current backend `/chatbot/quota` contract: Qwen rolling 7-day free balance plus paid credits, lifetime Qwen usage, Luna paid credits. Frontend lint/build and diff check pass. Browser interaction and live API validation remain open; no restart, commit, push or deployment.
 
 Updated: 2026-09-29

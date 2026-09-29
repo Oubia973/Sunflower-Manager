@@ -14,7 +14,7 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
     handleBodyScroll,
     handleKeyDown,
     input,
-    isSubscriber,
+    lunaAvailable,
     loading,
     messages,
     reportAnswer,
@@ -174,6 +174,9 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
   }, [quotaOpen]);
 
   const compactTokens = (value) => new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+  const percentLeft = (remaining, limit) => limit > 0
+    ? `${Math.max(0, Math.min(100, Math.round((Number(remaining || 0) / limit) * 100)))}%`
+    : "0%";
   const selectedQuota = modelQuotas?.[selectedModel];
   const quotaRemaining = selectedQuota?.remaining;
 
@@ -218,32 +221,32 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
             <span className="chatbot-beta-badge">BETA</span>
           </div>
           <div className="chatbot-header-meta">
-            <div className="chatbot-model-control" title={isSubscriber ? "Choose the AI model" : "Luna is available to subscribers"}>
+            <div className="chatbot-model-control" title={lunaAvailable ? "Choose the AI model" : "Luna requires paid token credits"}>
               <span className="chatbot-model-label">Model</span>
-              <DList options={[{ value: "qwen", label: "Qwen", disabled: loading }, { value: "luna", label: isSubscriber ? "Luna" : "Luna (subscriber)", disabled: !isSubscriber || loading }]}
+              <DList options={[{ value: "qwen", label: "Qwen", disabled: loading }, { value: "luna", label: lunaAvailable ? "Luna" : "Luna (no credits)", disabled: !lunaAvailable || loading }]}
                 value={selectedModel} onChange={(model) => { if (!loading) setSelectedModel(model); }} emitEvent={false} ariaLabel="AI model" width={90} />
             </div>
             {selectedQuota ? (
               <div className="chatbot-quota-wrap" ref={quotaRef}>
                 <button type="button" className="chatbot-token-quota" onClick={() => setQuotaOpen((open) => !open)}
-                  aria-expanded={quotaOpen} aria-label={`${selectedModel === "luna" ? "Luna" : "Qwen"}: ${selectedQuota.unlimited ? `unlimited, ${Number(selectedQuota.weeklyUsed || 0).toLocaleString()} tokens used in the last 7 days` : `${Number(quotaRemaining || 0).toLocaleString()} tokens remaining`}. Show quota details`}>
-                  {selectedQuota.unlimited ? `Unlimited · ${compactTokens(Number(selectedQuota.weeklyUsed || 0))} used` : `${compactTokens(Number(quotaRemaining || 0))} left`} <span aria-hidden="true">⌄</span>
+                  aria-expanded={quotaOpen} aria-label={`${selectedModel === "luna" ? "Luna" : "Qwen"}: ${selectedQuota.unlimited ? `unlimited, ${Number(selectedQuota.weeklyUsed || 0).toLocaleString()} tokens used in the last 7 days` : `${percentLeft(quotaRemaining, selectedQuota.tokenLimit)} of quota remaining`}. Show quota details`}>
+                  {selectedQuota.unlimited ? `Unlimited · ${compactTokens(Number(selectedQuota.weeklyUsed || 0))} used` : `${percentLeft(quotaRemaining, selectedQuota.tokenLimit)} left`} <span aria-hidden="true">⌄</span>
                 </button>
                 {quotaOpen && <div className="chatbot-quota-tooltip" role="dialog" aria-label="AI token quotas">
                   <strong>AI token quotas</strong>
                   <div className={`chatbot-quota-section ${selectedModel === "qwen" ? "is-selected" : ""}`}>
-                    <div className="chatbot-quota-heading"><b>Qwen</b><span>{modelQuotas?.qwen?.unlimited ? "Unlimited" : `${Number(modelQuotas?.qwen?.remaining || 0).toLocaleString()} left`}</span></div>
+                    <div className="chatbot-quota-heading"><b>Qwen</b><span>{modelQuotas?.qwen?.unlimited ? "Unlimited" : `${percentLeft(modelQuotas?.qwen?.remaining, modelQuotas?.qwen?.tokenLimit)} left`}</span></div>
                     {modelQuotas?.qwen?.unlimited ? <>
                       <div className="chatbot-quota-row"><span>Used · rolling 7 days</span><span>{Number(modelQuotas.qwen.weeklyUsed || 0).toLocaleString()} tokens</span></div>
                       <small>Lifetime farm: unlimited Qwen use</small>
                     </> : <>
-                      <div className="chatbot-quota-row"><span>Free · rolling 7 days</span><span>{Number(modelQuotas?.qwen?.freeRemaining || 0).toLocaleString()} / {Number(modelQuotas?.qwen?.weeklyLimit || 0).toLocaleString()} left</span></div>
-                      <div className="chatbot-quota-row"><span>Paid credits</span><span>{Number(modelQuotas?.qwen?.paidRemaining || 0).toLocaleString()} / {Number(modelQuotas?.qwen?.paidGranted || 0).toLocaleString()} left</span></div>
+                      <div className="chatbot-quota-row"><span>Free · rolling 7 days</span><span>{percentLeft(modelQuotas?.qwen?.freeRemaining, modelQuotas?.qwen?.weeklyLimit)} left</span></div>
+                      <div className="chatbot-quota-row"><span>Credits</span><span>{percentLeft(modelQuotas?.qwen?.paidRemaining, modelQuotas?.qwen?.paidGranted)} left</span></div>
                     </>}
                   </div>
                   <div className={`chatbot-quota-section ${selectedModel === "luna" ? "is-selected" : ""}`}>
-                    <div className="chatbot-quota-heading"><b>Luna</b><span>{Number(modelQuotas?.luna?.remaining || 0).toLocaleString()} left</span></div>
-                    <div className="chatbot-quota-row"><span>Paid credits</span><span>{Number(modelQuotas?.luna?.paidUsed || 0).toLocaleString()} used / {Number(modelQuotas?.luna?.paidGranted || 0).toLocaleString()}</span></div>
+                    <div className="chatbot-quota-heading"><b>Luna</b><span>{percentLeft(modelQuotas?.luna?.remaining, modelQuotas?.luna?.tokenLimit)} left</span></div>
+                    <div className="chatbot-quota-row"><span>Credits</span><span>{percentLeft(modelQuotas?.luna?.paidRemaining, modelQuotas?.luna?.paidGranted)} left</span></div>
                   </div>
                 </div>}
               </div>

@@ -4,7 +4,6 @@ import { createChatbotStreamParser, STREAM_FINAL_PREFIX, STREAM_STATUS_PREFIX } 
 const QUESTION_COOLDOWN_SECONDS = 15;
 
 export default function useChatbotConversation({ API_URL, farmId, options, tryChecked, tryitPayload, currentPage, username }) {
-  const isSubscriber = !!options?.isAbo;
   const farmKey = String(farmId || username || "global").trim();
   const modelStorageKey = `sflman_chatbot_model:${farmKey}`;
   const [messages, setMessages] = useState([
@@ -14,11 +13,12 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [modelQuotas, setModelQuotas] = useState(null);
+  const lunaAvailable = Number(modelQuotas?.luna?.remaining || 0) > 0;
   const [quotaRevision, setQuotaRevision] = useState(0);
   const [selectedModel, setSelectedModelState] = useState(() => {
     try {
       const stored = String(localStorage.getItem(modelStorageKey) || "").toLowerCase();
-      if (stored === "luna" && isSubscriber) return "luna";
+      if (stored === "luna") return "luna";
       if (stored === "qwen") return "qwen";
     } catch {
       // Ignore unavailable localStorage (private mode, browser restrictions, etc.).
@@ -34,7 +34,7 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
   const streamNeedsFlushRef = useRef(false);
 
   function setSelectedModel(model) {
-    const next = model === "luna" && isSubscriber ? "luna" : "qwen";
+    const next = model === "luna" && lunaAvailable ? "luna" : "qwen";
     setSelectedModelState(next);
     try {
       localStorage.setItem(modelStorageKey, next);
@@ -50,7 +50,16 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
       .then((response) => response.ok ? response.json() : null)
       .then((quota) => {
         if (!quota?.ok) return;
-        setModelQuotas(quota.models || null);
+        const models = quota.models || null;
+        setModelQuotas(models);
+        if (selectedModel === "luna" && !(Number(models?.luna?.remaining || 0) > 0)) {
+          setSelectedModelState("qwen");
+          try {
+            localStorage.setItem(modelStorageKey, "qwen");
+          } catch {
+            // Model fallback still works when localStorage is unavailable.
+          }
+        }
       })
       .catch(() => {});
     return () => controller.abort();
@@ -95,7 +104,7 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
     if (payload?.answer != null) replaceAnswerText(payload.answer);
     if (payload?.responseId) setMessages((prev) => prev.map((message, index) => index === prev.length - 1 ? { ...message, responseId: payload.responseId } : message));
     if (payload?.tokenUsed != null || payload?.tokenLimit != null) {
-      const model = payload.selectedModel === "luna" && isSubscriber ? "luna" : selectedModel;
+      const model = payload.selectedModel === "luna" ? "luna" : selectedModel;
       setModelQuotas((current) => ({ ...current, [model]: {
         ...current?.[model],
         tokenUsed: Number(payload.tokenUsed ?? current?.[model]?.tokenUsed ?? 0),
@@ -103,7 +112,7 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
       } }));
     }
     if (payload?.tokenUsed != null) setQuotaRevision((revision) => revision + 1);
-    if (payload?.selectedModel) setSelectedModelState(payload.selectedModel === "luna" && isSubscriber ? "luna" : "qwen");
+    if (payload?.selectedModel) setSelectedModelState(payload.selectedModel === "luna" ? "luna" : "qwen");
   }
 
   function appendAnswerText(text) {
@@ -303,7 +312,7 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
     handleBodyScroll,
     handleKeyDown,
     input,
-    isSubscriber,
+    lunaAvailable,
     loading,
     messages,
     reportAnswer,

@@ -260,7 +260,6 @@ function App() {
 
   const isAboFarm = !!(dataSetFarm?.isabo ?? dataSet?.options?.isAbo);
   const aboStatusKnown = (dataSetFarm?.isabo !== undefined) || (dataSet?.options?.isAbo !== undefined);
-  const canUseChatbot = isAboFarm;
 
   // ========== Section Meta ==========
   const pageSectionRequirements = useMemo(() => {
@@ -1125,9 +1124,8 @@ function App() {
     setShowHelp(true);
   }, []);
   const handleButtonIAClick = useCallback(() => {
-    if (!canUseChatbot) return;
     setShowChatbot(true);
-  }, [canUseChatbot]);
+  }, []);
 
   // ========== Trade/Graph Handlers ==========
   const handleTraderClick = useCallback(() => { setGraphType("Marketplace"); setShowfGraph(true); }, []);
@@ -1327,12 +1325,6 @@ function App() {
     return () => { clearHoveredTooltipCell(); };
   }, []);
 
-  useEffect(() => {
-    if (!canUseChatbot && showChatbot) {
-      setShowChatbot(false);
-    }
-  }, [canUseChatbot, showChatbot]);
-
   // ========== Load Sections Meta ==========
   useEffect(() => {
     const loadSectionsMeta = async () => {
@@ -1475,11 +1467,9 @@ function App() {
                           <img src={vipLoading ? imgsyncing : imgadmin} alt="" className="itico" />
                         </button>
                       ) : null}
-                      {canUseChatbot ? (
-                        <button data-help-id="chatbot" onClick={handleButtonIAClick} className="button" disabled={iaLoading} title={iaLoading ? "Loading" : "Ask IA"}>
-                          <img src={iaLoading ? imggoblinThinking : imggrubnuk} alt="" className="itico" />
-                        </button>
-                      ) : null}
+                      <button data-help-id="chatbot" onClick={handleButtonIAClick} className="button" disabled={iaLoading} title={iaLoading ? "Loading" : "Ask IA"}>
+                        <img src={iaLoading ? imggoblinThinking : imggrubnuk} alt="" className="itico" />
+                      </button>
                     </div>
                     <DList
                       name="selectedCurr"
@@ -1830,7 +1820,7 @@ function App() {
             isAbo={isAboFarm}
             deviceId={deviceIdRef.current} />
         )}
-        {showChatbot && canUseChatbot && (
+        {showChatbot && (
           <ModalChatbot onClose={() => setShowChatbot(false)} API_URL={API_URL}
             farmId={curID || dataSet?.options?.farmId || dataSetFarm?.frmid || ""}
             options={dataSet.options}
