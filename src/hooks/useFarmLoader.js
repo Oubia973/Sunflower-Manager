@@ -386,6 +386,12 @@ export function useFarmLoader(
         setBumpkinData(result.mergedFarm?.Bumpkin || []);
         dataSetFarmRef.current = cleanFarmData;
 
+        if (responseData?.account?.legacyPaidNeedsAccount === true) {
+          window.dispatchEvent(new CustomEvent("sflman-account-dialog", {
+            detail: { mode: "register", farmId: String(responseData?.frmid || normalizedInputId) },
+          }));
+        }
+
         return {
           success: true,
           mergedFarm: result.mergedFarm,
