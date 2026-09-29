@@ -73,6 +73,7 @@ export async function fetchJsonResponse(apiUrl, endpoint, options = {}) {
 
   try {
     const response = await fetch(buildApiUrl(apiUrl, endpoint), {
+      credentials: 'include',
       ...fetchOptions,
       headers: requestHeaders,
       body: requestBody,
