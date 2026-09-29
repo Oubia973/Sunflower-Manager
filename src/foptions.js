@@ -121,6 +121,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
     const [activeSection, setActiveSection] = useState("general");
     const [justOpened, setJustOpened] = useState(true);
     const [notifTestBusy, setNotifTestBusy] = useState(false);
+    const [accountState, setAccountState] = useState(null);
     const [tradeTax, setTradeTax] = useState(dataSet.tradeTax || "");
     const [gemsPack, setGemsPack] = useState(Number(dataSet.gemsPack || 15500));
     const [draftOptions, setDraftOptions] = useState(() => ({
@@ -391,6 +392,15 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
         return () => clearTimeout(timer);
     }, []);
     useEffect(() => {
+        const farmId = String(dataSet?.farmId || "").trim();
+        if (!farmId) return;
+        let cancelled = false;
+        fetchJson(API_URL, `/account/status?farmId=${encodeURIComponent(farmId)}`)
+            .then((value) => { if (!cancelled) setAccountState(value); })
+            .catch(() => { if (!cancelled) setAccountState(null); });
+        return () => { cancelled = true; };
+    }, [API_URL, dataSet?.farmId]);
+    useEffect(() => {
         setTimeout(() => {
             //setPos({ x: "50%", y: "50%" });
             setIsOpen(true);
@@ -480,6 +490,22 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
                 <div className="options-modal__content">
                 <section className={`options-section ${activeSection === "general" ? "active" : ""}`}>
                     <h3>General</h3>
+                <div className="options-setting options-setting--account">
+                    <label><strong>Account</strong></label>
+                    {!accountState?.exists ? (
+                        <>
+                            <button type="button" className="button" onClick={() => window.dispatchEvent(new CustomEvent("sflman-account-dialog", { detail: { mode: "register", farmId: String(dataSet?.farmId || "") } }))}>Create account</button>
+                            <small>{isAbo ? "Create your account to secure this paid farm." : "Protect this farm with a login and password."}</small>
+                        </>
+                    ) : accountState?.authenticated ? (
+                        <>
+                            <span>Connected as <strong>{accountState.login}</strong></span>
+                            <button type="button" className="button" onClick={async () => { await fetchJson(API_URL, "/account/logout", { method: "POST" }); window.location.reload(); }}>Log out</button>
+                        </>
+                    ) : (
+                        <button type="button" className="button" onClick={() => window.dispatchEvent(new CustomEvent("sflman-account-dialog", { detail: { mode: "login", farmId: String(dataSet?.farmId || "") } }))}>Log in</button>
+                    )}
+                </div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={dataSet.autoRefresh !== false}
                     name={"autoRefresh"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Auto refresh tables</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.checkPlacedEquiped || 0}

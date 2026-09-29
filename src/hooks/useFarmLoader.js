@@ -429,6 +429,11 @@ export function useFarmLoader(
 
       return await handleSuccessResponse(initialResult.data);
     } catch (error) {
+      if (error?.code === "FARM_LOGIN_REQUIRED") {
+        window.dispatchEvent(new CustomEvent("sflman-account-dialog", {
+          detail: { mode: "login", farmId: String(error?.payload?.farmId || normalizedInputId) },
+        }));
+      }
       if (!isCurrent()) {
         if (loadGenerationRef.current === loadGeneration) setError('');
         return { success: false, stale: true, error: '' };

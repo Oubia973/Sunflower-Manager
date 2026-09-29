@@ -7,6 +7,7 @@ import ModalOptions from './foptions.js';
 import ModalChatbot from './chatbot.jsx';
 import ModalAdmin from './fadmin.jsx';
 import PageCoach from './components/PageCoach.jsx';
+import AccountDialog from './components/AccountDialog.jsx';
 import Cadre from './animodal.js';
 import Tooltip from "./tooltip.js";
 import DList from "./dlist.jsx";
@@ -1807,6 +1808,7 @@ function App() {
               />
             </AppCtx.Provider> : null}
         </div>
+        <AccountDialog API_URL={API_URL} />
         {showOptions && (
           <ModalOptions onClose={() => {
             handleCloseOptions();
