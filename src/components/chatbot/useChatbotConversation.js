@@ -20,7 +20,9 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
       const stored = String(localStorage.getItem(modelStorageKey) || "").toLowerCase();
       if (stored === "luna" && isSubscriber) return "luna";
       if (stored === "qwen") return "qwen";
-    } catch {}
+    } catch {
+      // Ignore unavailable localStorage (private mode, browser restrictions, etc.).
+    }
     return "qwen";
   });
   const bodyRef = useRef(null);
@@ -34,7 +36,11 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
   function setSelectedModel(model) {
     const next = model === "luna" && isSubscriber ? "luna" : "qwen";
     setSelectedModelState(next);
-    try { localStorage.setItem(modelStorageKey, next); } catch {}
+    try {
+      localStorage.setItem(modelStorageKey, next);
+    } catch {
+      // Model selection still works when localStorage is unavailable.
+    }
   }
 
   function clearStreamTimer() {
