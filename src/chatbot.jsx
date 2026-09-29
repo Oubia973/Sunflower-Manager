@@ -8,9 +8,9 @@ import "./components/chatbot/chatbot-ui.css";
 function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayload, currentPage, username }) {
   const {
     bodyRef,
-    chatbotUsed,
     cooldown,
-    dailyLimit,
+    tokenLimit,
+    tokenUsed,
     handleBodyScroll,
     handleKeyDown,
     input,
@@ -19,6 +19,8 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
     messages,
     reportAnswer,
     sendMessage,
+    selectedModel,
+    setSelectedModel,
     setInput,
   } = useChatbotConversation({ API_URL, farmId, options, tryChecked, tryitPayload, currentPage, username });
   const [isOpen, setIsOpen] = useState(false);
@@ -198,11 +200,18 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
             <span className="chatbot-beta-badge">BETA</span>
           </div>
           <div className="chatbot-header-meta">
-            {isSubscriber ? null : (
-              <span className="chatbot-remaining-questions" title={`Remaining today: ${Math.max(0, dailyLimit - chatbotUsed)}`}>
-                {Math.max(0, dailyLimit - chatbotUsed)}/{dailyLimit} <span className="chatbot-remaining-questions-label">daily limit</span>
+            <label className="chatbot-model-control" title={isSubscriber ? "Choose the AI model" : "Luna is available to subscribers"}>
+              <span className="chatbot-model-label">Model</span>
+              <select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)} disabled={loading}>
+                <option value="qwen">Qwen</option>
+                <option value="luna" disabled={!isSubscriber}>Luna{isSubscriber ? "" : " 🔒"}</option>
+              </select>
+            </label>
+            {tokenLimit > 0 ? (
+              <span className="chatbot-token-quota" title={`${tokenUsed.toLocaleString()} / ${tokenLimit.toLocaleString()} tokens used this month`}>
+                {Math.min(100, Math.round((tokenUsed / tokenLimit) * 100))}% <span className="chatbot-token-quota-label">quota</span>
               </span>
-            )}
+            ) : null}
             <button
               type="button"
               onClick={toggleFullscreen}
