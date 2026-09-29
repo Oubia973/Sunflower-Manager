@@ -3,7 +3,7 @@
  * Extracted from App.js section loading logic
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { hasSectionData } from '../utils/farmState.js';
 import { computeRequiredSections } from '../utils/sections.js';
 
@@ -22,7 +22,7 @@ export function useSectionLoader(
   markPageSyncedPulse,
   getPageSyncedPulse,
   getTryitRequestPayload,
-  getPrices
+  getPricesWithOutcome
 ) {
   const [sectionsLoading] = useState(false);
   const [headerRequestLoading, setHeaderRequestLoading] = useState(false);
@@ -31,6 +31,18 @@ export function useSectionLoader(
   const lastNavLoadSignatureRef = useRef({ signature: '', at: 0 });
   const suppressNavUntilRef = useRef(0);
   const postTryCloseCoverageRef = useRef(null);
+  const viewKey = JSON.stringify([dataSetFarm?.frmid, ui?.selectedInv,
+    computeRequiredSections(ui, pageSectionRequirements), autoRefreshPulse,
+    (() => {
+      try { return typeof getTryitRequestPayload === 'function' ? getTryitRequestPayload(dataSetFarmRef?.current || dataSetFarm || {}) : null; }
+      catch { return null; }
+    })()]);
+  const viewContextRef = useRef({ key: viewKey, generation: 0 });
+  useLayoutEffect(() => {
+    if (viewContextRef.current.key !== viewKey) {
+      viewContextRef.current = { key: viewKey, generation: viewContextRef.current.generation + 1 };
+    }
+  }, [viewKey]);
 
   let headerRequestCountRef = useRef(0);
 
@@ -117,10 +129,26 @@ export function useSectionLoader(
     lastNavLoadSignatureRef.current = { signature: requestSignature, at: Date.now() };
 
     navLoadInFlightRef.current = true;
+    const viewGeneration = viewContextRef.current.generation;
     beginHeaderRequest();
 
     try {
-      await getPrices(false, true, null, false, null, shouldForceNavAfterRefreshElsewhere, 'SECTION_LOAD');
+      const outcome = await getPricesWithOutcome(false, true, null, false, null, shouldForceNavAfterRefreshElsewhere, 'SECTION_LOAD');
+      const currentFarm = dataSetFarmRef?.current || outcome?.farm;
+      const canSync = outcome?.status === 'applied'
+        && viewGeneration === viewContextRef.current.generation
+        && String(outcome.requestedFarmId) === String(currentFarm?.frmid)
+        && outcome.requestedPage === currentPage
+        && required.every(section => outcome.requestedSections?.includes(section)
+          && outcome.confirmedSections?.includes(section)
+          && hasSectionData(currentFarm, section, sectionPayloadKeys, sectionTablePaths))
+        && !outcome.rejectedTablePaths?.length;
+      if (!canSync) {
+        // Allow an explicit retry soon, but do not loop on the state update
+        // produced by a partial response that still lacks page coverage.
+        if (lastNavLoadSignatureRef.current.signature === requestSignature) lastNavLoadSignatureRef.current.at = Date.now() - 4500;
+        return;
+      }
       if (shouldForceNavAfterRefreshElsewhere && typeof markPageSyncedPulse === 'function') {
         markPageSyncedPulse(currentPage, latestRefreshPulse);
         postTryCloseCoverageRef.current = {
@@ -132,6 +160,7 @@ export function useSectionLoader(
         };
       }
     } catch (error) {
+      if (lastNavLoadSignatureRef.current.signature === requestSignature) lastNavLoadSignatureRef.current.at = Date.now() - 4500;
       console.log(`Error: ${error}`);
     } finally {
       navLoadInFlightRef.current = false;
@@ -140,7 +169,7 @@ export function useSectionLoader(
   }, [
     dataSetFarm, dataSetFarmRef, ui, pageSectionRequirements, sectionPayloadKeys, sectionTablePaths,
     refreshInFlightRef, autoRefreshPulse, markPageSyncedPulse, getPageSyncedPulse, getTryitRequestPayload,
-    getPrices, beginHeaderRequest, endHeaderRequest
+    getPricesWithOutcome, beginHeaderRequest, endHeaderRequest
   ]);
 
   // Auto-load sections when page/farm changes

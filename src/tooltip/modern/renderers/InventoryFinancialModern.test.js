@@ -31,6 +31,17 @@ test("presents nested production costs as an expandable composition", () => {
   expect(html).toContain("/ ");
 });
 
+test("uses local resource icons when Home has no component images", () => {
+  const html = renderToStaticMarkup(<InventoryFinancialModern context="costp" contract={{
+    item: "Gold", itemImage: "gold.png", productionCostFlower: 0.3,
+    detail: { kind: "tool", toolName: "Iron Pickaxe", costTree: { nodes: {
+      Wood: { qty: 3 }, Iron: { qty: 5 },
+    } } },
+  }} />);
+  expect(html).toContain("icon/res/wood.png");
+  expect(html).toContain("icon/res/iron_ore.png");
+});
+
 test("keeps the animal food composition and its totals", () => {
   const html = renderToStaticMarkup(<InventoryFinancialModern context="costp" compositionCatalog={{ Corn: { image: "corn.png" } }} contract={{
     profitFlower: 1, profitMultiplier: 2, profitPercent: 100,

@@ -5,8 +5,6 @@
 
 import { useRef, useCallback } from 'react';
 import {
-  unpackFarmPayloadTables,
-  applyFarmPayloadTableDeltas,
   mergeFarmStateDeep,
   formatUpdated,
   frmtNb,
@@ -20,9 +18,8 @@ import {
 import { computeGemsRatio } from '../gemsRatio.js';
 import {
   buildTryitCoverageSignature,
-  extractReceivedTableHashes,
+  mergeKnownHashesFromPayload,
   mergeTradeEntryHashesFromPayload,
-  applyTradesDeltaToPayload,
   shouldDebugHashFlow,
   hasInventoryItemFields,
   collectKnownProjectionHashes,
@@ -30,7 +27,9 @@ import {
 import { getBalanceValue } from '../utils/balance.js';
 import { computeRequiredSections } from '../utils/sections.js';
 import { fetchJson } from '../services/apiClient.js';
-import { normalizeServerImagesDeep, versionImageUrl } from '../constants/images.js';
+import { versionImageUrl } from '../constants/images.js';
+import { prepareFarmTableResponse, finalizeFarmResponse } from '../utils/farmResponse/prepareFarmResponse.js';
+import { claimFarmRequestSections, currentFarmRequestSections, selectFarmResponseSections } from '../utils/farmResponse/responseScope.js';
 import { getDailyCoinFlow } from '../utils/coinActivity.js';
 
 /**
@@ -65,12 +64,17 @@ export function useDataFetcher(
   getTryitRequestPayload,
   hasSectionData,
   hasPathData,
-  showfDlvr
+  showfDlvr,
+  calculationIntentRef,
+  farmIdentityIntentRef
 ) {
   // Internal header request tracking (eliminates circular dependency with useSectionLoader)
   const headerRequestCountRef = useRef(0);
   const farmRequestSequenceRef = useRef(0);
+  const latestRequestByResourceRef = useRef(new Map());
   const refreshRequestCountRef = useRef(0);
+  const latestUiRef = useRef(ui);
+  latestUiRef.current = ui;
 
   const beginHeaderRequest = useCallback(() => {
     headerRequestCountRef.current += 1;
@@ -87,7 +91,7 @@ export function useDataFetcher(
   /**
    * Fetch prices and/or farm data sections
    */
-  const getPrices = useCallback(async (
+  const getPricesWithOutcome = useCallback(async (
     onlyPrices,
     withSectionLoader = false,
     forcedSections = null,
@@ -96,13 +100,16 @@ export function useDataFetcher(
     alwaysCheckServer = false,
     requestTag = ""
   ) => {
+    let requestInfo = {};
+    const outcome = (status, legacyValue, extra = {}) => ({ ...requestInfo, status,
+      farm: legacyValue, legacyValue, rejectedTablePaths: [], confirmedSections: [], ...extra });
     if (!onlyPrices && (!pageSectionRequirements || !sectionPayloadKeys || !sectionTablePaths)) {
       setReqState(sectionsMetaError || "Config sections missing");
-      return;
+      return outcome('unavailable', undefined, { reason: 'sections-config' });
     }
     if (!onlyPrices && !isValidTryitConfig(tryitConfig)) {
       setReqState(sectionsMetaError || "Tryset config missing. Local selections are preserved; calculations are paused until backend config reloads.");
-      return null;
+      return outcome('unavailable', null, { reason: 'tryit-config' });
     }
     const currentFarmState = dataSetFarmRef.current || {};
     const { tryitarrays: tryItArrays, tryitMode } = getTryitRequestPayload(currentFarmState);
@@ -110,6 +117,13 @@ export function useDataFetcher(
       tryitarrays: tryItArrays,
       tryitMode,
     });
+    const requestCalculationIntent = calculationIntentRef?.current || 0;
+    const requestIdentityRevision = farmIdentityIntentRef?.current?.revision || 0;
+    const requestTrySeason = String(ui?.selectedTrySeason || "all").toLowerCase();
+    const isCalculationContextCurrent = () => (
+      requestCalculationIntent === (calculationIntentRef?.current || 0)
+      && requestTrySeason === String(latestUiRef.current?.selectedTrySeason || "all").toLowerCase()
+    );
     const includeSource = (Array.isArray(forcedSections) && forcedSections.length > 0)
       ? forcedSections
       : computeRequiredSections(ui, pageSectionRequirements);
@@ -134,10 +148,12 @@ export function useDataFetcher(
     const includeToRequest = (withSectionLoader && !forceRecalc && !alwaysCheckServer)
       ? includeMissingOnly
       : include;
+    requestInfo = { requestedFarmId: String(currentFarmState?.frmid || dataSet?.options?.farmId || "").trim(),
+      requestedPage, requestedSections: [...includeToRequest] };
     const hasAllRequestedSectionsLocal = includeMissingOnly.length < 1;
     if (!onlyPrices && withSectionLoader && !forceRecalc && !alwaysCheckServer && hasAllRequestedSectionsLocal) {
       setReqState('');
-      return;
+      return outcome('cached', undefined, { farm: currentFarmState });
     }
     if (!onlyPrices && withSectionLoader) {
       setSectionsLoading(true);
@@ -180,13 +196,18 @@ export function useDataFetcher(
     });
     const requestMode = withSectionLoader && requestTag !== "AUTO_REFRESH" ? "nav" : "refresh";
     const requestFarmId = dataSetFarmRef.current?.frmid || dataSet?.options?.farmId || "";
+    const isFarmIdentityCurrent = () => {
+      const intent = farmIdentityIntentRef?.current;
+      return requestIdentityRevision === (intent?.revision || 0)
+        && !(intent?.pending && String(intent.sourceFarmId) === String(requestFarmId));
+    };
     let vHeaders = onlyPrices ? {
       onlyprices: "true",
     } : {
       frmid: requestFarmId,
       deviceId: deviceIdRef.current,
       options: dataSet.options,
-      selectedTrySeason: String(ui?.selectedTrySeason || "all").toLowerCase(),
+      selectedTrySeason: requestTrySeason,
       include: [...new Set(includeToRequest)],
       page: requestedPage,
       knownHashes,
@@ -218,6 +239,8 @@ export function useDataFetcher(
     const requestSequence = onlyPrices ? 0 : farmRequestSequenceRef.current + 1;
     if (!onlyPrices) {
       farmRequestSequenceRef.current = requestSequence;
+      claimFarmRequestSections(includeToRequest, requestSequence, latestRequestByResourceRef.current,
+        sectionPayloadKeys, sectionTablePaths);
     }
     try {
       const responseData = await fetchJson(API_URL, "/getdatacrypto", {
@@ -225,9 +248,22 @@ export function useDataFetcher(
         body: vHeaders,
         timeoutMs: 30_000,
       });
-        if (!onlyPrices && requestSequence !== farmRequestSequenceRef.current) {
+        const currentSections = onlyPrices ? [] : currentFarmRequestSections(
+          includeToRequest, requestSequence, latestRequestByResourceRef.current,
+          sectionPayloadKeys, sectionTablePaths
+        );
+        const isScopedLate = !onlyPrices && requestSequence !== farmRequestSequenceRef.current;
+        if (!onlyPrices && currentSections.length === 0) {
           console.log(`[farm] stale response ignored${requestTag ? ` (${requestTag})` : ""}`);
-          return dataSetFarmRef.current || null;
+          return outcome('ignored', dataSetFarmRef.current || null, { reason: 'sequence' });
+        }
+        if (!onlyPrices && !isCalculationContextCurrent()) {
+          console.log(`[farm] calculation context changed; response ignored${requestTag ? ` (${requestTag})` : ""}`);
+          return outcome('ignored', dataSetFarmRef.current || null, { reason: 'options' });
+        }
+        if (!onlyPrices && !isFarmIdentityCurrent()) {
+          console.log(`[farm] identity changed; response ignored${requestTag ? ` (${requestTag})` : ""}`);
+          return outcome('ignored', dataSetFarmRef.current || null, { reason: 'farm-intent' });
         }
         const latestFarmId = String(
           dataSetFarmRef.current?.frmid || dataSet?.options?.farmId || ""
@@ -239,7 +275,7 @@ export function useDataFetcher(
           String(requestFarmId).trim() !== latestFarmId
         ) {
           console.log(`[farm] response for previous farm ignored${requestTag ? ` (${requestTag})` : ""}`);
-          return dataSetFarmRef.current || null;
+          return outcome('ignored', dataSetFarmRef.current || null, { reason: 'farm' });
         }
         const latestTryitSignature = buildTryitCoverageSignature(
           getTryitRequestPayload(dataSetFarmRef.current || {})
@@ -247,12 +283,15 @@ export function useDataFetcher(
         if (!onlyPrices && latestTryitSignature !== requestTryitSignature) {
           console.log(`[tryset] stale response ignored${requestTag ? ` (${requestTag})` : ""}`);
           setReqState('');
-          return dataSetFarmRef.current || null;
+          return outcome('ignored', dataSetFarmRef.current || null, { reason: 'tryset' });
         }
-        const unpackedRespData = unpackFarmPayloadTables(responseData.allData);
-        const deltaResult = applyFarmPayloadTableDeltas(
-          currentFarmState,
-          unpackedRespData,
+        const receiveFarmState = dataSetFarmRef.current || currentFarmState;
+        const scopedRawPayload = isScopedLate
+          ? selectFarmResponseSections(responseData.allData, currentSections, sectionPayloadKeys, sectionTablePaths)
+          : responseData.allData;
+        const deltaResult = prepareFarmTableResponse(
+          receiveFarmState,
+          scopedRawPayload,
           farmTableHashesRef.current || {},
           tryitConfig
         );
@@ -268,44 +307,25 @@ export function useDataFetcher(
           });
           console.warn(`[table-delta] rejected ${tablePath}; next request will fetch the full table`);
         });
-        const rawRespData = deltaResult.payload;
-        const normalizedRawRespData = normalizeServerImagesDeep(rawRespData || {});
-        if (normalizedRawRespData?.constants?.imgtkt) {
-          normalizedRawRespData.constants.imgtkt = versionImageUrl(normalizedRawRespData.constants.imgtkt);
-        }
-        const respData = rawRespData && typeof rawRespData === "object"
-          ? applyTradesDeltaToPayload(currentFarmState, normalizedRawRespData)
-          : normalizedRawRespData;
-        let mergedFarmData = currentFarmState;
-        if (Array.isArray(responseData.priceData) || typeof responseData.priceData === 'string') {
+        const { rawPayload: rawRespData, payload: respData } = finalizeFarmResponse(receiveFarmState, deltaResult.payload);
+        let mergedFarmData = receiveFarmState;
+        if (!isScopedLate && (Array.isArray(responseData.priceData) || typeof responseData.priceData === 'string')) {
           setpriceData(responseData.priceData);
           if (Array.isArray(responseData.priceData)) {
             dataSet.options.usdSfl = responseData.priceData[2];
           }
-        } else {
+        } else if (!isScopedLate) {
           console.error('[DEBUG useDataFetcher] priceData is not array/string, skipping setpriceData. Value:', responseData.priceData);
         }
         if (respData !== "" && respData !== undefined) {
-          if (respData?.sectionHashes && typeof respData.sectionHashes === "object") {
-            farmSectionHashesRef.current = {
-              ...(farmSectionHashesRef.current || {}),
-              ...respData.sectionHashes,
-            };
-          }
-          if (respData?.tableHashes && typeof respData.tableHashes === "object") {
-            const knownFromPayload = extractReceivedTableHashes(respData, respData.tableHashes);
-            farmTableHashesRef.current = {
-              ...(farmTableHashesRef.current || {}),
-              ...knownFromPayload,
-            };
-          }
+          mergeKnownHashesFromPayload(respData, farmSectionHashesRef, farmTableHashesRef);
           mergeTradeEntryHashesFromPayload(rawRespData, tradeEntryHashesRef);
-          mergedFarmData = mergeFarmStateDeep(currentFarmState, respData, tryitConfig);
+          mergedFarmData = mergeFarmStateDeep(receiveFarmState, respData, tryitConfig);
           const tryitSnapshot = resolveTryitSnapshot({
-            farmState: currentFarmState,
+            farmState: receiveFarmState,
             tryitConfig,
             responseSnapshot: null,
-            farmId: String(currentFarmState?.frmid || dataSet?.options?.farmId || "").trim(),
+            farmId: String(receiveFarmState?.frmid || dataSet?.options?.farmId || "").trim(),
           });
           mergedFarmData = syncTryitStateAcrossFarmState(mergedFarmData, tryitConfig, tryitSnapshot);
           const farmMeta = mergedFarmData?.farmMeta || mergedFarmData?.frmData || {};
@@ -381,12 +401,29 @@ export function useDataFetcher(
           setdeliveriesData(mergedFarmData.orderstable);
           setCookie(mergedFarmData, dataSet, "");
         }
-        setReqState('');
-        return mergedFarmData;
+        if (!isScopedLate) setReqState('');
+        const rawFarmPayload = scopedRawPayload;
+        const hasPayload = rawFarmPayload && typeof rawFarmPayload === "object"
+          && !Array.isArray(rawFarmPayload) && Object.keys(rawFarmPayload).length > 0;
+        return outcome(onlyPrices ? 'prices' : hasPayload ? 'applied' : 'unavailable', mergedFarmData,
+          { reason: !onlyPrices && !hasPayload ? 'farm-payload' : undefined,
+            confirmedSections: onlyPrices ? [] : currentSections.filter(section =>
+              (Array.isArray(respData?.returnedSections) && respData.returnedSections.includes(section))
+              || (Array.isArray(respData?.unchangedSections) && respData.unchangedSections.includes(section))
+              || hasSectionData(respData, section, sectionPayloadKeys, sectionTablePaths)),
+            rejectedTablePaths: deltaResult.rejectedPaths });
     } catch (error) {
       if (!onlyPrices && requestSequence !== farmRequestSequenceRef.current) {
         console.log(`[farm] stale request error ignored${requestTag ? ` (${requestTag})` : ""}`);
-        return dataSetFarmRef.current || null;
+        return outcome('ignored', dataSetFarmRef.current || null, { reason: 'sequence-error' });
+      }
+      if (!onlyPrices && !isCalculationContextCurrent()) {
+        console.log(`[farm] stale calculation error ignored${requestTag ? ` (${requestTag})` : ""}`);
+        return outcome('ignored', dataSetFarmRef.current || null, { reason: 'options-error' });
+      }
+      if (!onlyPrices && !isFarmIdentityCurrent()) {
+        console.log(`[farm] stale farm error ignored${requestTag ? ` (${requestTag})` : ""}`);
+        return outcome('ignored', dataSetFarmRef.current || null, { reason: 'farm-intent-error' });
       }
       setReqState(`Error : ${error.message}`);
       throw error;
@@ -406,8 +443,12 @@ export function useDataFetcher(
     setReqState, setOptions, setSectionsLoading, setMutants, setdeliveriesData, setCookie,
     sectionsMeta, sectionsMetaError, pageSectionRequirements,
     sectionPayloadKeys, sectionTablePaths, tryitConfig, getTryitRequestPayload, hasSectionData,
-    hasPathData, showfDlvr
+    hasPathData, showfDlvr, calculationIntentRef, farmIdentityIntentRef
   ]);
 
-  return { getPrices, beginHeaderRequest, endHeaderRequest };
+  const getPrices = useCallback(async (...args) => {
+    const result = await getPricesWithOutcome(...args);
+    return result.legacyValue;
+  }, [getPricesWithOutcome]);
+  return { getPrices, getPricesWithOutcome, beginHeaderRequest, endHeaderRequest };
 }

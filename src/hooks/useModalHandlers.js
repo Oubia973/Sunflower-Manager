@@ -1,13 +1,25 @@
+import { prepareTryModalResponse } from "../utils/farmResponse/prepareFarmResponse.js";
 /**
  * useModalHandlers Hook - Modal handlers
  * Extracted from App.js modal handlers
  */
 
 import { useCallback } from 'react';
-import { unpackFarmPayloadTables, mergeFarmStateDeep, stripFarmMetadata } from '../fct.js';
+import { mergeFarmStateDeep, stripFarmMetadata } from '../fct.js';
 import { buildTryitCoverageSignature, hasSectionData, mergeKnownHashesFromPayload } from '../utils/farmState.js';
 import { computeRequiredSections } from '../utils/sections.js';
 import { readTryitSnapshot, hasTryitPayloadContent, isValidTryitConfig, syncTryitStateAcrossFarmState } from '../tryitStorage.js';
+
+function confirmsModalSections(outcome, farm, farmId, page, sections, sectionPayloadKeys, sectionTablePaths) {
+  return outcome?.status === 'applied'
+    && String(outcome.requestedFarmId || '').trim() === farmId
+    && String(farm?.frmid || '').trim() === farmId
+    && outcome.requestedPage === page
+    && !outcome.rejectedTablePaths?.length
+    && sections.every(section => outcome.requestedSections?.includes(section)
+      && outcome.confirmedSections?.includes(section)
+      && hasSectionData(farm, section, sectionPayloadKeys, sectionTablePaths));
+}
 
 /**
  * Hook for modal handlers
@@ -33,7 +45,8 @@ export function useModalHandlers(
   ui,
   pageSectionRequirements,
   lastID,
-  getPrices
+  getPrices,
+  getPricesWithOutcome
 ) {
 
   /**
@@ -67,7 +80,7 @@ export function useModalHandlers(
         const currentPage = String(ui?.selectedInv || "home");
         const currentPageSections = computeRequiredSections(ui, pageSectionRequirements);
         const sectionsToSync = [...new Set(["boosts", "inventory", ...currentPageSections])];
-        const syncedFarm = await getPrices(
+        const outcome = await getPricesWithOutcome(
           false,
           true,
           sectionsToSync,
@@ -76,8 +89,10 @@ export function useModalHandlers(
           true,
           hasTryitOverrides ? "TRYNFT_OPEN_TRY_SYNC" : "trynft"
         );
-        if (syncedFarm && typeof syncedFarm === "object") {
-          dataSetFarmRef.current = stripFarmMetadata(syncedFarm, 'useModalHandlers/onSync');
+        const currentFarm = dataSetFarmRef.current || {};
+        if (confirmsModalSections(outcome, currentFarm, currentFarmId, currentPage, sectionsToSync,
+          sectionPayloadKeys, sectionTablePaths)
+          && buildTryitCoverageSignature(getTryitRequestPayload(currentFarm)) === tryitSignature) {
           tryNftOpenCoverageRef.current = { farmId: currentFarmId, signature: tryitSignature, updatedAt: Date.now() };
         }
       } catch (error) { console.log("TryNFT preload error", error); }
@@ -87,7 +102,7 @@ export function useModalHandlers(
     }
     return dataSetFarmRef.current || null;
   }, [dataSet, dataSetFarmRef, getTryitRequestPayload, tryitConfig, sectionPayloadKeys, sectionTablePaths,
-    farmSectionHashesRef, farmTableHashesRef, tryNftOpenCoverageRef, lastID, getPrices, ui, pageSectionRequirements]);
+    farmSectionHashesRef, farmTableHashesRef, tryNftOpenCoverageRef, lastID, getPricesWithOutcome, ui, pageSectionRequirements]);
 
   /**
    * Handle Delivery modal open
@@ -102,12 +117,20 @@ export function useModalHandlers(
 
     if (mustSync) {
       try {
-        await getPrices(false, true, ["orders", "deliverypage"], false, "delivery", true);
-        deliveryLastSyncRef.current = { farmId: currentFarmId, pulse: Number(autoRefreshPulse) };
+        const sectionsToSync = ["orders", "deliverypage"];
+        const tryitSignature = buildTryitCoverageSignature(getTryitRequestPayload(dataSetFarmRef.current || {}));
+        const outcome = await getPricesWithOutcome(false, true, sectionsToSync, false, "delivery", true);
+        const currentFarm = dataSetFarmRef.current || {};
+        if (confirmsModalSections(outcome, currentFarm, currentFarmId, "delivery", sectionsToSync,
+          sectionPayloadKeys, sectionTablePaths)
+          && buildTryitCoverageSignature(getTryitRequestPayload(currentFarm)) === tryitSignature) {
+          deliveryLastSyncRef.current = { farmId: currentFarmId, pulse: Number(autoRefreshPulse) };
+        }
       } catch (error) { console.log("Delivery preload error", error); }
     }
     setShowfDlvr(true);
-  }, [dataSet, dataSetFarmRef, sectionPayloadKeys, sectionTablePaths, deliveryLastSyncRef, autoRefreshPulse, getPrices]);
+  }, [dataSet, dataSetFarmRef, sectionPayloadKeys, sectionTablePaths, deliveryLastSyncRef, autoRefreshPulse,
+    getTryitRequestPayload, getPricesWithOutcome]);
 
   /**
    * Handle TryNFT modal close
@@ -120,12 +143,7 @@ export function useModalHandlers(
       }
       Object.assign(dataSet, xdataSet);
       const prevFarmState = dataSetFarmRef.current || {};
-      const unpackedTryPayload = unpackFarmPayloadTables(xdataSetFarm);
-      const safeTryPayload = { ...(unpackedTryPayload || {}) };
-      delete safeTryPayload.ftrades;
-      delete safeTryPayload.ftradesHeader;
-      if (!Object.prototype.hasOwnProperty.call(safeTryPayload, "ftrades")) safeTryPayload.ftrades = prevFarmState?.ftrades;
-      if (!Object.prototype.hasOwnProperty.call(safeTryPayload, "ftradesHeader")) safeTryPayload.ftradesHeader = prevFarmState?.ftradesHeader;
+      const safeTryPayload = prepareTryModalResponse(prevFarmState, xdataSetFarm);
       const mergedFarmStateRaw = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload, tryitConfig);
       mergeKnownHashesFromPayload(safeTryPayload, farmSectionHashesRef, farmTableHashesRef);
       // Closing the modal is not a Tryset edit. Re-apply the persisted client
@@ -142,16 +160,21 @@ export function useModalHandlers(
       const nextRefreshPulse = typeof bumpAutoRefreshPulse === "function"
         ? bumpAutoRefreshPulse(ui?.selectedInv || "home")
         : Number(autoRefreshPulse || 0);
-      if (pageSectionRequirements && typeof getPrices === "function") {
+      if (pageSectionRequirements && typeof getPricesWithOutcome === "function") {
         const closeRefreshUI = { ...(ui || {}), selectedInv: ui?.selectedInv || "home" };
         const activeSections = computeRequiredSections(closeRefreshUI, pageSectionRequirements);
         const closeRefreshSections = [...new Set([...(Array.isArray(activeSections) ? activeSections : []), "orders", "deliverypage"])];
+        const farmId = String(mergedFarmState?.frmid || dataSet?.options?.farmId || "").trim();
+        const tryitSignature = buildTryitCoverageSignature(getTryitRequestPayload(cleanFarmData));
         try {
-          await getPrices(false, false, closeRefreshSections, true, closeRefreshUI.selectedInv, true, "TRYNFT_CLOSE");
-          deliveryLastSyncRef.current = {
-            farmId: String(mergedFarmState?.frmid || dataSet?.options?.farmId || ""),
-            pulse: nextRefreshPulse,
-          };
+          const outcome = await getPricesWithOutcome(false, false, closeRefreshSections, true,
+            closeRefreshUI.selectedInv, true, "TRYNFT_CLOSE");
+          const currentFarm = dataSetFarmRef.current || {};
+          if (confirmsModalSections(outcome, currentFarm, farmId, closeRefreshUI.selectedInv,
+            closeRefreshSections, sectionPayloadKeys, sectionTablePaths)
+            && buildTryitCoverageSignature(getTryitRequestPayload(currentFarm)) === tryitSignature) {
+            deliveryLastSyncRef.current = { farmId, pulse: nextRefreshPulse };
+          }
         } catch (error) {
           console.log("TryNFT close page refresh error", error);
         }
@@ -166,7 +189,10 @@ export function useModalHandlers(
     } finally {
       setShowfTNFT(false);
     }
-  }, [dataSet, dataSetFarmRef, setdataSetFarm, setCookie, lastID, tryitConfig, farmSectionHashesRef, farmTableHashesRef, setdeliveriesData, setShowfTNFT, bumpAutoRefreshPulse, ui, autoRefreshPulse, pageSectionRequirements, getPrices, deliveryLastSyncRef]);
+  }, [dataSet, dataSetFarmRef, setdataSetFarm, setCookie, lastID, tryitConfig, farmSectionHashesRef,
+    farmTableHashesRef, setdeliveriesData, setShowfTNFT, bumpAutoRefreshPulse, ui, autoRefreshPulse,
+    pageSectionRequirements, sectionPayloadKeys, sectionTablePaths, getTryitRequestPayload,
+    getPrices, getPricesWithOutcome, deliveryLastSyncRef]);
 
   /**
    * Handle TryNFT modal refresh
@@ -178,12 +204,7 @@ export function useModalHandlers(
     }
     Object.assign(dataSet, xdataSet);
     const prevFarmState = dataSetFarmRef.current || {};
-    const unpackedTryPayload = unpackFarmPayloadTables(xdataSetFarm);
-    const safeTryPayload = { ...(unpackedTryPayload || {}) };
-    delete safeTryPayload.ftrades;
-    delete safeTryPayload.ftradesHeader;
-    if (!Object.prototype.hasOwnProperty.call(safeTryPayload, "ftrades")) safeTryPayload.ftrades = prevFarmState?.ftrades;
-    if (!Object.prototype.hasOwnProperty.call(safeTryPayload, "ftradesHeader")) safeTryPayload.ftradesHeader = prevFarmState?.ftradesHeader;
+    const safeTryPayload = prepareTryModalResponse(prevFarmState, xdataSetFarm);
     const mergedFarmStateRaw = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload, tryitConfig);
     mergeKnownHashesFromPayload(safeTryPayload, farmSectionHashesRef, farmTableHashesRef);
     // Refreshing calculated data must not redefine frontend-owned Tryset fields.

@@ -607,6 +607,7 @@ export default function CookTable() {
         const currentLevelLabel = bumpkinCook?.levelLabel || `lvl ${bumpkinCook?.lvl ?? 0}`;
         const realLevelLabel = bumpkinProjection?.current?.label || currentLevelLabel;
         const projectedLevelLabel = bumpkinProjection?.projected?.label || realLevelLabel;
+        const hasCappedLevel = currentLevelLabel !== realLevelLabel;
         const cappedExperience = Number(bumpkinProjection?.cappedExperience || 0);
         const hiddenXp = Math.max(0, Number(bumpkinProjection?.experience || 0) - cappedExperience);
         const segments = [
@@ -642,8 +643,8 @@ export default function CookTable() {
                 }}
             >
                 <div className="cook-xp-levels" style={{ position: "relative", height: "29px", fontSize: "11px" }}>
-                    <span style={{ position: "absolute", left: 0 }}><b>{currentLevelLabel} 🔒</b><br />Capped level</span>
-                    <span style={{ position: "absolute", left: `${realLabelPercent}%`, transform: "translateX(-50%)", textAlign: "center" }}><b>{realLevelLabel}</b><br />Actual XP level</span>
+                    {hasCappedLevel ? <span style={{ position: "absolute", left: 0 }}><b>{currentLevelLabel} 🔒</b><br />Capped level</span> : null}
+                    <span style={{ position: "absolute", left: hasCappedLevel ? `${realLabelPercent}%` : 0, transform: hasCappedLevel ? "translateX(-50%)" : undefined, textAlign: hasCappedLevel ? "center" : "left" }}><b>{realLevelLabel}</b><br />Actual XP level</span>
                     <span style={{ position: "absolute", right: 0, textAlign: "right" }}><b>{projectedLevelLabel}</b><br />With selection</span>
                 </div>
                 <div style={{ position: "relative" }}>

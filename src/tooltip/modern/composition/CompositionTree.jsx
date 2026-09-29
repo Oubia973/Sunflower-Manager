@@ -1,6 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { frmtNb } from "../../../fct.js";
-import { imgcoins, imgExchng, imgna, imgprodit, imgsfl } from "../../../constants/images.js";
+import {
+  imgcoins, imgcrimstone, imgExchng, imggoldOre, imgironOre, imgna,
+  imgobsidian, imgoil, imgprodit, imgsaltfarm, imgsfl, imgstoneRes,
+  imgsunstone, imgwoodRes, versionImageUrl,
+} from "../../../constants/images.js";
 import {
   compositionNodes,
   normalizeCompositionNode,
@@ -59,12 +63,23 @@ function resourceLabel(name) {
   return String(name).toLowerCase() === "sfl" ? "Coins" : name;
 }
 
+const RESOURCE_ICONS = {
+  Wood: imgwoodRes, Stone: imgstoneRes, Iron: imgironOre, Gold: imggoldOre,
+  Crimstone: imgcrimstone, Sunstone: imgsunstone, Obsidian: imgobsidian,
+  Oil: imgoil, Salt: imgsaltfarm,
+  Corn: versionImageUrl('./icon/res/corn.png'),
+  Barley: versionImageUrl('./icon/res/barley.png'),
+  Wheat: versionImageUrl('./icon/res/wheat.png'),
+};
+
 function ResourceIcon({ name, catalog }) {
   if (String(name).toLowerCase() === "sfl") {
     return <img className="composition-tree__icon" src={imgcoins} alt="" title="Coins" />;
   }
   const entry = catalog?.[name] || {};
-  return <img className="composition-tree__icon" src={entry.image || entry.img || imgna} alt="" title={name} />;
+  return <img className="composition-tree__icon" src={entry.image || entry.img || RESOURCE_ICONS[name] || imgna}
+    onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = RESOURCE_ICONS[name] || imgna; }}
+    alt="" title={name} />;
 }
 
 function CostValue({ value }) {

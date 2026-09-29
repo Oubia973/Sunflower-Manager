@@ -8,12 +8,19 @@ import { resetMultiFarmNotifPromptLocal } from '../utils/notificationPrefs.js';
 /**
  * Create option handlers
  */
-export function createOptionHandlers(dataSet, setOptions, handleNotificationToggle) {
+export function createOptionHandlers(dataSet, setOptions, handleNotificationToggle, markCalculationIntent = null) {
+  const markOptionIntent = (name) => {
+    if (name !== 'notifList' && name !== 'auctionNotifSelection'
+      && name !== 'useNotifications' && name !== 'autoRefresh') {
+      markCalculationIntent?.();
+    }
+  };
   
   /**
    * Set an option field value
    */
   function setOptionField(name, valueOrUpdater) {
+    markOptionIntent(name);
     setOptions((prev) => {
       const prevValue = prev?.[name];
       const nextValue = typeof valueOrUpdater === 'function'
@@ -30,6 +37,7 @@ export function createOptionHandlers(dataSet, setOptions, handleNotificationTogg
    */
   function handleOptionChange(eventOrValue, fieldName = null) {
     if (Array.isArray(eventOrValue) && fieldName) {
+      markOptionIntent(fieldName);
       const nextOptions = { ...(dataSet.options || {}), [fieldName]: eventOrValue };
       dataSet.options = nextOptions;
       setOptions(nextOptions);
@@ -81,6 +89,7 @@ export function createOptionHandlers(dataSet, setOptions, handleNotificationTogg
 
     // Handle animal level
     if (name.startsWith('animalLvl_')) {
+      markOptionIntent(name);
       const animal = name.replace('animalLvl_', '');
       const newAnimalLvl = { ...(dataSet.options.animalLvl || {}), [animal]: xvalue };
       const newOptions = { ...dataSet.options, animalLvl: newAnimalLvl };
@@ -95,6 +104,8 @@ export function createOptionHandlers(dataSet, setOptions, handleNotificationTogg
       handleNotificationToggle(!!xvalue, { fromUserGesture: !!eventOrValue?.target });
       return;
     }
+
+    markOptionIntent(name);
 
     // Handle special cases
     switch (name) {

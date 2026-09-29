@@ -3,30 +3,28 @@
  * Extracted from App.js handleButtonClick, getPrices initial load
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  unpackFarmPayloadTables,
-  mergeFarmStateDeep,
   formatUpdated,
   frmtNb,
   stripFarmMetadata,
 } from '../fct.js';
 import {
-  syncTryitStateAcrossFarmState,
   resolveTryitSnapshot,
   isValidTryitConfig,
 } from '../tryitStorage.js';
 import {
   extractReceivedTableHashes,
   mergeTradeEntryHashesFromPayload,
-  applyTradesDeltaToPayload,
   hasInventoryItemFields,
   selectCurrentProjection,
 } from '../utils/farmState.js';
 import { getBalanceValue } from '../utils/balance.js';
 import { fetchJson, fetchJsonResponse } from '../services/apiClient.js';
 import { LOAD_FARM_SPAM_WINDOW_MS, LOAD_FARM_SPAM_THRESHOLD } from '../constants/api.js';
-import { imgsuspicious, normalizeServerImagesDeep, versionImageUrl } from '../constants/images.js';
+import { imgsuspicious, versionImageUrl } from '../constants/images.js';
+import { normalizeFarmResponseImages, prepareLoadedFarmResponse } from '../utils/farmResponse/prepareFarmResponse.js';
+import { mergeFarmResponse } from '../utils/farmResponse/mergeFarmResponse.js';
 import { getDailyCoinFlow } from '../utils/coinActivity.js';
 
 function normalizeFarmLoadErrorMessage(message, response, endpointLabel = "") {
@@ -69,11 +67,16 @@ export function useFarmLoader(
   ui,
   setdataSetFarm,
   setFarmData,
-  setBumpkinData
+  setBumpkinData,
+  farmIdentityIntentRef
 ) {
   const [bumpkinLoading, setBumpkinLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const loadGenerationRef = useRef(0);
+  const getTryitPayloadRef = useRef(getTryitRequestPayload);
+  getTryitPayloadRef.current = getTryitRequestPayload;
+  useEffect(() => () => { loadGenerationRef.current += 1; }, []);
 
   /**
    * Register a load farm spam attempt
@@ -156,7 +159,7 @@ export function useFarmLoader(
    * Process farm response and update state
    */
   const processFarmResponse = useCallback((responseData, currentFarmState, dataSet, uiState = null) => {
-    const normalizedResponseData = normalizeServerImagesDeep(responseData || {});
+    const normalizedResponseData = normalizeFarmResponseImages(responseData);
     const responseFrmData = normalizedResponseData?.farmMeta
       || normalizedResponseData?.frmData
       || currentFarmState?.farmMeta
@@ -202,8 +205,7 @@ export function useFarmLoader(
     }
 
     // Process farm payload
-    const unpackedInitialResponse = unpackFarmPayloadTables(normalizedResponseData);
-    const initialFarmPayload = applyTradesDeltaToPayload(currentFarmState, unpackedInitialResponse);
+    const initialFarmPayload = prepareLoadedFarmResponse(currentFarmState, normalizedResponseData);
     const tryitSnapshot = resolveTryitSnapshot({
       farmState: currentFarmState,
       tryitConfig,
@@ -227,8 +229,7 @@ export function useFarmLoader(
     }
     mergeTradeEntryHashesFromPayload(normalizedResponseData, tradeEntryHashesRef);
 
-    let mergedInitialFarm = mergeFarmStateDeep(currentFarmState, initialFarmPayload, tryitConfig);
-    mergedInitialFarm = syncTryitStateAcrossFarmState(mergedInitialFarm, tryitConfig, tryitSnapshot);
+    const mergedInitialFarm = mergeFarmResponse(currentFarmState, initialFarmPayload, tryitConfig, tryitSnapshot);
     const hasMutantsPayload = Object.prototype.hasOwnProperty.call(initialFarmPayload, 'mutantsHeader')
       || Object.prototype.hasOwnProperty.call(initialFarmPayload, 'mutantchickens');
     const mutantsData = hasMutantsPayload
@@ -275,9 +276,12 @@ export function useFarmLoader(
     const normalizedInputId = String(inputValue ?? '').trim();
     if (!normalizedInputId) return { success: false, error: 'No farm ID' };
 
+    const loadGeneration = ++loadGenerationRef.current;
+    let isCurrent = () => loadGenerationRef.current === loadGeneration;
     setLoading(true);
     setError('');
 
+    let identityMarker = null;
     try {
       if (!isValidTryitConfig(tryitConfig)) {
         const message = 'Tryset config missing. Local selections are preserved; farm loading is paused until backend config reloads.';
@@ -286,7 +290,28 @@ export function useFarmLoader(
         return { success: false, error: message };
       }
       const previousFarmState = dataSetFarmRef.current || {};
-      const isNewFarm = normalizedInputId !== String(previousFarmState?.frmid || '');
+      const targetDataSet = dataSetState || dataSet;
+      const optionsSignature = JSON.stringify(targetDataSet?.options || {});
+      const requestOptions = JSON.parse(optionsSignature);
+      const currentFarmId = String(previousFarmState?.frmid || targetDataSet?.options?.farmId || '').trim();
+      const currentUsername = String(targetDataSet?.options?.username || previousFarmState?.username || '').trim().toLowerCase();
+      const sameFarm = normalizedInputId === currentFarmId
+        || (currentUsername && normalizedInputId.toLowerCase() === currentUsername);
+      const isNewFarm = !sameFarm;
+      if (isNewFarm && currentFarmId && farmIdentityIntentRef) {
+        identityMarker = {
+          revision: (farmIdentityIntentRef.current?.revision || 0) + 1,
+          pending: true,
+          sourceFarmId: currentFarmId,
+        };
+        farmIdentityIntentRef.current = identityMarker;
+      } else if (sameFarm && farmIdentityIntentRef?.current?.pending) {
+        // A later load of the published farm cancels an unresolved switch away.
+        farmIdentityIntentRef.current = {
+          revision: farmIdentityIntentRef.current.revision + 1,
+          pending: false,
+        };
+      }
       const currentFarmState = isNewFarm ? {} : previousFarmState;
       curIDRef.current = inputValue;
 
@@ -313,15 +338,24 @@ export function useFarmLoader(
         }
       }
 
-      const { tryitarrays: tryItArrays, tryitMode } = getTryitRequestPayload(currentFarmState);
+      const requestTryit = JSON.stringify(getTryitPayloadRef.current(currentFarmState));
+      const { tryitarrays: tryItArrays, tryitMode } = JSON.parse(requestTryit);
+      isCurrent = () => loadGenerationRef.current === loadGeneration
+        && dataSetFarmRef.current === previousFarmState
+        && JSON.stringify(targetDataSet?.options || {}) === optionsSignature
+        && JSON.stringify(getTryitPayloadRef.current(currentFarmState)) === requestTryit;
+      const ignored = () => {
+        if (loadGenerationRef.current === loadGeneration) setError('');
+        return { success: false, stale: true, error: '' };
+      };
 
       const farmRequestBody = {
-        frmid: inputValue,
+        frmid: normalizedInputId,
         deviceId: deviceId || '',
-        options: dataSetState?.options || {},
+        options: requestOptions,
         tryitarrays: tryItArrays,
         tryitMode,
-        include: sectionsToInclude,
+        include: [...sectionsToInclude],
         knownTableHashes: knownTableHashesForRequest,
         page: String(uiState?.selectedInv || 'home'),
         context,
@@ -333,9 +367,18 @@ export function useFarmLoader(
       });
       const initialResult = await requestFarm();
       const response = initialResult.response;
+      if (!isCurrent()) return ignored();
 
       const handleSuccessResponse = async (responseData) => {
-        const result = processFarmResponse(responseData, currentFarmState, dataSetState || dataSet, uiState || ui);
+        if (!isCurrent()) return ignored();
+        const responseId = String(responseData?.frmid ?? '').trim();
+        if (/^\d+$/.test(normalizedInputId) && responseId
+          && responseId.replace(/^0+(?=\d)/, '') !== normalizedInputId.replace(/^0+(?=\d)/, '')) {
+          const message = 'Farm ID mismatch';
+          setError(message);
+          return { success: false, error: message };
+        }
+        const result = processFarmResponse(responseData, currentFarmState, targetDataSet, uiState || ui);
         
         const cleanFarmData = stripFarmMetadata(result.mergedFarm || {}, 'useFarmLoader');
         setFarmData(result.mergedFarm?.farmMeta || result.mergedFarm?.frmData || {});
@@ -365,7 +408,9 @@ export function useFarmLoader(
         let retryCount = 0;
         while (retryCount < 5) {
           await new Promise(resolve => setTimeout(resolve, retryAfterMs));
+          if (!isCurrent()) return ignored();
           const retryResult = await requestFarm();
+          if (!isCurrent()) return ignored();
           if (retryResult.response.status === 200) {
             return await handleSuccessResponse(retryResult.data);
           }
@@ -384,15 +429,24 @@ export function useFarmLoader(
 
       return await handleSuccessResponse(initialResult.data);
     } catch (error) {
+      if (!isCurrent()) {
+        if (loadGenerationRef.current === loadGeneration) setError('');
+        return { success: false, stale: true, error: '' };
+      }
       const displayError = normalizeFarmLoadErrorMessage(error?.message, error, '/getfarm');
       setError(displayError);
       return { success: false, error: displayError };
+    } finally {
+      if (identityMarker && farmIdentityIntentRef?.current === identityMarker) {
+        farmIdentityIntentRef.current = { ...identityMarker, pending: false };
+      }
     }
     // NOTE: loadFarmRequestInFlightRef is managed by the caller (App.js handleButtonClick)
   }, [
     API_URL, curIDRef, dataSetFarmRef, farmSectionHashesRef, farmTableHashesRef, tradeEntryHashesRef,
     loadFarmRequestInFlightRef, loadFarmSpamClickTimesRef,
-    processFarmResponse, fetchBumpkinImage, registerLoadFarmSpamAttempt, tryitConfig
+    processFarmResponse, fetchBumpkinImage, registerLoadFarmSpamAttempt, tryitConfig,
+    farmIdentityIntentRef
   ]);
 
   return {

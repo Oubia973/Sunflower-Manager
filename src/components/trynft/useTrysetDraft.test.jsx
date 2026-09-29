@@ -12,9 +12,9 @@ const config = { boostTables: ["nft", "skill"], itemTables: { spots: { sources: 
 const farm = { frmid: "123", boostables: { nft: { A: { tryit: 1, isactive: 1 }, B: { tryit: 1, isactive: 1 } }, skill: { S: { level: 2, leveltry: 2, maxLevel: 3 } } }, itables: { it: { Wood: { spottry: 4 } } } };
 let draft, root, container;
 const publish = jest.fn();
-function Harness({ state = farm, quick = false, full = false }) {
+function Harness({ state = farm, quick = false, full = false, requestedFarmId }) {
   draft = useTrysetDraft(state, config);
-  const context = { trysetDraft: draft, data: { dataSet: { options: { farmId: "123" } }, dataSetFarm: state, priceData: [] }, config: { API_URL: "", tryitConfig: config }, ui: { TryChecked: true, selectedTrySeason: "spring" }, actions: { handleRefreshfTNFT: publish, setUIField: jest.fn(), handleUIChange: jest.fn() } };
+  const context = { trysetDraft: draft, data: { dataSet: { options: { farmId: requestedFarmId ?? String(state.frmid || "123") } }, dataSetFarm: state, priceData: [] }, config: { API_URL: "", tryitConfig: config }, ui: { TryChecked: true, selectedTrySeason: "spring" }, actions: { handleRefreshfTNFT: publish, setUIField: jest.fn(), handleUIChange: jest.fn() } };
   return <AppCtx.Provider value={context}>{quick && <QuickTryDrawer knownTableHashes={state.tableHashes || {}} />}{full && <ModalTNFT onClose={jest.fn()} />}</AppCtx.Provider>;
 }
 beforeEach(() => {
@@ -78,6 +78,73 @@ test("Quick edits wait for Apply and a failed request keeps the common draft", a
   await act(async () => container.querySelector(".quick-try .button").click());
   expect(draft.dirty).toBe(false);
   expect(readTryitSnapshot().nft).toEqual({ A: 0, B: 1 });
+});
+
+test.each([false, true])("pending Apply is rejected after farm changes (full=%s)", async full => {
+  const initial = full ? { ...farm, itables: { it: {} } } : farm;
+  let complete;
+  fetchJson.mockImplementation(() => new Promise(resolve => { complete = resolve; }));
+  await act(async () => root.render(<Harness quick full={full} state={initial} />));
+  await act(async () => container.querySelector(".quick-try-fab").click());
+  await act(async () => container.querySelector(".quick-try-switch input").click());
+  await act(async () => {
+    const button = full ? container.querySelector('.trynft-action-bar [aria-label="Apply Tryset"]') : container.querySelector('.quick-try-apply');
+    button.click();
+  });
+  expect(fetchJson.mock.calls[0][2].body.frmid).toBe("123");
+  await act(async () => root.render(<Harness quick full={full} state={{ ...initial, frmid: "456" }} />));
+  await act(async () => { complete({ homeData: { amount: 99 } }); });
+  expect(publish).not.toHaveBeenCalled();
+  expect(readTryitSnapshot().nft.A).toBe(1);
+  expect(draft.dirty).toBe(true);
+  expect(draft.applying).toBe(false);
+  expect(draft.error).toContain("Farm changed");
+  fetchJson.mockResolvedValue({});
+  await act(async () => container.querySelector(full ? '.trynft-action-bar [aria-label="Apply Tryset"]' : '.quick-try-apply').click());
+  expect(publish).toHaveBeenCalledTimes(1);
+  expect(publish.mock.calls[0][1].frmid).toBe("456");
+  expect(readTryitSnapshot().nft.A).toBe(0);
+});
+
+test.each([false, true].flatMap(full => ["roundtrip", "requested-only", "published-only", "wrong-response", "changed-delta", "unmount"].map(change => [full, change])))("Apply context rejects %s / %s without persisting or retrying", async (full, change) => {
+    const initial = full ? { ...farm, itables: { it: {} } } : farm;
+    let complete;
+    fetchJson.mockImplementation(() => new Promise(resolve => { complete = resolve; }));
+    await act(async () => root.render(<Harness quick full={full} state={initial} />));
+    await act(async () => container.querySelector('.quick-try-fab').click());
+    await act(async () => container.querySelector('.quick-try-switch input').click());
+    await act(async () => container.querySelector(full ? '.trynft-action-bar [aria-label="Apply Tryset"]' : '.quick-try-apply').click());
+    if (change === "roundtrip" || change === "changed-delta") {
+      await act(async () => root.render(<Harness quick full={full} state={{ ...initial, frmid: "456" }} />));
+      if (change === "roundtrip") await act(async () => root.render(<Harness quick full={full} state={initial} />));
+    } else if (change === "requested-only") {
+      await act(async () => root.render(<Harness quick full={full} state={initial} requestedFarmId="456" />));
+    } else if (change === "published-only") {
+      await act(async () => root.render(<Harness quick full={full} state={{ ...initial, frmid: "456" }} requestedFarmId="123" />));
+    } else if (change === "unmount") {
+      await act(async () => root.render(<Harness state={initial} />));
+    }
+    const payload = change === "wrong-response" ? { frmid: "456" }
+      : change === "changed-delta" ? { _tableDeltas: { boostables: { nft: { baseHash: "wrong", nextHash: "v2", upserts: {}, deletes: [] } } } } : {};
+    await act(async () => complete(payload));
+    expect(fetchJson).toHaveBeenCalledTimes(1);
+    expect(publish).not.toHaveBeenCalled();
+    expect(readTryitSnapshot().nft.A).toBe(1);
+    expect(draft.applying).toBe(false);
+    expect(draft.dirty).toBe(true);
+  });
+
+test.each([false, true])("Apply waits for requested and published farm identities to agree (full=%s)", async full => {
+  const initial = full ? { ...farm, itables: { it: {} } } : farm;
+  await act(async () => root.render(<Harness quick full={full} state={initial} requestedFarmId="456" />));
+  await act(async () => container.querySelector('.quick-try-fab').click());
+  await act(async () => container.querySelector('.quick-try-switch input').click());
+  await act(async () => container.querySelector(full ? '.trynft-action-bar [aria-label="Apply Tryset"]' : '.quick-try-apply').click());
+  expect(fetchJson).not.toHaveBeenCalled();
+  expect(publish).not.toHaveBeenCalled();
+  expect(readTryitSnapshot().nft.A).toBe(1);
+  expect(draft.dirty).toBe(true);
+  expect(draft.applying).toBe(false);
 });
 
 

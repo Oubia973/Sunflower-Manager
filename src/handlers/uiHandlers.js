@@ -1,4 +1,4 @@
-import { isProjectionCurrent, selectCurrentProjection } from "../utils/farmState.js";
+import { buildTryitCoverageSignature, hasSectionData, isProjectionCurrent, selectCurrentProjection } from "../utils/farmState.js";
 
 /**
  * UI Handlers - Handle UI state changes from form inputs
@@ -17,7 +17,7 @@ export function createUIHandlers(
   buildAndWriteSnapshot = null,
   // Optional dependencies for extended handlers
   invBuyRefreshCooldownUntilRef = null,
-  getPrices = null,
+  getPricesWithOutcome = null,
   autoRefreshForceNormalFirstCycleRef = null,
   setAutoRefreshDurationMs = null,
   setAutoRefreshNextAt = null,
@@ -25,7 +25,11 @@ export function createUIHandlers(
   dataSetFarm = null,
   dataSet = null,
   tryitConfig = null,
-  setCookie = null
+  setCookie = null,
+  getTryitRequestPayload = null,
+  sectionPayloadKeys = null,
+  sectionTablePaths = null,
+  markCalculationIntent = null
 ) {
   const isPlainObject = (value) => (
     value !== null
@@ -84,7 +88,8 @@ export function createUIHandlers(
    * Refresh inventory after purchase
    */
   async function handleInvBuyRefresh() {
-    if (!invBuyRefreshCooldownUntilRef || !getPrices || !autoRefreshForceNormalFirstCycleRef || !setAutoRefreshDurationMs || !setAutoRefreshNextAt || !setAutoRefreshNonce) {
+    if (!invBuyRefreshCooldownUntilRef || !getPricesWithOutcome || !getTryitRequestPayload
+      || !autoRefreshForceNormalFirstCycleRef || !setAutoRefreshDurationMs || !setAutoRefreshNextAt || !setAutoRefreshNonce) {
       console.warn('handleInvBuyRefresh: missing dependencies');
       return false;
     }
@@ -106,7 +111,22 @@ export function createUIHandlers(
       // Without it, the page briefly has newer inventory/boost tables alongside an
       // older invData projection, which makes the page-level readiness check show
       // its loading fallback before the follow-up navigation request completes.
-      await getPrices(false, true, ['inv', 'inventory', 'boosts'], true, 'inv', true, 'BUY');
+      const requestedSections = ['inv', 'inventory', 'boosts'];
+      const requestFarm = dataSetFarmRef?.current || {};
+      const farmId = String(requestFarm?.frmid || dataSet?.options?.farmId || '').trim();
+      const tryitSignature = buildTryitCoverageSignature(getTryitRequestPayload(requestFarm));
+      const outcome = await getPricesWithOutcome(false, true, requestedSections, true, 'inv', true, 'BUY');
+      const currentFarm = dataSetFarmRef?.current || {};
+      const canSync = outcome?.status === 'applied'
+        && String(outcome.requestedFarmId || '').trim() === farmId
+        && String(currentFarm?.frmid || '').trim() === farmId
+        && outcome.requestedPage === 'inv'
+        && !outcome.rejectedTablePaths?.length
+        && buildTryitCoverageSignature(getTryitRequestPayload(currentFarm)) === tryitSignature
+        && requestedSections.every(section => outcome.requestedSections?.includes(section)
+          && outcome.confirmedSections?.includes(section)
+          && hasSectionData(currentFarm, section, sectionPayloadKeys, sectionTablePaths));
+      if (!canSync) return false;
       autoRefreshForceNormalFirstCycleRef.current = true;
       setAutoRefreshDurationMs(60 * 1000);
       setAutoRefreshNextAt(Date.now() + (60 * 1000));
@@ -237,6 +257,7 @@ export function createUIHandlers(
     }
 
     // Handle simple UI fields
+    if (name === 'selectedTrySeason') markCalculationIntent?.();
     setUI(prev => {
       const next = { ...(prev ?? {}), [name]: value };
       // Sync activity selection fields
@@ -253,6 +274,7 @@ export function createUIHandlers(
    * Set a UI field value
    */
   function setUIField(name, valueOrUpdater) {
+    if (name === 'selectedTrySeason') markCalculationIntent?.();
     setUI((prev) => {
       const prevValue = prev?.[name];
       const nextValue = typeof valueOrUpdater === 'function'

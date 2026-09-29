@@ -80,6 +80,7 @@ import {
 
 // Extracted modules
 import { createUIHandlers } from './handlers/uiHandlers.js';
+import { initializeNotificationOptionsFromInventory } from './handlers/notificationOptions.js';
 import { createOptionHandlers } from './handlers/optionHandlers.js';
 import { createTooltipHandlers, refreshOpenTooltip } from './handlers/tooltipHandlers.js';
 import { useUIState as useUIStateHook } from './hooks/useUIState.js';
@@ -197,6 +198,8 @@ function App() {
   const loadFarmSpamClickTimesRef = useRef([]);
   const loadFarmSpamPromptOpenRef = useRef(false);
   const invBuyRefreshCooldownUntilRef = useRef(0);
+  const calculationIntentRef = useRef(0);
+  const markCalculationIntent = useCallback(() => { calculationIntentRef.current += 1; }, []);
   const hoveredTooltipCellRef = useRef(null);
   const deviceIdRef = useRef(getOrCreateDeviceId());
   const farmSectionHashesRef = useRef({});
@@ -231,6 +234,7 @@ function App() {
   const [dataSetFarm, setdataSetFarm] = useState({});
   const [bumpkinData, setBumpkinData] = useState([]);
   const dataSetFarmRef = useRef({});
+  const farmIdentityIntentRef = useRef({ revision: 0, pending: false });
   const tooltipTryRevisionRef = useRef(0);
   useEffect(() => {
     const keys = Object.keys(dataSetFarm || {});
@@ -312,7 +316,7 @@ function App() {
     promptInput
   );
 
-  const optionHandlers = createOptionHandlers(dataSet, setOptions, handleNotificationToggle);
+  const optionHandlers = createOptionHandlers(dataSet, setOptions, handleNotificationToggle, markCalculationIntent);
   const { handleOptionChange, setOptionField } = optionHandlers;
 
   const tooltipHandlers = createTooltipHandlers(showTooltip, hoveredTooltipCellRef);
@@ -403,7 +407,8 @@ function App() {
     ui,
     setdataSetFarm,
     setFarmData,
-    setBumpkinData
+    setBumpkinData,
+    farmIdentityIntentRef
   );
 
   const setMutants = useCallback((dataSetMutant) => {
@@ -448,7 +453,7 @@ function App() {
   }, []);
 
   // ========== Data Fetcher Hook (needs getPrices early for section loader & auto refresh) ==========
-  const { getPrices } = useDataFetcher(
+  const { getPrices, getPricesWithOutcome } = useDataFetcher(
     API_URL,
     ui,
     dataSet,
@@ -477,7 +482,9 @@ function App() {
     getTryitRequestPayload,
     hasSectionData,
     hasPathData,
-    showfDlvr
+    showfDlvr,
+    calculationIntentRef,
+    farmIdentityIntentRef
   );
 
   useEffect(() => {
@@ -496,7 +503,7 @@ function App() {
     };
   }, []);
 
-  // ========== Auto Refresh Hook (needs getPrices) ==========
+  // ========== Auto Refresh Hook (needs detailed receive outcome) ==========
   const {
     autoRefreshPulse, autoRefreshNextAt, autoRefreshDurationMs,
     setAutoRefreshDurationMs, setAutoRefreshNextAt,
@@ -515,7 +522,7 @@ function App() {
     showfGraph,
     showfDlvr,
     pageSectionRequirements,
-    getPrices
+    getPricesWithOutcome
   );
 
   useEffect(() => {
@@ -540,7 +547,7 @@ function App() {
     markPageSyncedPulse,
     getPageSyncedPulse,
     getTryitRequestPayload,
-    getPrices
+    getPricesWithOutcome
   );
 
   // ========== Modal Handlers Hook (needs getPrices) ==========
@@ -570,15 +577,17 @@ function App() {
     ui,
     pageSectionRequirements,
     lastID,
-    getPrices
+    getPrices,
+    getPricesWithOutcome
   );
 
   // ========== Handlers (needs getPrices, autoRefresh setters) ==========
   const uiHandlers = createUIHandlers(
     setUI, setdataSetFarm, dataSetFarmRef, pendingSaveRef, markTryitPending, buildAndWriteSnapshot,
-    invBuyRefreshCooldownUntilRef, getPrices,
+    invBuyRefreshCooldownUntilRef, getPricesWithOutcome,
     autoRefreshForceNormalFirstCycleRef, setAutoRefreshDurationMs, setAutoRefreshNextAt,
-    setAutoRefreshNonce, dataSetFarm, dataSet, tryitConfig, setCookie
+    setAutoRefreshNonce, dataSetFarm, dataSet, tryitConfig, setCookie,
+    getTryitRequestPayload, sectionPayloadKeys, sectionTablePaths, markCalculationIntent
   );
   const { handleUIChange, handleHomeClic, handleSetHrvMax, handleInvBuyRefresh, setUIField } = uiHandlers;
 
@@ -1079,19 +1088,10 @@ function App() {
       (dataSetFarmRef.current?.frmid || dataSet.options?.farmId)
     ) {
       try {
-        const farmWithInventory = await getPrices(
-          false,
-          true,
-          ["inventory"],
-          false,
-          "inv",
-          true,
-          "OPTIONS_NOTIFICATIONS"
-        );
-        if (farmWithInventory) {
-          refreshDataSet(farmWithInventory);
-          setOptions({ ...dataSet.options });
-        }
+        await initializeNotificationOptionsFromInventory({
+          getPricesWithOutcome, dataSetFarmRef, getTryitRequestPayload,
+          sectionPayloadKeys, sectionTablePaths, refreshDataSet, setOptions, dataSet,
+        });
       } catch (error) {
         console.error("Unable to initialize notification options:", error);
       }
@@ -1106,7 +1106,8 @@ function App() {
     setInitialDataSet(JSON.parse(JSON.stringify(dataSet)));
     setNotifListInitial(JSON.stringify(dataSet.options.notifList));
     setShowOptions(true);
-  }, [dataSet, dataSetFarmRef, getPrices, legacyAnimalLoveNotifKeys, refreshDataSet, setOptions]);
+  }, [dataSet, dataSetFarmRef, getPricesWithOutcome, getTryitRequestPayload, sectionPayloadKeys,
+    sectionTablePaths, legacyAnimalLoveNotifKeys, refreshDataSet, setOptions]);
   const handleButtonHelpClick = useCallback(() => {
     firstVisitHelpRef.current = false;
     setHelpStartMode("page");

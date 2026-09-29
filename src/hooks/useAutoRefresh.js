@@ -3,7 +3,7 @@
  * Extracted from App.js auto-refresh logic
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { computeRequiredSections } from '../utils/sections.js';
 
 /**
@@ -20,7 +20,7 @@ export function useAutoRefresh(
   showfGraph,
   showfDlvr,
   pageSectionRequirements,
-  getPrices
+  getPricesWithOutcome
 ) {
   const [, setAutoRefreshNonceState] = useState(0);
   const [autoRefreshPulse, setAutoRefreshPulse] = useState(0);
@@ -38,6 +38,8 @@ export function useAutoRefresh(
   });
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
+  const timerGenerationRef = useRef(0);
+  const fetchDataRef = useRef(null);
   const autoRefreshForceNormalFirstCycleRef = useRef(false);
   const startAutoRefreshRef = useRef(null);
   const clearAllTimersRef = useRef(null);
@@ -46,15 +48,36 @@ export function useAutoRefresh(
   const activeFarmId = String(loadedFarmId || dataSetFarm?.frmid || '').trim();
   const autoRefreshActive = !!(autoRefreshEnabled && hasLoadedFarm && activeFarmId && !showfTNFT && !showfGraph);
   const autoRefreshResetKey = `${activeFarmId}|${autoRefreshNonce}|${showfTNFT ? 1 : 0}|${showfGraph ? 1 : 0}|${autoRefreshPulse}`;
+  const receiveContextKey = JSON.stringify([activeFarmId, dataSetFarm?.frmid, hasLoadedFarm,
+    options, autoRefreshNonce, ui?.selectedInv, ui?.activityDisplay, ui?.fishView,
+    ui?.petView, showfTNFT, showfGraph, showfDlvr, pageSectionRequirements]);
+  const receiveContextRef = useRef({ key: receiveContextKey, generation: 0, active: true });
+  useLayoutEffect(() => {
+    receiveContextRef.current.farmId = activeFarmId;
+    receiveContextRef.current.enabled = autoRefreshActive;
+    if (receiveContextRef.current.key !== receiveContextKey) {
+      receiveContextRef.current.key = receiveContextKey;
+      receiveContextRef.current.generation += 1;
+    }
+  }, [receiveContextKey, activeFarmId, autoRefreshActive]);
+  useLayoutEffect(() => {
+    receiveContextRef.current.active = true;
+    const invalidateVisibility = () => { receiveContextRef.current.generation += 1; };
+    document.addEventListener('visibilitychange', invalidateVisibility);
+    return () => {
+      receiveContextRef.current.active = false;
+      document.removeEventListener('visibilitychange', invalidateVisibility);
+    };
+  }, []);
 
   /**
    * Bump the auto-refresh pulse
    */
-  const bumpAutoRefreshPulse = useCallback((page) => {
+  const bumpAutoRefreshPulse = useCallback((page, markPage = true) => {
     const nextPulse = Number(autoRefreshPulseRef.current || 0) + 1;
     autoRefreshPulseRef.current = nextPulse;
     setAutoRefreshPulse(nextPulse);
-    markPageSyncedPulse(page, nextPulse);
+    if (markPage) markPageSyncedPulse(page, nextPulse);
     return nextPulse;
   }, []);
 
@@ -86,7 +109,7 @@ export function useAutoRefresh(
   /**
    * Fetch data for auto-refresh
    */
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (timerGeneration) => {
     if (!autoRefreshEnabled) return;
     if (!hasLoadedFarm) return;
     if (!activeFarmId) return;
@@ -109,20 +132,43 @@ export function useAutoRefresh(
           ...(view.showfDlvr ? ['orders', 'deliverypage'] : []),
         ])];
 
+    const generation = receiveContextRef.current.generation;
+    const requestContextKey = receiveContextRef.current.key;
+    const page = view.selectedInv || 'home';
     try {
-      await getPrices(false, true, includeSections, false, view.selectedInv || 'home', true, 'AUTO_REFRESH');
-      bumpAutoRefreshPulse(view.selectedInv || 'home');
-      setAutoRefreshDurationMs(60 * 1000);
-      setAutoRefreshNextAt(Date.now() + 60 * 1000);
+      const result = await getPricesWithOutcome(false, true, includeSections, false, page, true, 'AUTO_REFRESH');
+      const confirmed = result?.confirmedSections || [];
+      const canSync = result?.status === 'applied'
+        && timerGeneration === timerGenerationRef.current
+        && receiveContextRef.current.active
+        && receiveContextRef.current.enabled
+        && receiveContextRef.current.key === requestContextKey
+        && receiveContextRef.current.generation === generation
+        && document.visibilityState === 'visible'
+        && String(result.requestedFarmId || '').trim() === activeFarmId
+        && receiveContextRef.current.farmId === activeFarmId
+        && result.requestedPage === page
+        && includeSections.every(section => result.requestedSections?.includes(section) && confirmed.includes(section))
+        && !result.rejectedTablePaths?.length;
+      if (canSync) {
+        // Activity refreshes trades only; that does not confirm its calculated page sections.
+        bumpAutoRefreshPulse(page, sections.every(section => confirmed.includes(section)));
+      }
+      if (timerGeneration === timerGenerationRef.current && receiveContextRef.current.active
+        && receiveContextRef.current.enabled && document.visibilityState === 'visible') {
+        setAutoRefreshDurationMs(60 * 1000);
+        setAutoRefreshNextAt(Date.now() + 60 * 1000);
+      }
     } catch (error) {
       console.log(`Error: ${error}`);
     }
-  }, [autoRefreshEnabled, hasLoadedFarm, activeFarmId, showfTNFT, showfGraph, pageSectionRequirements, getPrices, bumpAutoRefreshPulse]);
+  }, [autoRefreshEnabled, hasLoadedFarm, activeFarmId, showfTNFT, showfGraph, pageSectionRequirements, getPricesWithOutcome, bumpAutoRefreshPulse, receiveContextKey]);
 
   /**
    * Clear all timers
    */
   const clearAllTimers = useCallback(() => {
+    timerGenerationRef.current += 1;
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -130,6 +176,37 @@ export function useAutoRefresh(
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+    }
+  }, []);
+
+  useLayoutEffect(() => { fetchDataRef.current = fetchData; }, [fetchData]);
+
+  // Both start and reset own one generation; a cleared cycle cannot revive itself.
+  const scheduleAutoRefresh = useCallback((firstDuration) => {
+    const generation = timerGenerationRef.current;
+    const normalDuration = 60 * 1000;
+    const isCurrent = () => generation === timerGenerationRef.current
+      && receiveContextRef.current.active && receiveContextRef.current.enabled
+      && document.visibilityState === 'visible';
+    const tick = () => {
+      if (!isCurrent()) return Promise.resolve();
+      return fetchDataRef.current(generation).catch(error => console.log(`Error: ${error}`));
+    };
+    setAutoRefreshDurationMs(firstDuration);
+    setAutoRefreshNextAt(Date.now() + firstDuration);
+    if (firstDuration !== normalDuration) {
+      timeoutRef.current = setTimeout(() => {
+        if (!isCurrent()) return;
+        timeoutRef.current = null;
+        tick().finally(() => {
+          if (!isCurrent()) return;
+          setAutoRefreshDurationMs(normalDuration);
+          setAutoRefreshNextAt(Date.now() + normalDuration);
+          intervalRef.current = setInterval(tick, normalDuration);
+        });
+      }, firstDuration);
+    } else {
+      intervalRef.current = setInterval(tick, normalDuration);
     }
   }, []);
 
@@ -142,7 +219,7 @@ export function useAutoRefresh(
   const startAutoRefresh = useCallback(() => {
     clearAllTimersRef.current();
 
-    if (!autoRefreshEnabled || !hasLoadedFarm || !activeFarmId || showfTNFT || showfGraph) {
+    if (!autoRefreshEnabled || !hasLoadedFarm || !activeFarmId || showfTNFT || showfGraph || document.visibilityState !== 'visible') {
       setAutoRefreshNextAt(0);
       return;
     }
@@ -153,32 +230,8 @@ export function useAutoRefresh(
       : (dataSetFarm?.isabo ? normalDuration : 20 * 1000);
     autoRefreshForceNormalFirstCycleRef.current = false;
 
-    let firstCyclePending = true;
-    const initialDuration = firstCyclePending ? firstDuration : normalDuration;
-    setAutoRefreshDurationMs(initialDuration);
-    setAutoRefreshNextAt(Date.now() + initialDuration);
-
-    if (firstCyclePending && initialDuration !== normalDuration) {
-      timeoutRef.current = setTimeout(() => {
-        fetchData()
-          .catch((error) => console.log(`Error: ${error}`))
-          .finally(() => {
-            firstCyclePending = false;
-            setAutoRefreshDurationMs(normalDuration);
-            setAutoRefreshNextAt(Date.now() + normalDuration);
-            intervalRef.current = setInterval(() => {
-              fetchData().catch((error) => console.log(`Error: ${error}`));
-            }, normalDuration);
-          });
-      }, initialDuration);
-      return;
-    }
-
-    firstCyclePending = false;
-    intervalRef.current = setInterval(() => {
-      fetchData().catch((error) => console.log(`Error: ${error}`));
-    }, normalDuration);
-  }, [autoRefreshEnabled, hasLoadedFarm, activeFarmId, dataSetFarm?.isabo, showfTNFT, showfGraph, fetchData]);
+    scheduleAutoRefresh(firstDuration);
+  }, [autoRefreshEnabled, hasLoadedFarm, activeFarmId, dataSetFarm?.isabo, showfTNFT, showfGraph, scheduleAutoRefresh]);
 
   // Keep startAutoRefresh ref in sync
   startAutoRefreshRef.current = startAutoRefresh;
@@ -198,7 +251,7 @@ export function useAutoRefresh(
     clearAllTimersRef.current();
 
     const farmState = nextFarmState || dataSetFarm || {};
-    if (!autoRefreshEnabled || !hasLoadedFarm || !(farmState?.frmid || activeFarmId) || showfTNFT || showfGraph) {
+    if (!autoRefreshEnabled || !hasLoadedFarm || !(farmState?.frmid || activeFarmId) || showfTNFT || showfGraph || document.visibilityState !== 'visible') {
       setAutoRefreshNextAt(0);
       return;
     }
@@ -208,28 +261,8 @@ export function useAutoRefresh(
       ? normalDuration
       : (farmState?.isabo ? normalDuration : 20 * 1000);
     autoRefreshForceNormalFirstCycleRef.current = false;
-    setAutoRefreshDurationMs(firstDuration);
-    setAutoRefreshNextAt(Date.now() + firstDuration);
-
-    if (firstDuration !== normalDuration) {
-      timeoutRef.current = setTimeout(() => {
-        fetchData()
-          .catch((error) => console.log(`Error: ${error}`))
-          .finally(() => {
-            setAutoRefreshDurationMs(normalDuration);
-            setAutoRefreshNextAt(Date.now() + normalDuration);
-            intervalRef.current = setInterval(() => {
-              fetchData().catch((error) => console.log(`Error: ${error}`));
-            }, normalDuration);
-          });
-      }, firstDuration);
-      return;
-    }
-
-    intervalRef.current = setInterval(() => {
-      fetchData().catch((error) => console.log(`Error: ${error}`));
-    }, normalDuration);
-  }, [autoRefreshEnabled, hasLoadedFarm, activeFarmId, dataSetFarm, showfTNFT, showfGraph, fetchData]);
+    scheduleAutoRefresh(firstDuration);
+  }, [autoRefreshEnabled, hasLoadedFarm, activeFarmId, dataSetFarm, showfTNFT, showfGraph, scheduleAutoRefresh]);
 
   // Update view ref when UI changes
   useEffect(() => {
@@ -255,6 +288,7 @@ export function useAutoRefresh(
         startAutoRefreshRef.current();
       } else {
         clearAllTimersRef.current();
+        setAutoRefreshNextAt(0);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);

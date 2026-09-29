@@ -1,10 +1,13 @@
+import { prepareFarmTableResponse } from "../utils/farmResponse/prepareFarmResponse.js";
+import { mergeFarmResponse } from "../utils/farmResponse/mergeFarmResponse.js";
+import useFarmApplyContext, { FARM_APPLY_CHANGED_MESSAGE } from "./trynft/useFarmApplyContext.js";
 import QuickSkillBudget from "./trynft/QuickSkillBudget.jsx";
 import { getSkillLevelColor } from "./trynft/skillLevelColor.js";
 import { withTrysetTables } from "./trynft/trysetTables.js";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx.js";
 import { fetchJson } from "../services/apiClient.js";
-import { getOrCreateDeviceId, applyFarmPayloadTableDeltas, mergeFarmStateDeep, unpackFarmPayloadTables } from "../fct.js";
+import { getOrCreateDeviceId } from "../fct.js";
 import { imgconfirm, imgna, normalizeServerImagesDeep } from "../constants/images.js";
 import {
   buildPackedTryitSnapshot,
@@ -118,6 +121,7 @@ export default function QuickTryDrawer({
   const panelRef = useRef(null);
   const validConfig = isValidTryitConfig(tryitConfig);
   const farmId = String(dataSet?.options?.farmId || dataSetFarm?.frmid || "");
+  const farmApplyContext = useFarmApplyContext(farmId, dataSetFarm?.frmid);
   const hasBoostData = !!withTrysetTables(dataSetFarm)?.boostables;
 
   useEffect(() => {
@@ -205,6 +209,7 @@ export default function QuickTryDrawer({
     const snapshot = queuedSnapshot || trysetDraft.snapshot;
     if (!trysetDraft.begin()) return;
     if (!hasTryitPayloadContent(snapshot)) { trysetDraft.finish(); return; }
+    const requestContext = farmApplyContext.capture(farmId);
     abortRef.current?.abort?.();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -226,12 +231,15 @@ export default function QuickTryDrawer({
           knownProjectionHashes: collectKnownProjectionHashes(latestStateRef.current || state),
           knownTableHashes,
       };
-      const sendTryRequest = (body) => fetchJson(API_URL, "/settry", {
+      const sendTryRequest = (body) => {
+        farmApplyContext.assertCurrent(requestContext);
+        return fetchJson(API_URL, "/settry", {
         method: "POST",
         signal: controller.signal,
         timeoutMs: 30000,
         body: { ...baseBody, ...body },
-      });
+        });
+      };
       const sendSnapshot = async () => {
         const packed = buildPackedTryitSnapshot(state, snapshot, tryitConfig);
         if (!packed) return sendTryRequest({ tryitarrays: snapshot, tryitMode: "snapshot" });
@@ -245,30 +253,30 @@ export default function QuickTryDrawer({
         }
       };
       let payload = await sendSnapshot();
-      let delta = applyFarmPayloadTableDeltas(state, unpackFarmPayloadTables(payload), knownTableHashes, tryitConfig);
+      farmApplyContext.assertCurrent(requestContext, payload);
+      let delta = prepareFarmTableResponse(state, payload, knownTableHashes, tryitConfig);
       if (delta.rejectedPaths.length) {
         payload = await sendTryRequest({ tryitarrays: snapshot, tryitMode: "snapshot", knownHashes: {}, knownTableHashes: {}, knownProjectionHashes: {} });
-        delta = applyFarmPayloadTableDeltas(state, unpackFarmPayloadTables(payload), {}, tryitConfig);
+        farmApplyContext.assertCurrent(requestContext, payload);
+        delta = prepareFarmTableResponse(state, payload, {}, tryitConfig);
         if (delta.rejectedPaths.length) throw new Error("Incompatible partial Tryset response");
       }
       if (requestId !== requestIdRef.current) return;
       const responseState = withTrysetTables(normalizeServerImagesDeep(delta.payload));
       const latestState = latestStateRef.current || state;
-      const merged = syncTryitStateAcrossFarmState(
-        mergeFarmStateDeep(latestState, responseState, tryitConfig),
-        tryitConfig,
-        snapshot
-      );
+      const merged = mergeFarmResponse(latestState, responseState, tryitConfig, snapshot);
       latestStateRef.current = merged;
       if (!trysetDraft.finish(snapshot)) return;
       if (!TryChecked) setUIField("TryChecked", true);
       handleRefreshfTNFT(dataSet, merged, { persistTrySnapshot: false, markTryitSynced: true });
       setStatus("done");
     } catch (applyError) {
-      trysetDraft.finish(null, applyError?.status === 429 ? "Wait a few seconds" : "Recalculation failed. Please retry Apply.");
+      const contextChanged = applyError?.code === "FARM_APPLY_CONTEXT_CHANGED";
+      trysetDraft.finish(null, contextChanged ? FARM_APPLY_CHANGED_MESSAGE : applyError?.status === 429 ? "Wait a few seconds" : "Recalculation failed. Please retry Apply.");
       if (requestId !== requestIdRef.current || applyError?.code === "REQUEST_CANCELLED") return;
       setStatus("error");
-      if (applyError?.status === 429) setError("Wait a few seconds");
+      if (contextChanged) setError(FARM_APPLY_CHANGED_MESSAGE);
+      else if (applyError?.status === 429) setError("Wait a few seconds");
       else setError(`Recalculation failed${applyError?.status ? ` (${applyError.status})` : ""}`);
     }
   };

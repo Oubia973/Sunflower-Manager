@@ -1,3 +1,5 @@
+import { prepareFarmTableResponse } from "./utils/farmResponse/prepareFarmResponse.js";
+import useFarmApplyContext, { FARM_APPLY_CHANGED_MESSAGE } from "./components/trynft/useFarmApplyContext.js";
 import { buildSkillBudgetRequestState } from "./components/trynft/skillBudgetRequest.js";
 import { getSkillLevelColor } from "./components/trynft/skillLevelColor.js";
 import { withTrysetTables } from "./components/trynft/trysetTables.js";
@@ -7,7 +9,7 @@ import { useAppCtx } from "./context/AppCtx";
 import { Switch, FormControlLabel, CircularProgress } from '@mui/material';
 import CounterInput from "./counterinput.js";
 import DList from "./dlist.jsx";
-import { frmtNb, ColorValue, applyFarmPayloadTableDeltas, mergeFarmStateDeep, getOrCreateDeviceId, unpackFarmPayloadTables } from './fct.js';
+import { frmtNb, ColorValue, mergeFarmStateDeep, getOrCreateDeviceId } from './fct.js';
 import Help from './fhelp.js';
 import TryProfileShareBar from "./components/TryProfileShareBar.jsx";
 import TryProfileSummaryModal from "./components/TryProfileSummaryModal.jsx";
@@ -268,6 +270,7 @@ function ModalTNFT({ onClose }) {
     trysetDraft,
   } = useAppCtx();
   const frmid = String(dataSet?.options?.farmId || dataSetFarm?.frmid || "");
+  const farmApplyContext = useFarmApplyContext(frmid, dataSetFarm?.frmid);
   const deepClone = (obj) => JSON.parse(JSON.stringify(obj || {}));
   const hasTryitConfig = isValidTryitConfig(tryitConfig);
   const preserveTryFlags = (nextState, sourceState) => {
@@ -713,6 +716,7 @@ function ModalTNFT({ onClose }) {
       return true;
     }
     if (!trysetDraft.begin()) return false;
+    const requestContext = farmApplyContext.capture(frmid);
     applyingTrysetRef.current = true;
     setIsApplyingTryset(true);
     try {
@@ -753,15 +757,18 @@ function ModalTNFT({ onClose }) {
       //const tableKeys = Object.keys(tables);
       //const entries = tableKeys.reduce((n, k) => n + (Array.isArray(tables[k]) ? tables[k].length : 0), 0);
       //console.log("settry req ko:", (bodyStr.length / 1024).toFixed(2), "tables:", tableKeys.length, "entries:", entries);
+      farmApplyContext.assertCurrent(requestContext);
       let payload = await fetchJson(API_URL, "/settry", {
         method: 'POST',
         body: headers,
         timeoutMs: 30_000,
       });
-        let delta = applyFarmPayloadTableDeltas(cur, unpackFarmPayloadTables(payload), headers.knownTableHashes, tryitConfig);
+        farmApplyContext.assertCurrent(requestContext, payload);
+        let delta = prepareFarmTableResponse(cur, payload, headers.knownTableHashes, tryitConfig);
         if (delta.rejectedPaths.length) {
           payload = await fetchJson(API_URL, "/settry", { method: "POST", timeoutMs: 30000, body: { ...headers, knownHashes: {}, knownTableHashes: {} } });
-          delta = applyFarmPayloadTableDeltas(cur, unpackFarmPayloadTables(payload), {}, tryitConfig);
+          farmApplyContext.assertCurrent(requestContext, payload);
+          delta = prepareFarmTableResponse(cur, payload, {}, tryitConfig);
           if (delta.rejectedPaths.length) throw new Error("Incompatible partial Tryset response");
         }
         const responseData = withTrysetTables(delta.payload);
@@ -784,7 +791,7 @@ function ModalTNFT({ onClose }) {
         setShowTryRefreshHalo(false);
         return true;
     } catch (error) {
-      trysetDraft.finish(null, error?.status === 429 ? "Wait a few seconds" : "Recalculation failed. Please retry Apply.");
+      trysetDraft.finish(null, error?.code === "FARM_APPLY_CONTEXT_CHANGED" ? FARM_APPLY_CHANGED_MESSAGE : error?.status === 429 ? "Wait a few seconds" : "Recalculation failed. Please retry Apply.");
       if (error?.status === 429) {
         console.log('Too many requests, wait a few seconds');
       } else {

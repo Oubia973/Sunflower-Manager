@@ -48,3 +48,15 @@ test("explains the intentional full-cost allocation", () => {
   expect(html).toContain("Feather <strong>100%");
   expect(html).toContain("Full cycle cost is assigned to each product");
 });
+
+test("shows crop icons for animal feed when its composition catalog is absent", () => {
+  const html = renderToStaticMarkup(<AnimalUnitCostModern contract={{
+    productName: "Milk", animalName: "Cow", foodName: "Mix",
+    foodCostTree: { nodes: {
+      Corn: { qty: 1 }, Barley: { qty: 1 }, Wheat: { qty: 1 },
+    } },
+  }} />);
+  expect(html).toContain("icon/res/corn.png");
+  expect(html).toContain("icon/res/barley.png");
+  expect(html).toContain("icon/res/wheat.png");
+});
