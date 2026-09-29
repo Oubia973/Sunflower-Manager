@@ -13,8 +13,8 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [tokenLimit, setTokenLimit] = useState(0);
-  const [tokenUsed, setTokenUsed] = useState(0);
+  const [modelQuotas, setModelQuotas] = useState(null);
+  const [quotaRevision, setQuotaRevision] = useState(0);
   const [selectedModel, setSelectedModelState] = useState(() => {
     try {
       const stored = String(localStorage.getItem(modelStorageKey) || "").toLowerCase();
@@ -25,6 +25,8 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
     }
     return "qwen";
   });
+  const tokenUsed = modelQuotas?.[selectedModel]?.tokenUsed ?? 0;
+  const tokenLimit = modelQuotas?.[selectedModel]?.tokenLimit ?? 0;
   const bodyRef = useRef(null);
   const bodyAutoScrollRef = useRef(true);
   const streamBufferRef = useRef("");
@@ -42,6 +44,19 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
       // Model selection still works when localStorage is unavailable.
     }
   }
+
+  useEffect(() => {
+    if (!farmId && !username) return undefined;
+    const controller = new AbortController();
+    fetch(`${API_URL || ""}/chatbot/quota?farmId=${encodeURIComponent(farmId || username)}`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((quota) => {
+        if (!quota?.ok) return;
+        setModelQuotas(quota.models || null);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [API_URL, farmId, username, quotaRevision]);
 
   function clearStreamTimer() {
     if (!streamRenderTimerRef.current) return;
@@ -81,8 +96,14 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
   function appendFinal(payload) {
     if (payload?.answer != null) replaceAnswerText(payload.answer);
     if (payload?.responseId) setMessages((prev) => prev.map((message, index) => index === prev.length - 1 ? { ...message, responseId: payload.responseId } : message));
-    if (payload?.tokenUsed != null) setTokenUsed(Number(payload.tokenUsed || 0));
-    if (payload?.tokenLimit != null) setTokenLimit(Number(payload.tokenLimit || 0));
+    if (payload?.tokenUsed != null || payload?.tokenLimit != null) {
+      const model = payload.selectedModel === "luna" && isSubscriber ? "luna" : selectedModel;
+      setModelQuotas((current) => ({ ...current, [model]: {
+        tokenUsed: Number(payload.tokenUsed ?? current?.[model]?.tokenUsed ?? 0),
+        tokenLimit: Number(payload.tokenLimit ?? current?.[model]?.tokenLimit ?? 0),
+      } }));
+    }
+    if (payload?.tokenUsed != null) setQuotaRevision((revision) => revision + 1);
     if (payload?.selectedModel) setSelectedModelState(payload.selectedModel === "luna" && isSubscriber ? "luna" : "qwen");
   }
 
@@ -168,8 +189,12 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
       });
       if (!response.ok || !response.body) {
         const responseData = await response.json().catch(() => ({}));
-        if (responseData.tokenUsed != null) setTokenUsed(Number(responseData.tokenUsed || 0));
-        if (responseData.tokenLimit != null) setTokenLimit(Number(responseData.tokenLimit || 0));
+        if (responseData.tokenUsed != null || responseData.tokenLimit != null) {
+          setModelQuotas((current) => ({ ...current, [selectedModel]: {
+            tokenUsed: Number(responseData.tokenUsed ?? current?.[selectedModel]?.tokenUsed ?? 0),
+            tokenLimit: Number(responseData.tokenLimit ?? current?.[selectedModel]?.tokenLimit ?? 0),
+          } }));
+        }
         setMessages((prev) => [
           ...prev.slice(0, -1),
           { role: "assistant", content: responseData.limitMessage || responseData.error || "Grubnuk is not here for now" },
@@ -275,6 +300,7 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
     cooldown,
     tokenLimit,
     tokenUsed,
+    modelQuotas,
     handleBodyScroll,
     handleKeyDown,
     input,

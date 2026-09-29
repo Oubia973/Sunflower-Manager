@@ -3,6 +3,7 @@ import { imgcancel, imggoblinThinking, imggrubnuk, imgarrowUp } from "./constant
 import ChatbotMarkdown from "./components/chatbot/ChatbotMarkdown.jsx";
 import ChatbotDebugPanel from "./components/chatbot/ChatbotDebugPanel.jsx";
 import useChatbotConversation from "./components/chatbot/useChatbotConversation.js";
+import DList from "./dlist.jsx";
 import "./components/chatbot/chatbot-ui.css";
 
 function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayload, currentPage, username }) {
@@ -11,6 +12,7 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
     cooldown,
     tokenLimit,
     tokenUsed,
+    modelQuotas,
     handleBodyScroll,
     handleKeyDown,
     input,
@@ -29,6 +31,8 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
   const [modalSize, setModalSize] = useState(null);
   const [resizing, setResizing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [quotaOpen, setQuotaOpen] = useState(false);
+  const quotaRef = useRef(null);
   const modalRef = useRef(null);
   const inputRef = useRef(null);
   const dragStartMouse = useRef({ x: 0, y: 0 });
@@ -159,6 +163,20 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
     resizeInput(inputRef.current);
   }, [input]);
 
+  useEffect(() => {
+    if (!quotaOpen) return undefined;
+    const closeOutside = (event) => { if (!quotaRef.current?.contains(event.target)) setQuotaOpen(false); };
+    const closeEscape = (event) => { if (event.key === "Escape") setQuotaOpen(false); };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeEscape);
+    };
+  }, [quotaOpen]);
+
+  const compactTokens = (value) => new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+
 
   return (
     <div
@@ -200,17 +218,30 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
             <span className="chatbot-beta-badge">BETA</span>
           </div>
           <div className="chatbot-header-meta">
-            <label className="chatbot-model-control" title={isSubscriber ? "Choose the AI model" : "Luna is available to subscribers"}>
+            <div className="chatbot-model-control" title={isSubscriber ? "Choose the AI model" : "Luna is available to subscribers"}>
               <span className="chatbot-model-label">Model</span>
-              <select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)} disabled={loading}>
-                <option value="qwen">Qwen</option>
-                <option value="luna" disabled={!isSubscriber}>Luna{isSubscriber ? "" : " 🔒"}</option>
-              </select>
-            </label>
+              <DList options={[{ value: "qwen", label: "Qwen", disabled: loading }, { value: "luna", label: isSubscriber ? "Luna" : "Luna (subscriber)", disabled: !isSubscriber || loading }]}
+                value={selectedModel} onChange={(model) => { if (!loading) setSelectedModel(model); }} emitEvent={false} ariaLabel="AI model" width={90} />
+            </div>
             {tokenLimit > 0 ? (
-              <span className="chatbot-token-quota" title={`${tokenUsed.toLocaleString()} / ${tokenLimit.toLocaleString()} tokens used this month`}>
-                {Math.min(100, Math.round((tokenUsed / tokenLimit) * 100))}% <span className="chatbot-token-quota-label">quota</span>
-              </span>
+              <div className="chatbot-quota-wrap" ref={quotaRef}>
+                <button type="button" className="chatbot-token-quota" onClick={() => setQuotaOpen((open) => !open)}
+                  aria-expanded={quotaOpen} aria-label={`${selectedModel === "luna" ? "Luna" : "Qwen"} quota: ${tokenUsed.toLocaleString()} of ${tokenLimit.toLocaleString()} tokens. Show details`}>
+                  {compactTokens(tokenUsed)} / {compactTokens(tokenLimit)} <span aria-hidden="true">⌄</span>
+                </button>
+                {quotaOpen && <div className="chatbot-quota-tooltip" role="dialog" aria-label="Monthly AI quota">
+                  <strong>Monthly token quota</strong>
+                  {Object.entries(modelQuotas || {}).map(([model, quota]) => {
+                    const used = Number(quota.tokenUsed || 0);
+                    const limit = Number(quota.tokenLimit || 0);
+                    return <div className={`chatbot-quota-row ${model === selectedModel ? "is-selected" : ""}`} key={model}>
+                      <span>{model === "luna" ? "Luna" : "Qwen"}{model === selectedModel ? " · selected" : ""}</span>
+                      <span>{used.toLocaleString()} / {limit.toLocaleString()}</span>
+                    </div>;
+                  })}
+                  <small>Resets monthly · UTC</small>
+                </div>}
+              </div>
             ) : null}
             <button
               type="button"
