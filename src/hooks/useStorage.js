@@ -121,6 +121,11 @@ export function useStorage(dataSet, dataSetFarm, dataSetFarmRef, setdataSetFarm,
           dataSet.options.firstLoad = false;
         }
         Object.assign(dataSet, normalizeServerImagesDeep(loadedData.dataSet || {}));
+        // Older snapshots stored a JSX element here, which becomes a plain
+        // object after JSON parsing and crashes React when rendered.
+        if (dataSet.isBanned !== true) dataSet.isBanned = false;
+        dataSet.isBannedStatus = typeof dataSet.isBannedStatus === 'string'
+          ? dataSet.isBannedStatus : '';
         if (dataSet?.imgtkt) {
           dataSet.imgtkt = versionImageUrl(dataSet.imgtkt);
         }

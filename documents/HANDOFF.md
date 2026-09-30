@@ -1,4 +1,16 @@
+Luna farm 1972 (2026-09-30): Local backend quota grants unlimited Luna only to farm 1972, keeps monthly and rolling token usage, and does not consume paid credits for that farm. Frontend model selector and quota details recognize unlimited Luna and show rolling 7-day usage. Backend syntax, frontend lint/build and diff checks pass; new-code API/browser flow remains unverified. No backend restart, commit, push or deployment.
+
 # Frontend handoff
+
+Chatbot narrow window (2026-09-30): Full screen and close buttons stay at the top right beside the icon; model and quota move to a wrapping second row when the modal itself is 400px wide or less. The lifetime quota button shows a compact infinity/usage value and its detail panel is narrower; full usage stays in the panel and accessible label. Header title and description were removed. Frontend lint and diff check pass; browser rendering remains open. No commit, push or deployment.
+
+Wallet permission wording (2026-09-30): Recovery dialog now explains before connecting that a wallet's generic site permission can mention transaction requests, while this flow asks only for the address and a message signature; the backend reads NFT ownership. Frontend lint/build/diff check pass; headless 390/1200 px recovery dialog fits. The wallet's native permission text is outside site control. No backend restart, real-wallet check, commit, push or deployment.
+
+Wallet farm recovery (2026-09-30): Added local recovery UI and backend challenge/complete routes. A 5-minute one-use signed message binds site, farm, wallet and nonce; backend checks Polygon Farm NFT ownerOf and EOA/EIP-1271 signature before replacing login/password and incrementing sessionVersion to revoke prior sessions. The configured Polygon RPC returned chain 137, contract name Sunflower Land and a token owner. Focused account tests, backend syntax, frontend lint/build and diff checks pass; headless desktop/mobile dialog rendering fits with no page errors. The existing backend listener predates these edits; real wallet signing and an end-to-end recovery remain unverified. The UI requires an injected wallet; integrated wallets without one need a separate flow. No restart, commit, push or deployment.
+
+Account login/register dialog (2026-09-30): Compacted the shared account dialog and moved its presentation rules from `App.css` into central `src/styles/form-controls.css`. It now uses the brown/gold input palette, readable compact text buttons, responsive mobile sheet positioning, and an accessible error alert; account API behavior is unchanged. Frontend lint, production build and diff check pass. Browser visual validation remains open. No commit, push or deployment.
+
+Account farm reload (2026-09-30): Fixed a serialized JSX value in `dataSet.isBanned` that could be restored as a plain object and crash React after account login reload. Farm load now stores a boolean/status, App renders the warning, and storage sanitizes legacy snapshots. Lint, build and diff check pass; the authenticated browser flow still needs checking with the affected account. No commit, push or deployment.
 
 Chatbot quota percentages (2026-09-30): Capped Qwen/Luna counters and tooltip balances display percent remaining; lifetime Qwen stays unlimited and still shows actual rolling 7-day tokens used. Frontend lint/build and diff check pass; browser rendering remains open. No commit, push or deployment.
 
@@ -289,3 +301,4 @@ Item dashboard and full price graph: currency amounts in the dashboard and graph
 Mini price graph overlap fix: Max is above the curve and Min below it in reserved space, with opaque label backgrounds and labels drawn last. Focused tests cover varying and flat prices; lint and production build pass. Browser visual validation remains open.
 
 Visually verify the refreshed chatbot in the real local/site environment, then continue frontend work from `main` using the new continuity rules. For future chatbot UI changes, keep presentation separate from `useChatbotConversation.js` unless behavior intentionally changes.
+

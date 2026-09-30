@@ -494,14 +494,14 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL, itemTable, to
                     <label><strong>Account</strong></label>
                     {!accountState?.exists ? (
                         <>
-                            <button type="button" className="button" onClick={() => window.dispatchEvent(new CustomEvent("sflman-account-dialog", { detail: { mode: "register", farmId: String(dataSet?.farmId || "") } }))}>Create account</button>
+                            <button type="button" className="button" aria-label="Create account" title="Create account" onClick={() => window.dispatchEvent(new CustomEvent("sflman-account-dialog", { detail: { mode: "register", farmId: String(dataSet?.farmId || "") } }))}><img src="/icon/ui/import.webp" alt="" /></button>
                             <small>{isAbo ? "Create your account to secure this paid farm." : "Protect this farm with a login and password."}</small>
                         </>
                     ) : accountState?.authenticated ? (
-                        <>
+                        <div className="options-setting__control options-setting__account-status">
                             <span>Connected as <strong>{accountState.login}</strong></span>
-                            <button type="button" className="button" onClick={async () => { await fetchJson(API_URL, "/account/logout", { method: "POST" }); window.location.reload(); }}>Log out</button>
-                        </>
+                            <button type="button" className="button" aria-label="Log out" title="Log out" onClick={async () => { await fetchJson(API_URL, "/account/logout", { method: "POST" }); window.location.reload(); }}><img src="/icon/ui/logout.webp" alt="" /></button>
+                        </div>
                     ) : (
                         <button type="button" className="button" onClick={() => window.dispatchEvent(new CustomEvent("sflman-account-dialog", { detail: { mode: "login", farmId: String(dataSet?.farmId || "") } }))}>Log in</button>
                     )}

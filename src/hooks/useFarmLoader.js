@@ -22,7 +22,7 @@ import {
 import { getBalanceValue } from '../utils/balance.js';
 import { fetchJson, fetchJsonResponse } from '../services/apiClient.js';
 import { LOAD_FARM_SPAM_WINDOW_MS, LOAD_FARM_SPAM_THRESHOLD } from '../constants/api.js';
-import { imgsuspicious, versionImageUrl } from '../constants/images.js';
+import { versionImageUrl } from '../constants/images.js';
 import { normalizeFarmResponseImages, prepareLoadedFarmResponse } from '../utils/farmResponse/prepareFarmResponse.js';
 import { mergeFarmResponse } from '../utils/farmResponse/mergeFarmResponse.js';
 import { getDailyCoinFlow } from '../utils/coinActivity.js';
@@ -178,14 +178,8 @@ export function useFarmLoader(
     dataSet.options.username = normalizedResponseData.username;
     dataSet.options.farmId = normalizedResponseData.frmid;
     getDailyCoinFlow(responseFrmData?.coinActivity, normalizedResponseData.frmid);
-    dataSet.isBanned = responseFrmData.isbanned
-      ? (
-        <div style={{ color: 'red', margin: 0, padding: 0 }}>
-          <img src={imgsuspicious} alt="" />
-          <span>BANNED {responseFrmData.isbannedstatus}</span>
-        </div>
-      )
-      : '';
+    dataSet.isBanned = Boolean(responseFrmData.isbanned);
+    dataSet.isBannedStatus = String(responseFrmData.isbannedstatus || '');
     dataSet.options.isAbo = normalizedResponseData.isabo;
     dataSet.aboLifetime = normalizedResponseData.aboLifetime === true;
     dataSet.isVip = responseFrmData.vip;

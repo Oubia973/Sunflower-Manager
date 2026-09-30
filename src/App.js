@@ -58,7 +58,7 @@ import {
   imghoney, imgsunstone, imgna, imgwinterPath, imgspringPath,
   imgsummerPath, imgautumnPath,
   imgfactions, imgchores, imgstopwatch, imgkitchenIcon,
-  imggobcarry,
+  imggobcarry, imgsuspicious,
 } from './constants/images.js';
 
 // Extracted utilities
@@ -1526,7 +1526,12 @@ function App() {
             <div className="horizontal" style={{ margin: "0", padding: "0" }}>
               {buttonClicked ? (<>
                 <div className="horizontal" onClick={(e) => handleTooltip("", "balance", dataSetFarm?.farmMeta?.balanceTooltip || null, e)} style={{ margin: "0", padding: "0" }}>
-                  {imgSFL}{frmtNb(dataSet?.balance ?? 0)} {imgCoins}{Number(dataSet?.coins ?? 0).toFixed(0)}{dataSet?.isBanned ? dataSet.isBanned : null}
+                  {imgSFL}{frmtNb(dataSet?.balance ?? 0)} {imgCoins}{Number(dataSet?.coins ?? 0).toFixed(0)}{dataSet?.isBanned === true ? (
+                    <div style={{ color: 'red', margin: 0, padding: 0 }}>
+                      <img src={imgsuspicious} alt="" />
+                      <span>BANNED {dataSet.isBannedStatus}</span>
+                    </div>
+                  ) : null}
                 </div>
                 <span>{mutData || null}</span>
               </>) : null}

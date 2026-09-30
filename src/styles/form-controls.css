@@ -236,6 +236,92 @@ input[type="radio"]:disabled:checked::after {
 .counter-input.is-disabled { color: var(--control-muted); }
 .quick-try-level b { color: var(--control-accent); }
 
+/* Compact account authentication dialog. Shared controls keep the site palette. */
+.account-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  background: rgba(8, 5, 3, .72);
+}
+
+.account-dialog {
+  box-sizing: border-box;
+  width: min(352px, 100%);
+  padding: 14px;
+  border: 1px solid var(--control-border);
+  border-radius: 9px;
+  background: linear-gradient(145deg, #2a1b13, var(--control-surface));
+  color: var(--control-text);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .48);
+}
+
+.account-dialog__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+
+.account-dialog h2 { margin: 0; color: var(--control-accent); font-size: 18px; line-height: 1.15; }
+.account-dialog__farm { margin: 0; color: var(--control-muted); font-size: 12px; white-space: nowrap; }
+.account-dialog form, .account-dialog label { display: flex; flex-direction: column; }
+.account-dialog form { gap: 10px; }
+.account-dialog label { gap: 4px; color: var(--control-muted); font-size: 12px; font-weight: 600; }
+
+.account-dialog input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 14px;
+}
+
+.account-dialog__error {
+  padding: 6px 8px;
+  border: 1px solid #a84c42;
+  border-radius: 5px;
+  background: rgba(117, 37, 28, .28);
+  color: #ffd4ca;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.account-dialog__actions { display: flex; justify-content: flex-end; gap: 7px; padding-top: 1px; }
+
+.account-dialog .button {
+  width: auto;
+  min-width: 70px;
+  height: 29px;
+  padding: 0 10px;
+  border: 1px solid var(--control-border);
+  border-radius: 5px;
+  background: var(--control-surface);
+  background-image: none;
+  color: var(--control-text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.account-dialog .button[type="submit"] { border-color: var(--control-accent); background: var(--control-accent); color: #2a1709; font-weight: 700; }
+.account-dialog .button:hover:not(:disabled) { border-color: var(--control-focus); filter: brightness(1.1); }
+.account-dialog .button:focus-visible { outline: 2px solid var(--control-focus); outline-offset: 2px; }
+.account-dialog .button:disabled { opacity: .58; cursor: wait; }
+.account-dialog__note { display: block; margin-top: 10px; color: var(--control-muted); font-size: 11px; line-height: 1.35; }
+.account-dialog__wallet-note { margin: 0; color: var(--control-text); font-size: 11px; line-height: 1.4; }
+.account-dialog__link { display: block; margin-top: 10px; padding: 0; border: 0; background: none; color: var(--control-accent); font: inherit; font-size: 11px; text-decoration: underline; cursor: pointer; }
+.account-dialog__message { min-width: 0; color: var(--control-muted); font-size: 11px; }
+.account-dialog__message pre { max-height: 150px; overflow: auto; margin: 5px 0 0; padding: 7px; border: 1px solid var(--control-border); border-radius: 5px; color: var(--control-text); font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media (max-width: 420px) {
+  .account-dialog-backdrop { align-items: end; padding: 8px; }
+  .account-dialog { width: 100%; padding: 13px; }
+}
+
 /* One scrollbar palette across scroll containers. Intentional hidden bars stay hidden. */
 * {
   scrollbar-color: var(--control-scroll-thumb) var(--control-scroll-track) !important;

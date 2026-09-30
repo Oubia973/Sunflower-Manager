@@ -13,7 +13,7 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [modelQuotas, setModelQuotas] = useState(null);
-  const lunaAvailable = Number(modelQuotas?.luna?.remaining || 0) > 0;
+  const lunaAvailable = modelQuotas?.luna?.unlimited === true || Number(modelQuotas?.luna?.remaining || 0) > 0;
   const [quotaRevision, setQuotaRevision] = useState(0);
   const [selectedModel, setSelectedModelState] = useState(() => {
     try {
@@ -52,7 +52,7 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
         if (!quota?.ok) return;
         const models = quota.models || null;
         setModelQuotas(models);
-        if (selectedModel === "luna" && !(Number(models?.luna?.remaining || 0) > 0)) {
+        if (selectedModel === "luna" && !(models?.luna?.unlimited === true || Number(models?.luna?.remaining || 0) > 0)) {
           setSelectedModelState("qwen");
           try {
             localStorage.setItem(modelStorageKey, "qwen");
