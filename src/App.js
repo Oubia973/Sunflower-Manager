@@ -5,7 +5,6 @@ import ModalGraph from './fgraph.js';
 import ModalDlvr from './fdelivery.js';
 import ModalOptions from './foptions.js';
 import ModalChatbot from './chatbot.jsx';
-import ModalAdmin from './fadmin.jsx';
 import PageCoach from './components/PageCoach.jsx';
 import AccountDialog from './components/AccountDialog.jsx';
 import Cadre from './animodal.js';
@@ -36,6 +35,7 @@ import {
 import { Capacitor } from '@capacitor/core';
 import { StatusBar } from '@capacitor/status-bar';
 const isNativeApp = Capacitor.isNativePlatform();
+const ModalAdmin = React.lazy(() => import(/* webpackChunkName: "admin-ui" */ './.private-admin/fadmin.jsx'));
 
 // Extracted constants
 import { API_URL, LOAD_FARM_COOLDOWN_MS, LOAD_FARM_SPAM_WINDOW_MS, LOAD_FARM_SPAM_THRESHOLD, AUCTION_NOTIF_SYNC_DEBOUNCE_MS } from './constants/api.js';
@@ -1458,7 +1458,7 @@ function App() {
                 <div className="currency-controls">
                   <div className="currency-top-row">
                     <div className="horizontal currency-actions" style={{ margin: "0", padding: "0" }}>
-                      {isAdminFarm ? (
+                      {isAdminFarm && process.env.REACT_APP_PRIVATE_ADMIN_UI !== '0' ? (
                         <button onClick={handleAdminClick} title="Admin" className="button" disabled={adminLoading}>
                           <img src={adminLoading ? imgsyncing : imgadmin} alt="" className="itico" />
                         </button>
@@ -1837,7 +1837,9 @@ function App() {
             username={dataSet?.options?.username || dataSetFarm?.username || ""} />
         )}
         {showAdmin && (
-          <ModalAdmin onClose={() => setShowAdmin(false)} value={adminData} onAdminFetch={fetchAdminView} API_URL={API_URL} />
+          <React.Suspense fallback={null}>
+            <ModalAdmin onClose={() => setShowAdmin(false)} value={adminData} onAdminFetch={fetchAdminView} API_URL={API_URL} />
+          </React.Suspense>
         )}
         {showfGraph && (
           <ModalGraph onClose={handleClosefGraph} graphtype={GraphType} frmid={dataSet.options.farmId}

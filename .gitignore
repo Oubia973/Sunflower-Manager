@@ -1,6 +1,16 @@
 # Dependencies and build output
 /node_modules/
 /build/
+/.admin-ui-build/
+/src/.private-admin/
+/src/fadmin.jsx
+/src/tooltip/AdminTooltipContent.jsx
+/src/tooltip/AdminFarmExchangeBaseline.test.jsx
+/src/components/AdminAccounts.jsx
+/src/components/AdminChatbotUsage.jsx
+/src/components/AdminChatbotUsage.test.jsx
+/src/components/admin-chatbot-usage.css
+/src/components/adminPanelConfig.js
 /coverage/
 
 # Local environment and editor settings

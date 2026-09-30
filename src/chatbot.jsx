@@ -235,6 +235,8 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
                     {modelQuotas?.qwen?.unlimited ? <>
                       <div className="chatbot-quota-row"><span>Used · rolling 7 days</span><span>{Number(modelQuotas.qwen.weeklyUsed || 0).toLocaleString()} tokens</span></div>
                       <small>Lifetime farm: unlimited Qwen use</small>
+                    </> : modelQuotas?.qwen?.adminOverride ? <>
+                      <div className="chatbot-quota-row"><span>Remaining tokens</span><span>{Number(modelQuotas.qwen.remaining || 0).toLocaleString()} tokens</span></div>
                     </> : <>
                       <div className="chatbot-quota-row"><span>Free · rolling 7 days</span><span>{percentLeft(modelQuotas?.qwen?.freeRemaining, modelQuotas?.qwen?.weeklyLimit)} left</span></div>
                       <div className="chatbot-quota-row"><span>Credits</span><span>{percentLeft(modelQuotas?.qwen?.paidRemaining, modelQuotas?.qwen?.paidGranted)} left</span></div>
@@ -244,7 +246,9 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
                     <div className="chatbot-quota-heading"><b>Luna</b><span>{modelQuotas?.luna?.unlimited ? "Unlimited" : `${percentLeft(modelQuotas?.luna?.remaining, modelQuotas?.luna?.tokenLimit)} left`}</span></div>
                     {modelQuotas?.luna?.unlimited ?
                       <div className="chatbot-quota-row"><span>Used · rolling 7 days</span><span>{Number(modelQuotas.luna.weeklyUsed || 0).toLocaleString()} tokens</span></div> :
-                      <div className="chatbot-quota-row"><span>Credits</span><span>{percentLeft(modelQuotas?.luna?.paidRemaining, modelQuotas?.luna?.paidGranted)} left</span></div>}
+                      modelQuotas?.luna?.adminOverride ?
+                        <div className="chatbot-quota-row"><span>Remaining tokens</span><span>{Number(modelQuotas.luna.remaining || 0).toLocaleString()} tokens</span></div> :
+                        <div className="chatbot-quota-row"><span>Credits</span><span>{percentLeft(modelQuotas?.luna?.paidRemaining, modelQuotas?.luna?.paidGranted)} left</span></div>}
                   </div>
                 </div>}
               </div>

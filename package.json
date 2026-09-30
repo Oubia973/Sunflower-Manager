@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "proxy": "http://127.0.0.1:2003",
   "scripts": {
+    "prestart": "node scripts/stage-admin-ui.js",
     "start": "react-scripts start",
+    "poststart": "node scripts/stage-admin-ui.js --clean",
     "build": "node scripts/build.js",
+    "pretest": "node scripts/stage-admin-ui.js",
     "test": "react-scripts test",
+    "posttest": "node scripts/stage-admin-ui.js --clean",
     "lint": "eslint src",
     "security:tracked-files": "node scripts/check-tracked-files.js",
     "capacitor:copy": "cap copy android",

@@ -114,13 +114,12 @@ export default function InvTable({ dashboardPreview = false }) {
         setShowTryRefreshHalo(false);
     };
     if (
-        invFarmContext?.buildings &&
         invTables?.it &&
         invTables?.tool &&
         invBoostables?.nft &&
         invBoostables?.buildng
     ) {
-        const buildngf = invFarmContext.buildings;
+        const buildngf = invFarmContext.buildings || {};
         const { it, tool } = invTables;
         const inventoryMap = invPageData?.inventory || {};
         const itemOrder = Object.keys(it);
