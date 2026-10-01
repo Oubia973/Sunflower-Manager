@@ -52,20 +52,12 @@
   background: #18120f;
 }
 
-.inv-preview-table tbody tr.inv-preview-category-start {
-  background: #302117;
-}
-
 .inv-preview-table tbody tr:nth-child(odd) > #iccolumn {
   background: #211711;
 }
 
 .inv-preview-table tbody tr:nth-child(even) > #iccolumn {
   background: #18120f;
-}
-
-.inv-preview-table tbody tr.inv-preview-category-start > #iccolumn {
-  background: #302117;
 }
 
 .inv-preview-table tbody td {

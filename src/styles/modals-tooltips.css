@@ -1412,6 +1412,18 @@
   position: relative;
   z-index: 0;
 }
+.tooltip-delivery-expand {
+  border: 0;
+  background: transparent;
+  color: #dda477;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.tooltip-delivery-composition-row > td {
+  padding: 4px 8px 8px 18px;
+}
 .tooltip-compo-table .resicon,
 .tooltip-compo-table .itico {
   width: 15px;

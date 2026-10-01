@@ -31,6 +31,13 @@ export function buildCompositionCatalog(dataSetFarm) {
       };
     });
   }));
+  selectTooltipDataBlocks(dataSetFarm).forEach((block) => {
+    Object.entries(block?.compositionImages || {}).forEach(([name, image]) => {
+      if (typeof image === "string" && image) {
+        catalog[name] = { ...(catalog[name] || {}), image: catalog[name]?.image || image };
+      }
+    });
+  });
   return catalog;
 }
 

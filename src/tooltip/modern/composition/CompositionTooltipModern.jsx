@@ -45,6 +45,9 @@ function CompositionItem({ item, initialSeason, catalog, showTitle }) {
         {item.toolImage ? <> per <img src={item.toolImage} alt={item.toolName || "Tool"} title={item.toolName || "Tool"} /></> : null}
       </small> : null}
     </div> : null}
+    {Number(item.averageYieldPerRod) > 0 ? <div className="composition-tooltip__fish-yield">
+      ×{frmtNb(item.averageYieldPerRod)} average per {item.rodImage ? <img src={item.rodImage} alt="" /> : null} Rod
+    </div> : null}
     {seasons.length > 1 ? <div className="composition-tooltip__seasons">
       {seasons.map((key) => <button
         type="button"

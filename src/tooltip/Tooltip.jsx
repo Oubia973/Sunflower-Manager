@@ -30,6 +30,7 @@ import RngRealizedTooltipDetails from './RngRealizedTooltipDetails.jsx';
 import RngItemSummaryTooltipDetails from './RngItemSummaryTooltipDetails.jsx';
 import ItemDashboardTooltipDetails from '../components/inventory/ItemDashboardTooltipDetails.jsx';
 import {
+    buildCompositionCatalog,
     resolveDailyProfitContract,
     resolveMarketComparisonContract,
     resolveProductionCostContract,
@@ -880,6 +881,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 contract={(value && typeof value === "object") ? value : {}}
                 icons={{ fallback: imgna, market: imgExchng }}
                 dragHandleProps={deliveryDragHandleProps}
+                compositionCatalog={buildCompositionCatalog(dataSetFarm)}
             />;
         }
         if (context === "deliverybountycost") {

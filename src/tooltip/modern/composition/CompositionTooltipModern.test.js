@@ -1,6 +1,8 @@
-import React from "react";
+import React, { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { createRoot } from "react-dom/client";
 import CompositionTooltipModern from "./CompositionTooltipModern.jsx";
+import ModernTooltip from "../ModernTooltip.jsx";
 
 test("uses the same composition presentation for multiple recipe items", () => {
   const html = renderToStaticMarkup(<CompositionTooltipModern contract={{
@@ -15,6 +17,47 @@ test("uses the same composition presentation for multiple recipe items", () => {
   expect(html).toContain("rice.png");
   expect(html).toContain("rod.png");
   expect(html).not.toContain("Final resources");
+});
+
+test("explains the average fish yield beside Rod composition", () => {
+  const html = renderToStaticMarkup(<CompositionTooltipModern contract={{ items: [{
+    itemName: "Aged Red Snapper", quantity: 10,
+    averageYieldPerRod: 1.3, rodImage: "rod.png",
+    costTree: { nodes: { Rod: { qty: 1 / 1.3 }, Salt: { qty: 3 } } },
+  }] }} />);
+  expect(html).toContain("average per");
+  expect(html).toContain("rod.png");
+  expect(html).toContain("Salt");
+});
+
+test("Delivery uses the shared modern shell and composition presentation", () => {
+  const previousActEnvironment = global.IS_REACT_ACT_ENVIRONMENT;
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  act(() => root.render(<ModernTooltip
+    context="deliverycost"
+    item="Blacksmith"
+    contract={{ totalCost: 1.2, totalMarket: 1.8, rows: [{
+      name: "Pizza", quantity: 3, cost: 1.2, market: 1.8, img: "pizza.png",
+      composition: { items: [{ itemName: "Pizza", costTree: { nodes: { Cheese: { qty: 2 } } } }] },
+    }] }}
+  />));
+  const html = container.innerHTML;
+  expect(html).toContain("modern-tooltip--composition");
+  expect(html).toContain("Delivery composition");
+  expect(html).toContain("Pizza");
+  expect(html).toContain("Cheese");
+  expect(html).toContain("×6");
+  expect(html).toContain("Total production");
+  expect(html).toContain("Total market");
+  expect(container.querySelector('[aria-label="Delivery totals"]')?.children).toHaveLength(2);
+  expect(container.querySelectorAll('img[alt="Flower"]')).toHaveLength(2);
+  expect(container.textContent).not.toContain("/icon/res/flowertoken.webp");
+  act(() => root.unmount());
+  container.remove();
+  global.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
 });
 
 test("uses season icons instead of season labels", () => {

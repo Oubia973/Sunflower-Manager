@@ -303,6 +303,11 @@
   cursor: pointer;
 }
 
+.home-collapsible-wrap .collapsible-content .nodico {
+  width: 20px;
+  height: 20px;
+}
+
 .home-item-checkbox {
   margin: 0;
   width: 8px;
@@ -408,6 +413,11 @@
   .home-collapsible-wrap .nodico {
     width: 18px;
     height: 18px;
+  }
+
+  .home-collapsible-wrap .collapsible-content .nodico {
+    width: 16px;
+    height: 16px;
   }
 }
 

@@ -7,6 +7,7 @@ import CompositionTooltipModern from "./composition/CompositionTooltipModern.jsx
 import CropMachineModern from "./renderers/CropMachineModern.jsx";
 import AnimalUnitCostModern from "./renderers/AnimalUnitCostModern.jsx";
 import { frmtNb } from "../../fct.js";
+import { imgsfl } from "../../constants/images.js";
 import "./modern-tooltip.css";
 
 export default function ModernTooltip({
@@ -20,8 +21,25 @@ export default function ModernTooltip({
   compositionCatalog,
 }) {
   const singleCompositionItem = contract?.items?.length === 1 ? contract.items[0] : null;
+  const deliveryComposition = context === "deliverycost" ? {
+    initialSeason: contract?.rows?.find((row) => row.composition?.initialSeason)?.composition?.initialSeason,
+    items: (contract?.rows || []).map((row) => ({
+      ...(row.composition?.items?.[0] || {}),
+      itemName: row.displayName || row.name,
+      itemImage: row.img,
+      quantity: row.quantity,
+      totalCost: row.cost,
+      totalMarket: row.market,
+    })),
+  } : null;
   const content = ["cmgainh", "cmdailysfl"].includes(context)
     ? <CropMachineModern context={context} contract={contract} />
+    : context === "deliverycost"
+    ? <><CompositionTooltipModern contract={deliveryComposition} catalog={compositionCatalog} />
+      <div className="modern-tooltip__delivery-total" aria-label="Delivery totals">
+        <div><span>Total production</span><strong>{frmtNb(contract.totalCost)} <img className="modern-tooltip__token" src={imgsfl} alt="Flower" /></strong></div>
+        <div><span>Total market</span><strong>{frmtNb(contract.totalMarket)} <img className="modern-tooltip__token" src={imgsfl} alt="Flower" /></strong></div>
+      </div></>
     : context === "animalcostu"
     ? <AnimalUnitCostModern contract={contract} compositionCatalog={compositionCatalog} />
     : context === "dailysfl"
@@ -46,6 +64,7 @@ export default function ModernTooltip({
     craftcompo: { title: item, subtitle: "Craft composition", icon: singleCompositionItem?.itemImage },
     shrinecost: { title: item, subtitle: "Shrine composition", icon: singleCompositionItem?.itemImage },
     crustaceancost: { title: item, subtitle: "Crustacean composition", icon: singleCompositionItem?.itemImage },
+    deliverycost: { title: item, subtitle: "Delivery composition" },
     cmgainh: { title: item, subtitle: "Crop Machine hourly gain", icon: contract?.itemImage },
     cmdailysfl: { title: item, subtitle: "Crop Machine daily profit", icon: contract?.itemImage },
     animalcostu: { title: item, subtitle: `${contract?.animalName || "Animal"} production cost`, icon: contract?.productImage },
@@ -64,7 +83,7 @@ export default function ModernTooltip({
       draggable={bdrag}
       clickPosition={clickPosition}
       onClose={onClose}
-      variant={["costp", "harvest", "animalcostu", "costitem", "cookcost", "craftcompo", "shrinecost", "crustaceancost"].includes(context) ? "composition" : ""}
+      variant={["costp", "harvest", "animalcostu", "costitem", "cookcost", "craftcompo", "shrinecost", "crustaceancost", "deliverycost"].includes(context) ? "composition" : ""}
     >
       {content}
     </TooltipShell>

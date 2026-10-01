@@ -3,6 +3,7 @@ import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel, CircularProgress } from '@mui/material';
 import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, timeToDays, flattenCompoit, buildSeriesMeta } from '../fct.js';
 import DList from "../dlist.jsx";
+import useCookStock from "../components/cook/useCookStock.js";
 import { fetchJson } from "../services/apiClient.js";
 import { selectCurrentProjection } from "../utils/farmState.js";
 import { selectCookViewTables } from "../utils/cookViewTables.js";
@@ -83,6 +84,7 @@ export default function CookTable() {
     const [includeFishXp, setIncludeFishXp] = useState(true);
     const [fishXpMode, setFishXpMode] = useState("aged");
     const [bumpkinProjection, setBumpkinProjection] = useState(null);
+    const [stockPriority, setStockPriority] = useState("xph");
     const [xpOptionsExpanded, setXpOptionsExpanded] = useState(() => (
         typeof window === "undefined" || window.innerWidth > 560
     ));
@@ -110,13 +112,14 @@ export default function CookTable() {
         };
     }, [selectedQuantityCook, selectedQuantCook, isLevelRangeLoading, fromtolvltime, fromtolvlxp, xListeColCook, xpOptionsExpanded, xpProjectionExpanded]);
     useEffect(() => {
-        const shouldFetchLevelRange = selectedQuantityCook !== "farm";
+        const shouldFetchLevelRange = selectedQuantityCook !== "farm" && selectedQuantityCook !== "stock";
         if (!shouldFetchLevelRange) {
             if (levelReqTimerRef.current) {
                 clearTimeout(levelReqTimerRef.current);
                 levelReqTimerRef.current = null;
             }
             setIsLevelRangeLoading(false);
+            levelReqSeqRef.current += 1;
             return;
         }
         scheduleLevelRangeFetch(
@@ -214,6 +217,10 @@ export default function CookTable() {
     );
     const projectionFood = cookTables?.food || {};
     const projectionPreparedFood = cookTables?.pfood || {};
+    const stockDishes = Object.entries({ ...projectionFood, ...projectionPreparedFood })
+        .filter(([, food]) => Number(food?.cookit) === 1).map(([name]) => name).sort();
+    const stockResult = useCookStock({ enabled: selectedQuantityCook === "stock", apiUrl: API_URL,
+        farmId: dataSetFarm?.frmid || dataSet?.options?.farmId, tryMode: TryChecked, priority: stockPriority, dishes: stockDishes, source: dataSetFarm });
     const projectionInventory = cookPageData?.inventory || {};
     const fishXpSummary = cookPageData?.meta?.fishXpSummary || latestCookPageData?.meta?.fishXpSummary || {};
     const keepQuantity = Math.max(0, Number(dataSet?.options?.inputKeep || 0));
@@ -388,14 +395,14 @@ export default function CookTable() {
             xquantd = selectedQuantityCook === "daily" ? xquantd > iquantd ? iquantd : xquantd : xquantd;
             //!TryChecked ? food[item].dprod = xquantd : food[item].dprodtry = xquantd;
             const iKeep = selectedQuantCook !== "unit" ? dataSet.options.inputKeep : 0;
-            const iQuant = selectedQuantityCook === "farm" ? (quantity - iKeep > 0 ? quantity - iKeep : 0) : xquantd;
+            const iQuant = selectedQuantityCook === "stock" ? (stockResult.quantities[item] || 0) : selectedQuantityCook === "farm" ? (quantity - iKeep > 0 ? quantity - iKeep : 0) : xquantd;
             const cookitValue = Number(cobj?.cookit) || 0;
             const xpBase = Number(cobj ? (!TryChecked ? cobj.xp : cobj.xptry) : 0) || 0;
             const ixp = selectedQuantCook === "unit" ? xpBase : xpBase * iQuant;
             const ixph = Number(cobj ? (!TryChecked ? cobj.xph : cobj.xphtry) : 0) || 0;
             const xpsflBase = Number(cobj ? (!TryChecked ? cobj.xpsfl : cobj.xpsfltry) : 0) || 0;
             const ixpsfl = xpsflBase * dataSet.options.coinsRatio;
-            totXP += (selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" ? isNaN(ixp) ? 0 : Number(ixp) * cookitValue : isNaN(ixp) ? 0 : Number(ixp));
+            totXP += (selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" || selectedQuantityCook === "stock" ? isNaN(ixp) ? 0 : Number(ixp) * cookitValue : isNaN(ixp) ? 0 : Number(ixp));
             if (cookitValue === 1) {
                 if (!BldTime[ibld]) { BldTime[ibld] = 0 }
                 BldTime[ibld] += xquantd * timenbr;
@@ -445,7 +452,7 @@ export default function CookTable() {
                 if (time !== "" && time !== 0) { time = convTime(iQuant * timenbr) }
                 if (timecomp !== "" && timecomp !== 0) { timecomp = convTime(iQuant * timecrpnbr) }
             }
-            if (((selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax") && cookitValue === 1) || selectedQuantityCook === "farm") {
+            if (((selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax") && cookitValue === 1) || selectedQuantityCook === "farm" || selectedQuantityCook === "stock") {
                 totOil += oilQty;
                 totCost += icost;
                 totCostp2p += icostp2p;
@@ -468,7 +475,7 @@ export default function CookTable() {
                     </td> : null}
                     <td id="iccolumn"><i><img src={ico} alt={''} className="itico" title={item} /></i></td>
                     {xListeColCook[1][1] === 1 ? <td className="tditem">{item}</td> : null}
-                    {selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" ? <td className="tdcenter">
+                    {selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" || selectedQuantityCook === "stock" ? <td className="tdcenter">
                         <input
                             type="checkbox"
                             name={`cookit:${item}`}
@@ -562,7 +569,7 @@ export default function CookTable() {
                 style={{ width: "34px" }}
             />
             : "";
-        const showLevelRange = selectedQuantityCook !== "farm";
+        const showLevelRange = selectedQuantityCook !== "farm" && selectedQuantityCook !== "stock";
         const levelDays = Number(fromtolvltime);
         const levelXp = Number(fromtolvlxp);
         const levelDaysLabel = Number.isFinite(levelDays) ? `${levelDays.toFixed(1)} days` : "- days";
@@ -756,13 +763,14 @@ export default function CookTable() {
                             {xListeColCook[0][1] === 1 ? <th className="thcenter" >Building</th> : null}
                             <th className="th-icon">   </th>
                             {xListeColCook[1][1] === 1 ? <th className="thcenter" >Food</th> : null}
-                            {selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" ? <th className="thcenter" >Cook</th> : null}
+                            {selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" || selectedQuantityCook === "stock" ? <th className="thcenter" >Cook</th> : null}
                             {xListeColCook[2][1] === 1 ? <th className="thcenter" >
                                 <DList
                                     name="selectedQuantityCook"
                                     title="Quantity"
                                     options={[
                                         { value: "farm", label: "Farm" },
+                                        { value: "stock", label: "Stock" },
                                         { value: "dailymax", label: "Daily" },
                                     ]}
                                     value={selectedQuantityCook}
@@ -809,16 +817,20 @@ export default function CookTable() {
                                 {xListeColCook[0][1] === 1 ? <td className="tdcenter">Total</td> : null}
                                 <td></td>
                                 {xListeColCook[1][1] === 1 ? <td></td> : null}
-                                {selectedQuantityCook !== "farm" ? <td className="tdcenter"></td> : null}
+                                {(selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" || selectedQuantityCook === "stock") ? <td className="tdcenter"></td> : null}
                                 {/* {xListeColCook[1][1] === 1 && selectedQuantityCook === "farm" ? <td className="tditem"></td> : null} */}
                                 {xListeColCook[2][1] === 1 ? (
                                     <td className="tdcenter">
                                         {selectedQuantityCook === "farm" ? (
                                             <span title="Keep for deliveries">{xinputKeept}{xinputKeep}</span>
-                                        ) : null}
+                                        ) : selectedQuantityCook === "stock" ? <>
+                                            <DList title="Priority" value={stockPriority} options={[{ value: "xph", label: "XP/H" }, { value: "xpsfl", label: "XP/SFL" }]} onChange={(e) => setStockPriority(e.target.value)} height={20} />
+                                            {stockResult.loading ? <CircularProgress size={12} /> : null}
+                                            {stockResult.error ? <span role="alert">{stockResult.error}</span> : null}
+                                        </> : null}
                                     </td>
                                 ) : null}
-                                {xListeColCook[3][1] === 1 ? <td className="tdcenter">{selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" || selectedQuantityCook === "farm" ? parseFloat(totXP).toFixed(1) : ""}</td> : null}
+                                {xListeColCook[3][1] === 1 ? <td className="tdcenter">{selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" || selectedQuantityCook === "farm" || selectedQuantityCook === "stock" ? parseFloat(totXP).toFixed(1) : ""}</td> : null}
                                 {xListeColCook[4][1] === 1 ? <td className="tdcenter" style={{ color: timeOver && selectedQuantityCook !== "farm" ? "rgb(255, 0, 0)" : "rgb(255, 255, 255)" }}>
                                     {selectedQuantityCook !== "farm" ? totTime : ""}</td> : null}
                                 {xListeColCook[5][1] === 1 ? <td className="tdcenter"></td> : null}

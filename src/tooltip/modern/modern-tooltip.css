@@ -458,6 +458,32 @@
   align-items: center;
 }
 
+.modern-tooltip__delivery-total {
+  position: sticky;
+  bottom: -7px;
+  z-index: 4;
+  display: grid;
+  gap: 3px;
+  margin-top: 9px;
+  padding: 6px 8px;
+  border-top: 1px solid rgba(221, 164, 119, 0.3);
+  border-radius: 5px;
+  color: #dda477;
+  background: #2e1d16;
+  box-shadow: 0 -1px rgba(0, 0, 0, 0.28);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.modern-tooltip__delivery-total > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.modern-tooltip__delivery-total strong { color: #fff8f1; white-space: nowrap; }
+
 .composition-tree.is-compact .composition-tree__head,
 .composition-tree.is-compact .composition-tree__row,
 .composition-tree.is-compact .composition-tree__total {
@@ -485,6 +511,8 @@
 .composition-tooltip__title img { width: 23px; height: 23px; object-fit: contain; }
 .composition-tooltip__title span { color: #dda477; font-weight: 700; }
 .composition-tooltip__title small { margin-left: auto; color: #95d98c; font-size: 11px; }
+.composition-tooltip__fish-yield { display: flex; align-items: center; gap: 3px; color: rgba(248, 238, 231, 0.68); font-size: 11px; }
+.composition-tooltip__fish-yield img { width: 16px; height: 16px; object-fit: contain; }
 .composition-tooltip__created { display: inline-flex; align-items: center; gap: 2px; }
 .composition-tooltip__created img { width: 16px; height: 16px; object-fit: contain; }
 

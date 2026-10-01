@@ -114,7 +114,7 @@
 .home-modern .home-row-excluded > td:not(.home-item-cell),
 .home-modern .home-row-excluded > .home-item-cell > * { opacity: .5; }
 .home-modern .collapsible-content th.home-item-cell { z-index: 5; background: var(--hm-raised); }
-.home-modern .collapsible-content .nodico { width: 22px; height: 22px; object-fit: contain; }
+.home-modern .collapsible-content .nodico { width: 20px; height: 20px; object-fit: contain; }
 .home-modern .home-item-toggle { padding: 4px 2px; }
 .home-modern .home-item-checkbox { width: 10px; height: 10px; min-width: 10px; min-height: 10px; }
 
@@ -124,7 +124,7 @@
   .home-modern .collapsible-header { padding: 4px 3px; }
   .home-modern-summary { padding: 3px 3px 0; }
   .home-modern .collapsible-header-left .nodico { width: 14px; height: 14px; }
-  .home-modern .collapsible-content .nodico { width: 18px; height: 18px; }
+  .home-modern .collapsible-content .nodico { width: 16px; height: 16px; }
 }
 
 @media (max-width: 299px) {

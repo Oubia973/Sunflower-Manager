@@ -27,6 +27,7 @@ export const MODERN_TOOLTIP_CONTEXTS = new Set([
   "craftcompo",
   "shrinecost",
   "crustaceancost",
+  "deliverycost",
   "cmgainh",
   "cmdailysfl",
   "animalcostu",

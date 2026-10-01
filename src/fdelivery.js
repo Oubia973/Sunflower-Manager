@@ -6,6 +6,8 @@ import Tooltip from "./tooltip.js";
 import AutoRefreshProgress from "./components/AutoRefreshProgress";
 import { selectCurrentProjection } from "./utils/farmState.js";
 import { selectChoreComponentsContract } from "./tooltip/choreComponentsContract.js";
+import { resolveCompositionTooltipContract } from "./tooltip/resolvers/inventoryTooltipResolvers.js";
+import { buildDeliveryFishComposition } from "./tooltip/deliveryFishComposition.js";
 import {
   imgcancel,
   imgalready,
@@ -182,11 +184,27 @@ function ModalDlvr({
       const resolved = resolveDeliveryItem(itemName);
       if (!resolved) { return; }
       const { production: unitCost, market: unitMarket } = getResolvedUnitPrices(resolved);
-      const cost = unitCost * qtyNum;
-      const market = unitMarket * qtyNum;
+      const fishName = resolved.isAged ? itemName.slice("Aged ".length) : itemName;
+      const mode = TryChecked ? "try" : "active";
+      const fishCosts = deliveryPageData?.tooltipData?.fishCosts;
+      const fishComposition = buildDeliveryFishComposition({
+        fish: fishCosts?.[fishName]?.[mode],
+        shared: fishCosts?._shared?.[mode],
+        quantity: qtyNum,
+        includeChum: !!dataSet?.options?.chumFishCost,
+        saltQuantity: resolved.isAged ? Number(resolved.entry?.[key("salt")] ?? resolved.entry?.salt ?? 0) : 0,
+        saltUnitCost: Number(resolved.salt?.[key("cost")] ?? resolved.salt?.cost ?? 0) / coinsRatio,
+        saltUnitMarket: Number(resolved.salt?.[key("costp2pt")] ?? resolved.salt?.costp2pt ?? 0),
+      });
+      const cost = fishComposition?.cost ?? unitCost * qtyNum;
+      const market = fishComposition?.market ?? unitMarket * qtyNum;
       totalCost += cost;
       totalMarket += market;
-      rows.push({ name: itemName, displayName: itemName, img: resolved.entry?.img || imgna, isAged: resolved.isAged, quantity: qtyNum, cost, market });
+      const composition = fishComposition
+        ? { items: [{ itemName, quantity: qtyNum, costTree: fishComposition.costTree,
+          averageYieldPerRod: fishComposition.averageYield, rodImage: fishCosts?._shared?.[mode]?.rodImage }] }
+        : resolveCompositionTooltipContract(dataSetFarm, "cookcost", itemName, { qty: qtyNum }, TryChecked);
+      rows.push({ name: itemName, displayName: itemName, img: resolved.entry?.img || imgna, isAged: resolved.isAged, quantity: qtyNum, cost, market, composition });
     });
     return { rows, totalCost, totalMarket };
   };

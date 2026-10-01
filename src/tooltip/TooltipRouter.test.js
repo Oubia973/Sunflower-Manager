@@ -4,7 +4,8 @@ describe("TooltipRouter", () => {
   test("uses the modern renderer only for a migrated context in compact mode", () => {
     expect(shouldUseModernTooltip("compact", "dailysfl", {})).toBe(true);
     expect(shouldUseModernTooltip("classic", "dailysfl", {})).toBe(false);
-    expect(shouldUseModernTooltip("compact", "deliverycost", {})).toBe(false);
+    expect(shouldUseModernTooltip("compact", "deliverycost", { rows: [] })).toBe(true);
+    expect(shouldUseModernTooltip("classic", "deliverycost", { rows: [] })).toBe(false);
     expect(shouldUseModernTooltip("compact", "cmgainh", {})).toBe(true);
     expect(shouldUseModernTooltip("compact", "cmdailysfl", {})).toBe(true);
     expect(shouldUseModernTooltip("classic", "cmdailysfl", {})).toBe(false);

@@ -53,8 +53,9 @@ test("builds a shared image catalog for composition renderers", () => {
   const catalog = buildCompositionCatalog({
     invData: { itables: { it: { Wood: { img: "wood.png" } } } },
     itables: { tool: { Axe: { img: "axe.png" } } },
+    deliveryData: { tooltipData: { compositionImages: { Doll: "doll.png" } } },
   });
-  expect(catalog).toMatchObject({ Wood: { image: "wood.png" }, Axe: { image: "axe.png" } });
+  expect(catalog).toMatchObject({ Wood: { image: "wood.png" }, Axe: { image: "axe.png" }, Doll: { image: "doll.png" } });
 });
 
 test("attaches the authoritative feed composition to an animal unit contract", () => {

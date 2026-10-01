@@ -273,8 +273,8 @@ function ActivityStep({ step }) {
   );
 }
 
-export default function ChatbotDebugPanel({ statusLog, messageIndex, isActive = false, showWhenEmpty = false }) {
-  if (!statusLog?.length && !showWhenEmpty) return null;
+export default function ChatbotDebugPanel({ statusLog, messageIndex, isActive = false }) {
+  if (!statusLog?.length) return null;
   const debug = parseDebugStatus(statusLog);
   const steps = buildActivitySteps(statusLog, isActive);
   const currentStep = steps[steps.length - 1];

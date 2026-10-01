@@ -277,7 +277,6 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
                   statusLog={message.statusLog}
                   messageIndex={index}
                   isActive={loading && index === messages.length - 1}
-                  showWhenEmpty={Boolean(message.responseId)}
                 />
                 {message.role === "assistant" && message.responseId && !(loading && index === messages.length - 1) ? (
                   <button type="button" className="chatbot-feedback-button" onClick={() => reportAnswer(message.responseId)}
