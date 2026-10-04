@@ -51,7 +51,7 @@ export default function useChatbotConversation({ API_URL, farmId, options, tryCh
       .then((quota) => {
         if (!quota?.ok) return;
         const models = quota.models || null;
-        setModelQuotas(models);
+        setModelQuotas({ ...models, providerUsage: quota.providerUsage || null });
         if (selectedModel === "luna" && !(models?.luna?.unlimited === true || Number(models?.luna?.remaining || 0) > 0)) {
           setSelectedModelState("qwen");
           try {

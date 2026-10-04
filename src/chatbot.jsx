@@ -178,6 +178,7 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
     ? `${Math.max(0, Math.min(100, Math.round((Number(remaining || 0) / limit) * 100)))}%`
     : "0%";
   const selectedQuota = modelQuotas?.[selectedModel];
+  const providerUsage = modelQuotas?.providerUsage;
   const quotaRemaining = selectedQuota?.remaining;
 
 
@@ -250,6 +251,13 @@ function ModalChatbot({ onClose, API_URL, farmId, options, tryChecked, tryitPayl
                         <div className="chatbot-quota-row"><span>Remaining tokens</span><span>{Number(modelQuotas.luna.remaining || 0).toLocaleString()} tokens</span></div> :
                         <div className="chatbot-quota-row"><span>Credits</span><span>{percentLeft(modelQuotas?.luna?.paidRemaining, modelQuotas?.luna?.paidGranted)} left</span></div>}
                   </div>
+                  {providerUsage?.tokens ? <div className="chatbot-quota-section chatbot-provider-usage">
+                    <div className="chatbot-quota-heading"><b>Usage by provider</b><span>{providerUsage.monthKey || "This month"}</span></div>
+                    <div className="chatbot-quota-row"><span>Gemini</span><span>{Number(providerUsage.tokens.gemini || 0).toLocaleString()} tokens</span></div>
+                    <div className="chatbot-quota-row"><span>Groq</span><span>{Number(providerUsage.tokens.groq || 0).toLocaleString()} tokens</span></div>
+                    <div className="chatbot-quota-row"><span>Qwen local</span><span>{Number(providerUsage.tokens.local || 0).toLocaleString()} tokens</span></div>
+                    <div className="chatbot-quota-row"><span>Luna (OpenAI)</span><span>{Number(providerUsage.tokens.openai || 0).toLocaleString()} tokens</span></div>
+                  </div> : null}
                 </div>}
               </div>
             ) : null}

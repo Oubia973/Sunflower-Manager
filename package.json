@@ -55,5 +55,8 @@
     "eslint-plugin-react": "^7.37.5",
     "globals": "^17.9.0",
     "react-scripts": "^5.0.1"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "1.14.5"
   }
 }
