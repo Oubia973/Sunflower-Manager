@@ -108,6 +108,21 @@ test("rejected section request clears loading without recording synchronization"
   expect(api.headerRequestLoading).toBe(false);
 });
 
+test("navigation to Home while another page loads resumes Home when the request settles", async () => {
+  const state = context();
+  state.farm = { frmid: 901 };
+  state.farmRef.current = state.farm;
+  state.ui = { selectedInv: "craft" };
+  let complete;
+  state.fetch.mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }));
+  await act(async () => root.render(<Sections state={state} />));
+  state.ui = { selectedInv: "home" };
+  await act(async () => root.render(<Sections state={state} />));
+  expect(state.fetch).toHaveBeenCalledTimes(1);
+  await act(async () => complete({ status: "applied", requestedPage: "craft" }));
+  expect(state.fetch).toHaveBeenCalledTimes(2);
+});
+
 test("non-subscriber first refresh is at 20 seconds, then 60, using latest page and delivery sections", async () => {
   const state = context();
   await act(async () => root.render(<Auto state={state} />));

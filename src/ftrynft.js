@@ -2,6 +2,7 @@ import { prepareFarmTableResponse } from "./utils/farmResponse/prepareFarmRespon
 import useFarmApplyContext, { FARM_APPLY_CHANGED_MESSAGE } from "./components/trynft/useFarmApplyContext.js";
 import { buildSkillBudgetRequestState } from "./components/trynft/skillBudgetRequest.js";
 import { getSkillLevelColor } from "./components/trynft/skillLevelColor.js";
+import { getOrderedSkillEntries } from "./components/trynft/skillDisplayOrder.js";
 import { withTrysetTables } from "./components/trynft/trysetTables.js";
 import React, { useEffect, useRef, useState } from 'react';
 import './components/trynft/panel-resize.css';
@@ -1320,7 +1321,7 @@ function ModalTNFT({ onClose }) {
     const nftEntries = nft && Object.entries(nft);
     const nftwEntries = nftw && Object.entries(nftw);
     const buildEntries = buildng && Object.entries(buildng);
-    const skillEntries = skill && Object.entries(skill);
+    const skillEntries = skill && getOrderedSkillEntries(skill);
     const skilllgcEntries = skilllgc && Object.entries(skilllgc);
     const shrineEntries = shrine && Object.entries(shrine);
     const budEntries = bud && Object.entries(bud);

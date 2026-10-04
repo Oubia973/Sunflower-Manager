@@ -26,6 +26,7 @@ export function useSectionLoader(
 ) {
   const [sectionsLoading] = useState(false);
   const [headerRequestLoading, setHeaderRequestLoading] = useState(false);
+  const [navResumePulse, setNavResumePulse] = useState(0);
 
   const navLoadInFlightRef = useRef(false);
   const lastNavLoadSignatureRef = useRef({ signature: '', at: 0 });
@@ -165,6 +166,11 @@ export function useSectionLoader(
     } finally {
       navLoadInFlightRef.current = false;
       endHeaderRequest();
+      // The new view's effect may have run while the previous request held
+      // the lock. Resume it once that request settles, using the latest view.
+      if (viewGeneration !== viewContextRef.current.generation) {
+        setNavResumePulse(pulse => pulse + 1);
+      }
     }
   }, [
     dataSetFarm, dataSetFarmRef, ui, pageSectionRequirements, sectionPayloadKeys, sectionTablePaths,
@@ -191,7 +197,7 @@ export function useSectionLoader(
     };
   }, [
     ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView,
-    autoRefreshPulse, dataSetFarm, dataSetFarm?.frmid, pageSectionRequirements, sectionPayloadKeys, sectionTablePaths,
+    autoRefreshPulse, navResumePulse, dataSetFarm, dataSetFarm?.frmid, pageSectionRequirements, sectionPayloadKeys, sectionTablePaths,
     loadSectionsIfNeeded
   ]);
 

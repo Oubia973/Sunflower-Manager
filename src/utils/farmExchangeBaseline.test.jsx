@@ -74,6 +74,25 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.useRealTimers(); jest.restoreAllMocks(); });
 
+test("a successful refresh without Try revision metadata makes an older Home projection renderable", async () => {
+  const initial = packet();
+  initial.tryitRevision = 2;
+  initial.homeData._source.tryitRevision = 1;
+  const state = context(initial);
+  fetchJson.mockResolvedValue({ priceData: [], allData: {
+    frmid: 901,
+    homeData: { amount: 42, _source: { section: "home", contentHash: "home-v2" } },
+    projectionHashes: { homeData: "home-v2" }, returnedSections: ["home"],
+  } });
+  await act(async () => root.render(<Fetcher state={state} />));
+  let result;
+  await act(async () => { result = await api.getPricesWithOutcome(false, true, ["home"], false, "home", true); });
+  expect(result.status).toBe("applied");
+  expect(hasSectionData(state.farm, "home", { home: ["homeData"] }, {})).toBe(true);
+  expect(state.farm.homeData._source.tryitRevision).toBe(2);
+  expect(state.farm.homeData.amount).toBe(42);
+});
+
 test("initial load and refresh preserve the same received farm values with their distinct HTTP envelopes", async () => {
   const loaded = context();
   fetchJsonResponse.mockResolvedValue({ response: { status: 200 }, data: packet() });

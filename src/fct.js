@@ -316,8 +316,21 @@ export function mergeFarmStateDeep(prevFarm, nextFarm, tryitConfig = null) {
     if (nextVal === undefined || nextVal === null) return;
     merged[key] = mergeNode(prev[key], nextVal, [key]);
   });
-  const incomingTryRevision = Math.max(0, Math.floor(Number(next?.tryitRevision) || 0));
+  // /getdatacrypto does not stamp a Try revision. Its caller has already
+  // checked the request's Tryset context, so fresh/confirmed projections
+  // belong to the current revision instead of inheriting an obsolete one.
+  const incomingTryRevision = Math.max(0, Math.floor(Number(next?.tryitRevision ?? prev?.tryitRevision) || 0));
   const projectionHashes = isPlainObject(next?.projectionHashes) ? next.projectionHashes : {};
+  // A freshly delivered projection replaces the client's invalidation flag.
+  // Scoped responses may omit projectionHashes; an old stale flag must not
+  // survive the deep merge of a new authoritative projection.
+  Object.keys(next).forEach((key) => {
+    if (!key.endsWith("Data") || !isPlainObject(next[key]?._source) || !isPlainObject(merged[key])) return;
+    merged[key] = {
+      ...merged[key],
+      _source: { ...merged[key]._source, stale: next[key]._source.stale === true },
+    };
+  });
   if (incomingTryRevision > 0) {
     Object.keys(next).forEach((key) => {
       if (!key.endsWith("Data") || !isPlainObject(next[key]) || !isPlainObject(merged[key])) return;

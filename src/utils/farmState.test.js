@@ -1,5 +1,16 @@
 import { mergeFarmStateDeep } from "../fct.js";
 
+test.each(["homeData", "cookData", "fishData"])("refresh of %s without a revision stamp replaces its old Try revision", (key) => {
+  const previous = { tryitRevision: 2,
+    [key]: { amount: 1, _source: { section: "page", contentHash: "old", tryitRevision: 1 } } };
+  const refreshed = mergeFarmStateDeep(previous, {
+    [key]: { amount: 2, _source: { section: "page", contentHash: "new" } },
+    projectionHashes: { [key]: "new" },
+  });
+  expect(selectCurrentProjection(refreshed, key)?.amount).toBe(2);
+  expect(refreshed[key]._source.tryitRevision).toBe(2);
+});
+
 test("projection contracts can replace a finite return with null", () => {
   const previous = {
     invData: {
@@ -194,5 +205,17 @@ describe("versioned page projections", () => {
     expect(nextRevision.homeData._source.stale).toBe(false);
     expect(nextRevision.homeData._source.tryitRevision).toBe(8);
     expect(selectCurrentProjection(nextRevision, "homeData")).toBe(nextRevision.homeData);
+  });
+
+  test.each(["homeData", "cookData", "fishData"])("fresh %s clears cached invalidation without global hashes", (key) => {
+    const previous = {
+      tryitRevision: 7,
+      [key]: { amount: 1, _source: { section: "page", contentHash: "old", tryitRevision: 7, stale: true } },
+    };
+    const refreshed = mergeFarmStateDeep(previous, {
+      [key]: { amount: 2, _source: { section: "page", contentHash: "fresh", tryitRevision: 7 } },
+    });
+    expect(selectCurrentProjection(refreshed, key)?.amount).toBe(2);
+    expect(previous[key]._source.stale).toBe(true);
   });
 });

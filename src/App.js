@@ -14,9 +14,8 @@ import { Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, UpdatedSince, getOrCreateDeviceId } from './fct.js';
 import { promptPass, promptInfo, promptConfirm, promptChoice, promptInput } from './promptW';
 import { fetchJson } from './services/apiClient.js';
-import { createItemDashboardCache } from './components/inventory/itemDashboardCache.js';
+import { useItemDashboardLoader } from './hooks/useItemDashboardLoader.js';
 import { useItemDashboardLayers } from './components/inventory/useItemDashboardLayers.js';
-import { normalizeServerImagesDeep } from './constants/images.js';
 import { useAppVersionRefresh } from './hooks/useAppVersionRefresh.js';
 
 import { AppCtx } from "./context/AppCtx";
@@ -1284,23 +1283,11 @@ function App() {
 
   const config = useMemo(() => ({ API_URL, tryitConfig }), [API_URL, tryitConfig]);
 
-  const itemDashboardCache = useRef(createItemDashboardCache());
-  const itemDashboardScope = useMemo(() => ({}), [dataSetFarm, dataSet.options, ui.selectedTrySeason, tryitConfig]);
-  const loadItemDashboardData = useCallback((name) => itemDashboardCache.current(itemDashboardScope, name, async () => {
-    const farm = dataSetFarmRef.current || {};
-    const payload = await fetchJson(API_URL, "/getItemDashboard", {
-      method: "POST",
-      body: {
-        item: name,
-        frmid: farm.frmid || dataSet.options.farmId,
-        options: dataSet.options,
-        deviceId: deviceIdRef.current,
-        selectedTrySeason: String(ui.selectedTrySeason || "all").toLowerCase(),
-        ...getTryitRequestPayload(farm),
-      },
-    });
-    return normalizeServerImagesDeep(payload);
-  }), [itemDashboardScope, dataSet.options, ui.selectedTrySeason, getTryitRequestPayload]);
+  const loadItemDashboardData = useItemDashboardLoader({
+    apiUrl: API_URL, farmState: dataSetFarm, farmRef: dataSetFarmRef,
+    options: dataSet.options, selectedTrySeason: ui.selectedTrySeason,
+    tryitConfig, getTryitRequestPayload, deviceIdRef,
+  });
 
   const actions = useMemo(() => ({
     handleUIChange, handleOptionChange, setUIField, setOptionField,
