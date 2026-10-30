@@ -4,6 +4,7 @@ import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel, Ci
 import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, timeToDays, flattenCompoit, buildSeriesMeta } from '../fct.js';
 import DList from "../dlist.jsx";
 import useCookStock from "../components/cook/useCookStock.js";
+import { getCookDisplayNames } from "../components/cook/cookDisplayOrder.js";
 import { fetchJson } from "../services/apiClient.js";
 import { selectCurrentProjection } from "../utils/farmState.js";
 import { selectCookViewTables } from "../utils/cookViewTables.js";
@@ -268,9 +269,7 @@ export default function CookTable() {
         const { it, food, fish, bounty, pfood, crustacean } = cookTables;
         //const inventoryEntries = selectedQuantityCook === "farm" || "daily" || "dailymax" ? Object.entries(farmData.inventory) : Object.entries(farmData.inventory);
         const inventoryMap = cookPageData?.inventory || {};
-        const foodNames = Object.keys(food);
-        const pfoodNames = Object.keys(pfood);
-        const cookNames = [...foodNames, ...pfoodNames];
+        const cookNames = getCookDisplayNames(food, pfood);
         const Compo = [];
         Compo["total"] = [];
         const sortedCompo = [];

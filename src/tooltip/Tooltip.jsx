@@ -1,3 +1,4 @@
+import { imgpig } from "../constants/images.js";
 import React, { useEffect, useLayoutEffect, useMemo, useState, useRef } from 'react';
 import { frmtNb, convTime } from '../fct.js';
 import TradesTooltip from './TradesTooltip.jsx';
@@ -543,7 +544,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                                 stone: imgstone, iron: imgironSmall, gold: imggoldSmall, crimstone: imgcrimstoneRock5,
                                 sunstone: imgsunstoneRock1, salt: imgsaltfarm, obsidian: imglavaPit, oil: imgoilReserveFull,
                                 fruit: imgappleTree, honey: imgbeehive, flower: imgflowerbed,
-                                chicken: imgchkn, cow: imgcow, sheep: imgsheep,
+                                chicken: imgchkn, cow: imgcow, sheep: imgsheep, pig: imgpig,
                             },
                         }}
                     />
@@ -572,7 +573,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                                 stone: imgstone, iron: imgironSmall, gold: imggoldSmall, crimstone: imgcrimstoneRock5,
                                 sunstone: imgsunstoneRock1, salt: imgsaltfarm, obsidian: imglavaPit, oil: imgoilReserveFull,
                                 fruit: imgappleTree, honey: imgbeehive, flower: imgflowerbed,
-                                chicken: imgchkn, cow: imgcow, sheep: imgsheep,
+                                chicken: imgchkn, cow: imgcow, sheep: imgsheep, pig: imgpig,
                             },
                             secondaryNodes: {
                                 wood: { secondary: imgsummerBasicAncientTree, tertiary: imgsummerBasicSacredTree },
@@ -640,7 +641,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                     fallback: imgna,
                     mix: imgmix,
                     omni: imgomni,
-                    animals: { Chicken: imgchkn, Cow: imgcow, Sheep: imgsheep },
+                    animals: { Chicken: imgchkn, Cow: imgcow, Sheep: imgsheep, Pig: imgpig },
                     flower: imgsfl,
                     market: imgmp,
                 }}

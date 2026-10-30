@@ -1,6 +1,6 @@
 const CATEGORY_ORDER = [
   "Crops", "Fruits", "Trees", "Fishing", "Animals", "Greenhouse",
-  "Mining", "Cooking", "Bees Flowers", "Machinery", "Compost", "Aging",
+  "Mining", "Cooking", "Bees Flowers", "Machinery", "Compost", "Aging", "Cave",
 ];
 
 const compareNames = (left, right) => String(left || "").localeCompare(String(right || ""), "en");

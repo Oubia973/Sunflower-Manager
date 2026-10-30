@@ -6,7 +6,7 @@ import {
   imgl2IronRock, imgl2StoneRock, imgl3GoldRock, imgl3IronRock, imgl3StoneRock,
   imglavaPit, imgmix, imgna, imgoilReserveFull, imgsaltfarm, imgsfl, imgsheep,
   imgspring, imgstone, imgsummer, imgsummerBasicAncientTree, imgsummerBasicSacredTree,
-  imgsunstoneRock1, imgwinter, imgwood,
+  imgsunstoneRock1, imgwinter, imgwood, imgpig,
 } from "../../../constants/images.js";
 import CompositionTree from "../composition/CompositionTree.jsx";
 
@@ -104,7 +104,7 @@ const NODE_ICONS = {
   iron: imgironSmall, gold: imggoldSmall, crimstone: imgcrimstoneRock5,
   sunstone: imgsunstoneRock1, salt: imgsaltfarm, obsidian: imglavaPit,
   oil: imgoilReserveFull, fruit: imgappleTree, honey: imgbeehive,
-  flower: imgflowerbed, chicken: imgchkn, cow: imgcow, sheep: imgsheep,
+  flower: imgflowerbed, chicken: imgchkn, cow: imgcow, sheep: imgsheep, pig: imgpig,
 };
 
 const SECONDARY_NODE_ICONS = {

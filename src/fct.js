@@ -215,6 +215,14 @@ export function mergeFarmStateDeep(prevFarm, nextFarm, tryitConfig = null) {
     if (path.length === 1 && path[0] === "ftrades") {
       return nextNode !== undefined ? nextNode : prevNode;
     }
+    // Animal lists are complete snapshots, including empty lists. Keeping
+    // missing IDs would retain sold animals in counts and production totals.
+    if (
+      (path.length === 1 && path[0] === "Animals")
+      || (path.length === 2 && path[0] === "animalData" && path[1] === "Animals")
+    ) {
+      return nextNode !== undefined ? nextNode : prevNode;
+    }
     // Cost-tree node maps are complete snapshots. Deep-merging them keeps
     // removed recipe ingredients alive (for example Leather when Oil Rig
     // replaces it with Wool).

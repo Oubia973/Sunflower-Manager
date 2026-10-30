@@ -153,6 +153,7 @@ export const imgflowerbed = asset('./icon/flower/flower_bed_modal.png');
 export const imgchkn = asset('./icon/res/chkn.png');
 export const imgcow = asset('./icon/res/cow.webp');
 export const imgsheep = asset('./icon/res/sheep.webp');
+export const imgpig = asset('./icon/res/pig.webp');
 export const imgpet = asset('./icon/pet/dog.webp');
 export const imgpetCat = asset('./icon/pet/cat.webp');
 export const imgpetOwl = asset('./icon/pet/owl.webp');

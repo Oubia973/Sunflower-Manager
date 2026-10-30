@@ -5,6 +5,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { fetchJson } from '../services/apiClient.js';
+import { selectCurrentProjection } from '../utils/farmState.js';
 
 const EXPAND_TRYSET_BOOSTS = {
   monument: "Ascension Monument",
@@ -12,15 +13,14 @@ const EXPAND_TRYSET_BOOSTS = {
 };
 
 function findBoostItem(farmState, tableName, itemName) {
-  const direct = farmState?.boostables?.[tableName]?.[itemName];
-  if (direct && typeof direct === 'object') return direct;
-
-  // Page-scoped responses (notably Quick Tryset while on Expand) can keep the
-  // boost catalog in a projection until it is merged back into the root state.
-  for (const pageData of Object.values(farmState || {})) {
-    const projected = pageData?.boostables?.[tableName]?.[itemName];
+  // Expand/Quick Tryset responses carry current selections even when cached
+  // root tables still contain the previous Try revision.
+  for (const pageKey of ['expandPageData', 'tryNftData']) {
+    const projected = selectCurrentProjection(farmState, pageKey)?.boostables?.[tableName]?.[itemName];
     if (projected && typeof projected === 'object') return projected;
   }
+  const direct = farmState?.boostables?.[tableName]?.[itemName];
+  if (direct && typeof direct === 'object') return direct;
   return null;
 }
 
@@ -32,6 +32,16 @@ export function getExpandTrysetModifiers(farmState, tryChecked = false) {
     timeMultiplier: Number(monument?.[activeField]) === 1 ? 0.8 : 1,
     resourceMultiplier: Number(hammer?.[activeField]) === 1 ? 0.5 : 1,
   };
+}
+
+export function getExpandChapterBoostHeaders(farmState, tryChecked = false) {
+  const activeField = tryChecked ? 'tryit' : 'isactive';
+  return Object.fromEntries([
+    ['duende-monument', 'nft', 'Duende Monument'],
+    ['stick-house', 'nft', 'Stick House'],
+    ['brick-house', 'nft', 'Brick House'],
+    ['hercules-beetle-hat', 'nftw', 'Hercules Beetle Hat'],
+  ].map(([header, table, name]) => [header, Number(findBoostItem(farmState, table, name)?.[activeField]) === 1 ? '1' : '0']));
 }
 
 /**
@@ -74,7 +84,8 @@ export function useExpandHelpers(API_URL, dataSet, dataSetFarm, tryChecked = fal
       dataSetFarm,
       tryChecked,
     );
-    const requestSignature = `${farmId}|${spot}|${xfrom}|${xto}|${xtype}|${xascension}|${timeMultiplier}|${resourceMultiplier}`;
+    const chapterBoostHeaders = getExpandChapterBoostHeaders(dataSetFarm, tryChecked);
+    const requestSignature = `${farmId}|${spot}|${xfrom}|${xto}|${xtype}|${xascension}|${timeMultiplier}|${resourceMultiplier}|${JSON.stringify(chapterBoostHeaders)}`;
     if (requestSignature === expandRequestSignatureRef.current) {
       return;
     }
@@ -94,6 +105,7 @@ export function useExpandHelpers(API_URL, dataSet, dataSetFarm, tryChecked = fal
           ascension: xascension,
           "time-multiplier": timeMultiplier,
           "resource-multiplier": resourceMultiplier,
+          ...chapterBoostHeaders,
         },
       });
       if (reqSeq === expandRequestSeqRef.current) {
@@ -110,7 +122,7 @@ export function useExpandHelpers(API_URL, dataSet, dataSetFarm, tryChecked = fal
     finally {
       if (reqSeq === expandRequestSeqRef.current) setExpandLoading(false);
     }
-  }, [API_URL, dataSet?.options?.farmId, dataSet?.farmId, dataSetFarm?.spot, dataSetFarm?.boostables?.nft, tryChecked]);
+  }, [API_URL, dataSet?.options?.farmId, dataSet?.farmId, dataSetFarm, tryChecked]);
 
   return {
     fromtolvltime,

@@ -1,5 +1,22 @@
 import { mergeFarmStateDeep } from "../fct.js";
 
+test.each(["root", "projection"])("animal refresh removes absent individuals and types in %s", (scope) => {
+  const wrap = (Animals) => scope === "root" ? { Animals } : { animalData: { Animals } };
+  const read = (farm) => scope === "root" ? farm.Animals : farm.animalData.Animals;
+  const previous = wrap(Object.fromEntries(["Chicken", "Cow", "Sheep"].map((type) => [type, {
+    removed: { id: "removed", yield1: 9 }, kept: { id: "kept", yield1: 1 },
+  }])));
+  const incoming = wrap(Object.fromEntries(["Chicken", "Cow", "Sheep"].map((type) => [type, {
+    kept: { id: "kept", yield1: 2 },
+  }])));
+  const refreshed = mergeFarmStateDeep(previous, incoming);
+  expect(read(refreshed)).toEqual(read(incoming));
+  expect(read(previous).Chicken.removed).toBeDefined();
+  expect(read(mergeFarmStateDeep(refreshed, wrap({ Chicken: {} })))).toEqual({ Chicken: {} });
+  expect(read(mergeFarmStateDeep(refreshed, wrap({})))).toEqual({});
+  expect(read(mergeFarmStateDeep(refreshed, { homeData: { amount: 1 } }))).toEqual(read(refreshed));
+});
+
 test.each(["homeData", "cookData", "fishData"])("refresh of %s without a revision stamp replaces its old Try revision", (key) => {
   const previous = { tryitRevision: 2,
     [key]: { amount: 1, _source: { section: "page", contentHash: "old", tryitRevision: 1 } } };

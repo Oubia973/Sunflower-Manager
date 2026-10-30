@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb, ColorValue, PBar } from '../fct.js';
-import { imgmix, imgomni, imghoneyTreat, imgsaltLick } from "../constants/images.js";
+import { imgmix, imgomni, imghoneyTreat, imgsaltLick, imgpig } from "../constants/images.js";
 import { selectCurrentProjection } from "../utils/farmState.js";
 import createAnimalUnitCostContract from "../tooltip/animalUnitCostContract.js";
 
@@ -111,15 +111,19 @@ export default function AnimalTable() {
             //let love1Total = 0;
             //let love2Total = 0;
             const itemName = key;
-            const prod1name = (itemName === "Chicken") ? "Egg" : (itemName === "Cow") ? "Milk" : (itemName === "Sheep") ? "Wool" : "";
-            const xprod1img = it[prod1name].img || imgna;
+            const animalProducts = Object.keys(it)
+                .filter((name) => it[name]?.animal === itemName && [1, 2].includes(Number(it[name]?.matcat)))
+                .sort((a, b) => Number(it[a].matcat) - Number(it[b].matcat));
+            const prod1name = animalProducts.find((name) => Number(it[name]?.matcat) === 1) || "";
+            const xprod1img = it[prod1name]?.img || imgna;
             const prod1img = <img src={xprod1img} alt={''} className="itico" title={prod1name} />;
             const prod1img2 = <img src={xprod1img} alt={''} className="nftico" title={prod1name} />;
-            const prod2name = (itemName === "Chicken") ? "Feather" : (itemName === "Cow") ? "Leather" : (itemName === "Sheep") ? "Merino Wool" : "";
-            const xprod2img = it[prod2name].img || imgna;
-            const prod2img = <img src={xprod2img} alt={''} className="itico" title={prod2name} />;
-            const prod2img2 = <img src={xprod2img} alt={''} className="nftico" title={prod2name} />;
-            const itemImg = (itemName === "Chicken") ? imgchkn : (itemName === "Cow") ? imgcow : (itemName === "Sheep") ? imgsheep : imgna;
+            const prod2name = animalProducts.find((name) => Number(it[name]?.matcat) === 2) || "";
+            const hasProd2 = !!prod2name;
+            const xprod2img = it[prod2name]?.img || imgna;
+            const prod2img = hasProd2 ? <img src={xprod2img} alt={''} className="itico" title={prod2name} /> : null;
+            const prod2img2 = hasProd2 ? <img src={xprod2img} alt={''} className="nftico" title={prod2name} /> : null;
+            const itemImg = (itemName === "Chicken") ? imgchkn : (itemName === "Cow") ? imgcow : (itemName === "Sheep") ? imgsheep : itemName === "Pig" ? imgpig : imgna;
             const animalImg = <img src={itemImg} alt={''} className="nftico" title={itemName} />;
             const tableContent = animalKeys.map((element, rowIndex) => {
                 const cobj = element;
@@ -147,7 +151,7 @@ export default function AnimalTable() {
                 const prod2 = Number(parseFloat(!TryChecked ? cobj.yield2 : cobj.yield2try).toFixed(2)) || 0;
                 const prod2costRaw = ((!TryChecked ? cobj.costyield2 : cobj.costyield2try) / dataSet.options.coinsRatio) || 0;
                 const prod2cost = frmtNb(prod2costRaw) || 0;
-                const prod2costp2pRaw = (it[prod2name].costp2pt || 0) * tradeTaxMul;
+                const prod2costp2pRaw = hasProd2 ? ((it[prod2name]?.costp2pt || 0) * tradeTaxMul) : 0;
                 const prod2costp2p = frmtNb(prod2costp2pRaw) || 0;
                 const prod1costuwithfoodp2pRaw = Number((!TryChecked ? cobj.costyield1p2p : cobj.costyield1p2ptry) || 0);
                 const prod1costuwithfoodp2p = frmtNb(prod1costuwithfoodp2pRaw);
@@ -231,7 +235,7 @@ export default function AnimalTable() {
                                 </span>
                             </td>
                         ) : null}
-                        {xListeColAnimals[3][1] === 1 ? <td className="tdcenter animal-prod2-sticky">{prod2 > 0 && formatAnimalProd(prod2)}{prod2 > 0 && prod2img}</td> : null}
+                        {xListeColAnimals[3][1] === 1 ? <td className="tdcenter animal-prod2-sticky">{hasProd2 && prod2 > 0 && formatAnimalProd(prod2)}{hasProd2 && prod2 > 0 && prod2img}</td> : null}
                         {xListeColAnimals[4][1] === 1 ? <td className="tdcenter">{food}{foodimg}{honeyTreatImg}{saltLickImg}</td> : null}
                         {xListeColAnimals[5][1] === 1 ? <td className="tdcenter">{foodcost}</td> : null}
                         {xListeColAnimals[6][1] === 1 ? <td className="tdcenter">{foodcostp2p}</td> : null}
@@ -309,7 +313,7 @@ export default function AnimalTable() {
                         {xListeColAnimals[0][1] === 1 ? <th id="ichcolumn">{animalImg}</th> : null}
                         {xListeColAnimals[1][1] === 1 ? <th className="thcenter">LVL</th> : null}
                         {xListeColAnimals[2][1] === 1 ? <th className="thcenter">Prod1</th> : null}
-                        {xListeColAnimals[3][1] === 1 ? <th className="thcenter">Prod2</th> : null}
+                        {xListeColAnimals[3][1] === 1 ? <th className="thcenter">{hasProd2 ? "Prod2" : ""}</th> : null}
                         {xListeColAnimals[4][1] === 1 ? <th className="thcenter">Food</th> : null}
                         {xListeColAnimals[5][1] === 1 ? <th className="thcenter">Cost {imgprodit}</th> : null}
                         {xListeColAnimals[6][1] === 1 ? <th className="thcenter">Bought {imgbuyit}</th> : null}

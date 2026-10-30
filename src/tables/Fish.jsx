@@ -90,7 +90,9 @@ export default function FishTable() {
   const fishingDetails = dataSetFarm?.Fish || {};
   // Aging Shed values (calculated in backend, sent via fishingDetails)
   const agingSlots = Number(fishingDetails?.agingSlots || 1);
-  const agingTimeMultiplier = Number(fishingDetails?.agingTimeMultiplier || 1);
+  const agingTimeMultiplier = Number((TryChecked
+    ? fishingDetails?.agingTimeMultipliertry ?? fishingDetails?.agingTimeMultiplier
+    : fishingDetails?.agingTimeMultiplier) ?? 1);
   const countChumCost = !!dataSet?.options?.chumFishCost;
   const fishQuantModeRaw = String(selectedQuantFish || "").trim().toLowerCase();
   const fishQuantMode = fishQuantModeRaw === "aged" || fishQuantModeRaw === "primeaged" ? fishQuantModeRaw : "base";

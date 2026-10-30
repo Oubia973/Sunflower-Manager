@@ -314,7 +314,7 @@ export default function ExpandTable() {
                       {present(rowNodes[node.key])}
                     </td>
                   )) : null}
-                  {showTime ? <td className="tdcenter expand-time">{entry.seconds ? formatDuration(entry.seconds) : ""}</td> : null}
+                  {showTime ? <td className="tdcenter expand-time">{entry.seconds ? formatDuration(entry.effectiveSeconds ?? entry.seconds) : ""}</td> : null}
                   {showResourceColumns ? resourceColumns.map((resource) => (
                     <td className="tdcenter" key={resource.key}>
                       {present(rowResources[resource.key])}

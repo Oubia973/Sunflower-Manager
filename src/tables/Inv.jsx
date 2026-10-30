@@ -1,4 +1,5 @@
-﻿import { useEffect, useRef, useState } from "react";
+﻿import { imgpig } from "../constants/images.js";
+import { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, convtimenbr, convTime, ColorValue, ColorValueP, Timer, PBar, timeToDays } from '../fct.js';
@@ -8,6 +9,7 @@ import { imgshovel, imgwinterPath, imgspringPath, imgsummerPath, imgautumnPath, 
 import { selectCurrentProjection } from "../utils/farmState.js";
 import { buildBoostTooltipContract } from "../tooltip/boostTooltipContract.js";
 import "../styles/inv-readable.css";
+import ChapterResources from "../components/inventory/ChapterResources.jsx";
 
 var xBurning = [];
 xBurning.burn = [];
@@ -555,6 +557,7 @@ export default function InvTable({ dashboardPreview = false }) {
                         {showBuildings ? BldItems : null}
                     </tbody>
                 </table>
+                <ChapterResources inventory={inventoryMap} items={it} />
             </>
         );
         invIndex++;
@@ -757,6 +760,7 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             if (item === "Flower") { spotNb = spot.flower; istockorhoard = istock; spotImage = imgflowerbed; }
             if (item === "Milk" || item === "Leather") { spotNb = spot.cow; istockorhoard = istock; spotImage = imgcow; }
             if (item === "Wool" || item === "Merino Wool") { spotNb = spot.sheep; istockorhoard = istock; spotImage = imgsheep; }
+            if (item === "Truffle") { spotNb = spot.pig ?? spot.truffle; istockorhoard = istock; spotImage = imgpig; }
             if (icat === "fruit") { spotNb = spot.fruit; istockorhoard = istock * (4 + buildng["Immortal Pear"].isactive); spotImage = imgwood; }
             const hrvststk = (Math.floor(istock / spotNb) > 0 ? Math.floor(istockorhoard / spotNb) : 1);
             //const hrvststkfrt = (Math.floor(istockorhoard / iplanted) > 0 ? Math.floor(istockorhoard / iplanted) : 1);

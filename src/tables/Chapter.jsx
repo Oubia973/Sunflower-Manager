@@ -63,7 +63,7 @@ const POPPY_CATEGORY_ICONS = {
   Dolls: imgdoll,
   Obsidian: imgobsidian,
 };
-const CHAPTER_TICKET_BOOST_WEARABLES = ["Swamp Lily Hat", "Swamp Armor", "Swamp Pants"];
+const CHAPTER_TICKET_BOOST_WEARABLES = ["Duende Shoes", "Duende Pants", "Duende Shirt"];
 const CHAPTER_TICKETS_COOLDOWN_MS = 60 * 1000;
 
 export default function ChapterTable() {
